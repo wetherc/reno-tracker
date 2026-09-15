@@ -10,7 +10,11 @@ import { dataTable } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
 import { icon } from '../ui/icon.js';
 import { openMaterialEditor } from './materialEditor.js';
-import { varianceCell } from './scheduleTable.js';
+import {
+  costVariance,
+  totalCostVariance,
+  varianceCell,
+} from './scheduleTable.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
@@ -94,6 +98,7 @@ export function mountMaterials({ ctx, shell }) {
         formatCents(totals.allowanceCents),
         formatCents(totals.estimatedCents),
         formatCents(totals.actualCents),
+        varianceCell(totalCostVariance(payload.materials)),
         varianceCell(overall),
       ],
       columns: [
@@ -149,6 +154,14 @@ export function mountMaterials({ ctx, shell }) {
           align: 'end',
           compare: (a, b) => (a.actualCents ?? -1) - (b.actualCents ?? -1),
           cell: (item) => formatCents(item.actualCents),
+        },
+        {
+          key: 'vsEstimate',
+          label: 'Vs estimate',
+          align: 'end',
+          compare: (a, b) =>
+            (costVariance(a) ?? -Infinity) - (costVariance(b) ?? -Infinity),
+          cell: (item) => varianceCell(costVariance(item)),
         },
         {
           key: 'variance',

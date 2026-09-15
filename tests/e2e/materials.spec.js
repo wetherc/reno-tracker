@@ -63,7 +63,11 @@ test('list materials, tie one to the schedule, buy one, read the totals', async 
   await dialog.getByLabel('Actual').fill('1,180');
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog).toBeHidden();
-  await expect(tile.locator('.variance--under')).toHaveText('−$20.00');
+  // Vs estimate reads the same price against the estimate.
+  await expect(tile.locator('.variance--under')).toHaveText([
+    '−$270.00',
+    '−$20.00',
+  ]);
   await table.getByLabel('Mark Porcelain tile bought').check();
   await expect(page.locator('.toast').last()).toContainText(
     'Marked Porcelain tile bought',

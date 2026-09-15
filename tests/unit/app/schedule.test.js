@@ -2,7 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
 import { mountSchedule } from '../../../src/app/schedule.js';
-import { costVariance, varianceCell } from '../../../src/app/scheduleTable.js';
+import {
+  costVariance,
+  totalCostVariance,
+  varianceCell,
+} from '../../../src/app/scheduleTable.js';
 import { mountShell } from '../../../src/app/shell.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 import { itemOf, setupSchedule, tick } from './scheduleFixtures.js';
@@ -42,6 +46,15 @@ test('costVariance and varianceCell', () => {
   assert.equal(under.className, 'variance--under');
   assert.equal(under.textContent, '−$5.00');
   assert.equal(varianceCell(0).textContent, '$0.00');
+  assert.equal(totalCostVariance([itemOf('a'), itemOf('b')]), null);
+  assert.equal(
+    totalCostVariance([
+      itemOf('a'),
+      itemOf('b', { actualCents: 12000 }),
+      itemOf('c', { actualCents: 9500 }),
+    ]),
+    1500,
+  );
 });
 
 test('show does nothing without a project', () => {

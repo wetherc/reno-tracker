@@ -13,14 +13,30 @@ import { openScheduleEditor } from './scheduleEditor.js';
 /** @typedef {import('../types.ts').ScheduleItem} ScheduleItem */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /**
- * Actual minus estimate, or null until an actual is entered.
- * @param {ScheduleItem} item
+ * Actual minus estimate, or null until an actual is entered. Schedule
+ * items and materials both carry the two prices, so both tables use it.
+ * @param {{ estimatedCents: number, actualCents: number | null }} item
  * @returns {number | null}
  */
 export function costVariance(item) {
   return item.actualCents === null
     ? null
     : item.actualCents - item.estimatedCents;
+}
+
+/**
+ * The sum of costVariance over the rows that have an actual, or null
+ * when none does.
+ * @param {{ estimatedCents: number, actualCents: number | null }[]} items
+ * @returns {number | null}
+ */
+export function totalCostVariance(items) {
+  let total = null;
+  for (const item of items) {
+    const v = costVariance(item);
+    if (v !== null) total = (total ?? 0) + v;
+  }
+  return total;
 }
 
 /**

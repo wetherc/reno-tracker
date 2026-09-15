@@ -138,6 +138,7 @@ test('the table has one row per material, a totals row, and the planned columns'
       'Allowance',
       'Estimate',
       'Actual',
+      'Vs estimate',
       'Vs allowance',
     ],
   );
@@ -150,6 +151,7 @@ test('the table has one row per material, a totals row, and the planned columns'
     '$100.00',
     '$120.00',
     '$90.00',
+    '−$30.00',
     '−$10.00',
   ]);
   const expected = tile.children[3].children[0];
@@ -170,7 +172,8 @@ test('the table has one row per material, a totals row, and the planned columns'
   assert.equal(faucet.children[3].textContent, 'Nov 2');
   assert.equal(faucet.children[3].children[0].className, '');
   assert.equal(faucet.children[6].textContent, '—');
-  assert.equal(faucet.children[7].textContent, '−$50.00');
+  assert.equal(faucet.children[7].textContent, '—');
+  assert.equal(faucet.children[8].textContent, '−$50.00');
 
   const totals = footer(shell).children.map(
     (/** @type {any} */ td) => td.textContent,
@@ -183,6 +186,7 @@ test('the table has one row per material, a totals row, and the planned columns'
     '$400.00',
     '$370.00',
     '$90.00',
+    '−$30.00',
     '−$60.00',
   ]);
 });
