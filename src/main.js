@@ -3,9 +3,11 @@
 import { createApi } from './api/client.js';
 import { describeFailure } from './api/errors.js';
 import { createContext } from './app/context.js';
+import { mountProjects } from './app/projects.js';
 import { mountShell, SECTIONS } from './app/shell.js';
 import { mountTheme } from './app/theme.js';
 import { browserStorage, createPrefs } from './storage/prefs.js';
+import { button } from './ui/buttons.js';
 import { emptyState } from './ui/emptyState.js';
 import { createToaster } from './ui/Toast.js';
 
@@ -21,6 +23,7 @@ const toaster = createToaster(byId('toasts'));
 const ctx = createContext({ api: createApi(), prefs, toaster });
 
 mountTheme(byId('theme-toggle'), prefs);
+const projects = mountProjects({ ctx, host: byId('project-picker') });
 const shell = mountShell({
   sidebar: byId('sidebar'),
   main: byId('main'),
@@ -33,7 +36,14 @@ function render() {
   shell.setBody(
     ctx.payload
       ? emptyState(`Nothing in ${ctx.payload.project.name} yet.`)
-      : emptyState('No project open. Start one from the picker above.'),
+      : emptyState('No project open.', {
+          action: button({
+            label: 'Start a project',
+            icon: 'plus',
+            variant: 'primary',
+            onClick: projects.newProject,
+          }),
+        }),
   );
 }
 

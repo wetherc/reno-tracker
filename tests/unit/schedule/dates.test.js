@@ -6,6 +6,7 @@ import {
   parseDate,
   spanDays,
   toIsoDate,
+  todayIso,
 } from '../../../src/schedule/dates.js';
 
 test('isIsoDate accepts real dates only', () => {
@@ -37,4 +38,11 @@ test('spanDays is inclusive', () => {
   assert.equal(spanDays('2026-01-01', '2026-01-01'), 1);
   assert.equal(spanDays('2026-01-01', '2026-01-07'), 7);
   assert.equal(spanDays('2026-02-27', '2026-03-02'), 4);
+});
+
+test('todayIso uses the local calendar date', () => {
+  const late = new Date(2026, 2, 8, 23, 30);
+  assert.equal(todayIso(late), '2026-03-08');
+  assert.equal(todayIso(new Date(2026, 0, 1, 0, 5)), '2026-01-01');
+  assert.match(todayIso(), /^\d{4}-\d{2}-\d{2}$/);
 });

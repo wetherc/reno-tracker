@@ -59,3 +59,16 @@ export function spanDays(start, end) {
   const ms = parseDate(end).getTime() - parseDate(start).getTime();
   return Math.round(ms / 86_400_000) + 1;
 }
+
+/**
+ * Today's calendar date where the person sits, not in UTC. A form that
+ * opens late in the evening must not default to tomorrow.
+ * @param {Date} [now]
+ * @returns {string}
+ */
+export function todayIso(now = new Date()) {
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
