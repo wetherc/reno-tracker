@@ -1,18 +1,45 @@
 # Renovation Project Tracker
 
-This project is designed to track home renovation projects, as an alternative to JobTread.
+This project tracks home renovation projects for one household, as an
+alternative to JobTread. A small Node server serves the page and owns one
+SQLite database. The browser client is plain HTML, CSS, and JavaScript with
+no framework and no runtime dependency.
 
 ## Features
 
-This project's main functions include:
+- A schedule of work (items, start date, end date, description, responsible
+  party, estimated and actual costs, dependencies)
+- A change log on every schedule item. The server writes one entry for each
+  tracked field that a save changes, with an optional reason
+- User-authored notes on each schedule item
+- A bill of materials for non-labor costs (allowance, estimated cost, actual
+  cost, expected day)
+- A complete checkbox on every schedule and material row, shared by every
+  view
+- Four views of the schedule: table, calendar, gantt, and agenda
+- A costs panel with summary tiles, a cumulative cost line against the
+  budget, and a cost-by-month bar chart
+- Save of a project to a JSON file and load of that file as a new project
 
-- A schedule of work (items, start date, end date, description, responsible party, estimated and actual costs, dependencies/dependents)
-- Variance logs to any items on the schedule of work (changes to dates, costs, scope of work, etc.)
-- User-authored notes on each item in the schedule of work
-- A bill of materials for non-labor-related costs (allowance, estimated cost, actual cost)
-- The ability to mark all BOM and schedule items complete/incomplete
-- Flexible displays of the work calendar (calendar view, gannt chart, agenda list, etc.)
-- Visual display of cost over time (when costs are expected to hit, cumulative cost against budget, etc.)
+## Running
+
+The server needs Node 22.16 or later, because it reads SQLite through the
+built-in `node:sqlite` module.
+
+```sh
+pnpm install
+pnpm dev
+```
+
+Then open `http://localhost:3000`. `pnpm dev` restarts the server when a
+file under `src/server` changes. `pnpm start` runs it once. `PORT` changes
+the port. The server binds to `127.0.0.1` only, because the app has no
+login.
+
+`pnpm test` runs the unit and server tests, `pnpm run typecheck` checks the
+types, `pnpm lint` runs ESLint and the CSS token check, and `pnpm e2e` runs
+the Playwright specs against a server it starts itself. The pre-commit hook
+in `.githooks/` runs format, lint, typecheck, and the unit tests.
 
 ## Architecture
 
@@ -21,37 +48,86 @@ This project's main functions include:
           |
           v
   src/main.js ................ composition root: builds one AppContext,
-          |                    then calls each wiring module in order
+          |                    mounts the shell, then hands the panel to
+          |                    the module for the current section
           v
-  src/app/*.js ............... wiring modules, one per feature area;
-          |                    mount panels, register views and actions,
-          |                    keep per-feature UI state
-     _____|______________________________
-    |            |            |          |
-    v            v            v          v
-  src/ui/      src/map/    src/entities/  src/dice/, src/party/,
-  DOM widgets  canvas +    pure data      src/library/, src/campaign/
-  (panels,     pure map    models         (more pure logic)
-  dialogs,     logic
-  forms)          |
-                  v
-             src/storage/ ..... serialization, localStorage,
-                                file export/import, undo history
+  src/app/*.js ............... one module per feature area: project
+          |                    picker, schedule and its four views,
+          |                    materials, costs, editors, shell, theme
+     _____|_______________________________________
+    |          |            |           |          |
+    v          v            v           v          v
+  src/ui/    src/schedule/  src/costs/  src/charts/  src/entities/
+  DOM        dates, graph,  landing     axes, line   defaults and
+  widgets    calendar,      days,       and bar      validation
+             gantt, agenda  totals      models       per entity
+    |
+    v
+  src/api/ ................. fetch wrapper and error text
+  src/storage/ ............. localStorage prefs, file save and load
+          |
+          v  HTTP, JSON under /api
+  src/server/ .............. node:http router, static files,
+    routes/ repo/ db/        one route module and one repo module
+                             per entity, SQLite through node:sqlite
 ```
+
+The client fetches one project payload, keeps it in memory as the single
+source of truth, and refetches the whole project after every write. A
+household project stays under a few hundred rows, so the refetch is
+cheaper than patching the client copy and removes a class of drift bugs.
+
+Every write on the client goes through `ctx.write` in
+`src/app/context.js`, which toasts the failure text or the success
+sentence and then refetches.
 
 The project is written in plain JavaScript and is fully typechecked. Types
 live in `.ts` files that contain only declarations, and the `.js` files
 reference those types through JSDoc comments. `tsconfig.json` sets `allowJs`
 and `checkJs`, so `pnpm run typecheck` checks the whole project and emits
-nothing.
+nothing. `src/types.ts` holds the domain types that the client and the
+server share.
 
 `style.css` is an import manifest. It `@import`s the feature sheets under
-`styles/`, with base tokens and primitives first and the responsive overrides
-last, so the cascade order is stated in exactly one place.
+`styles/`, with base tokens and primitives first and the responsive
+overrides last, so the cascade order is stated in exactly one place.
 
 ### Data persistence
 
-App data is persisted to a SQLite database.
+The server keeps every project in one SQLite file. The file defaults to
+`./data/reno.sqlite`, relative to the working directory, and the
+`RENO_DB_PATH` environment variable overrides it. `data/` is gitignored.
+
+`src/server/db/open.js` opens the file, turns on foreign keys, and runs
+the migrations. `schema.sql` creates the `meta` table that stores the
+schema version. `migrate.js` then applies each numbered file under
+`src/server/db/migrations/` that is newer than the stored version, inside
+one transaction, and writes the new version. Every child table declares
+`ON DELETE CASCADE`, so deleting a project removes its rows.
+
+Money is stored as integer cents. Dates are stored as `YYYY-MM-DD`
+strings, and date math runs on UTC midnight so daylight saving cannot
+shift a day. Ids are UUIDs that the server makes.
+
+`GET /api/projects/:id/export` returns the project as one JSON document:
+
+```json
+{
+  "format": "reno-tracker/1",
+  "exportedAt": "2026-09-15T14:02:11.000Z",
+  "project": {},
+  "schedule": [],
+  "dependencies": [],
+  "variances": [],
+  "notes": [],
+  "materials": []
+}
+```
+
+`POST /api/projects/import` takes the same document and creates a new
+project with fresh ids, so a file can be loaded twice without colliding
+with the project it came from. The picker's Save and Load buttons call
+these two routes. The file name is the project slug plus the export day.
 
 ## UI components
 
@@ -69,23 +145,25 @@ builder sets.
 Every color, space, radius, type size, and shadow is a custom property
 defined in one `:root` block in `styles/base.css`:
 
-| Group            | Tokens                                                                                                          |
-| ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| Surfaces         | `--bg`, `--surface`, `--surface-raised`, `--surface-sunken`                                                     |
-| Lines            | `--border`, `--border-strong`                                                                                   |
-| Text             | `--text`, `--text-muted`                                                                                        |
-| Accents          | `--accent`, `--accent-hover`, `--danger`, `--success`, `--warning`, `--mana`, each with a matching `*-contrast` |
-| Focus and shadow | `--focus-ring`, `--shadow-tint`, `--shadow-1/2/3`                                                               |
-| Over-map chrome  | `--overlay-bg`, `--overlay-text`, `--overlay-npc`                                                               |
-| Spacing          | `--space-1` (0.25rem) through `--space-6` (2rem)                                                                |
-| Type             | `--font-sans`, `--font-mono`, `--text-display`, `--text-heading`, `--text-body`, `--text-label`, `--line-body`  |
-| Radius           | `--radius-sm`, `--radius`, `--radius-lg`, `--radius-pill`                                                       |
-| Motion           | `--transition-press` (40ms), `--transition-fast` (120ms), `--transition-base` (250ms)                           |
+| Group            | Tokens                                                                                                         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- |
+| Surfaces         | `--bg`, `--surface`, `--surface-raised`, `--surface-sunken`                                                    |
+| Lines            | `--border`, `--border-strong`                                                                                  |
+| Text             | `--text`, `--text-muted`                                                                                       |
+| Accents          | `--accent`, `--accent-hover`, `--danger`, `--success`, `--warning`, each with a matching `*-contrast`          |
+| Focus and shadow | `--focus-ring`, `--shadow-tint`, `--shadow-1/2/3`                                                              |
+| Overlay chrome   | `--overlay-bg`, `--overlay-text`                                                                               |
+| Spacing          | `--space-1` (0.25rem) through `--space-6` (2rem)                                                               |
+| Type             | `--font-sans`, `--font-mono`, `--text-display`, `--text-heading`, `--text-body`, `--text-label`, `--line-body` |
+| Radius           | `--radius-sm`, `--radius`, `--radius-lg`, `--radius-pill`                                                      |
+| Motion           | `--transition-press` (40ms), `--transition-fast` (120ms), `--transition-base` (250ms)                          |
 
 The token system depends on these rules:
 
 - **Never write a fallback** (`var(--border, #ccc)`), because a missing
   token renders as nothing and shows the typo, while a fallback hides it.
+  `scripts/check-css-tokens.js` fails the lint when a sheet uses a token
+  that `base.css` does not define.
 - **Every accent has a `*-contrast` partner**, and a filled element always
   declares its own foreground color from it. Add new accents as a pair.
 
@@ -103,7 +181,7 @@ There is one set of tokens. Each color is a single
   theme. The attribute selector outranks the bare `:root`, so an explicit
   choice always wins.
 - `src/ui/ThemeToggle.js` writes `data-theme` on `<html>` (and deletes it
-  for System), and persists the choice under `campaign-builder:theme`.
+  for System), and persists the choice under `reno-tracker:theme`.
 - `src/boot.js`, a plain script that `index.html` loads at the top of
   `<body>`, re-applies the saved value before first paint, so a dark-theme
   reload does not flash light.
@@ -113,9 +191,8 @@ URI. `light-dark()` resolves `<color>` only, so it cannot contain a `url()`.
 Instead, the arrow is swapped in a `prefers-color-scheme` block plus the
 two `data-theme` blocks, so that token appears four times.
 
-`--overlay-*` is the one exception, pinned dark in both themes because map
-controls, toasts, tooltips, and the onboarding scrim float over map art
-rather than the page background.
+`--overlay-*` is the one exception, pinned dark in both themes because
+toasts and tooltips float over the page rather than sit in it.
 
 ### Shared classes
 
@@ -123,35 +200,37 @@ Class names are BEM-ish: `block__element--modifier`. Everything below
 lives in `base.css` and is shared across features. Reuse the class, and
 keep only layout (margins, grid placement) in the component's own class.
 
-| Class                                                | Role                                                                                                                                    |
-| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `.btn` + `--primary`/`--danger`/`--success`/`--icon` | every button, built through `buttons.js`                                                                                                |
-| `.btn-bare`                                          | the reset for a control that is a button with no button chrome, built through `bareButton`                                              |
-| `.field`                                             | every input, select, and textarea                                                                                                       |
-| `.form`, `__row`, `__label`, `__wide`, `__number`    | the inline authoring form and its parts, built through `formFields.js`                                                                  |
-| `.card`, `.card__title`                              | a bordered panel with an uppercase heading                                                                                              |
-| `.seg-switch`, `__btn`, `__btn--active`              | segmented toggle (mode, theme, role, dice-tray d20)                                                                                     |
-| `.row-select`, `--current`                           | selectable full-width list row (world tree, roster)                                                                                     |
-| `.section-label`                                     | in-panel sub-heading: uppercase, tracked, muted, built through `sectionLabel`                                                           |
-| `.empty-state`                                       | the "nothing here yet" paragraph. The class sets margin, padding, and italic only. `emptyState()` adds `u-muted` for the color and size |
-| `.chip`, `.chip__remove`                             | a small labeled tag, with or without an x, built through `buttons.js`                                                                   |
-| `.badge` + `--success`/`--danger`/`--neutral`        | a read-only status marker on a list row. A colour outside the three shared readings comes from a per-feature modifier                   |
-| `.icon`                                              | the SVG wrapper that `icon()` applies                                                                                                   |
-| `.tabs`, `__tab`, `__panel`                          | a tab strip over a stack of panels                                                                                                      |
-| `.modal` and its parts                               | the native `<dialog>`, built through `Modal.js`                                                                                         |
-| `.sr-only`                                           | visually hidden, still announced                                                                                                        |
+| Class                                                | Role                                                                                                                             |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `.btn` + `--primary`/`--danger`/`--success`/`--icon` | every button, built through `buttons.js`                                                                                         |
+| `.btn-bare`                                          | the reset for a control that is a button with no button chrome, built through `bareButton`                                       |
+| `.field`                                             | every input, select, and textarea                                                                                                |
+| `.form`, `__row`, `__label`, `__wide`, `__number`    | the inline authoring form and its parts, built through `formFields.js`                                                           |
+| `.card`, `.card__title`                              | a bordered panel with an uppercase heading                                                                                       |
+| `.seg-switch`, `__btn`, `__btn--active`              | segmented toggle (view switcher, theme)                                                                                          |
+| `.row-select`, `--current`                           | selectable full-width list row (project picker, section nav)                                                                     |
+| `.data-table` and its parts                          | the sortable table with a footer row (schedule row, materials), built through `DataTable.js`                                     |
+| `.section-label`                                     | in-panel sub-heading: uppercase, tracked, muted, built through `sectionLabel`                                                    |
+| `.empty-state`, `__actions`                          | the "nothing here yet" paragraph and its buttons. The class sets margin, padding, and italic only. `emptyState()` adds `u-muted` |
+| `.chip`, `.chip__remove`                             | a small labeled tag, with or without an x, built through `buttons.js`                                                            |
+| `.badge` + `--success`/`--danger`/`--neutral`        | a read-only status marker on a list row. A colour outside the three shared readings comes from a per-feature modifier            |
+| `.icon`                                              | the SVG wrapper that `icon()` applies                                                                                            |
+| `.tabs`, `__tab`, `__panel`                          | a tab strip over a stack of panels (the item editor)                                                                             |
+| `.modal` and its parts                               | the native `<dialog>`, built through `Modal.js`                                                                                  |
+| `.toast-region`, `.toast` + `--success`/`--danger`   | the write feedback in the corner, built through `Toast.js`                                                                       |
+| `.sr-only`                                           | visually hidden, still announced                                                                                                 |
 
 More shared widgets live one sheet up in `widgets.css`, next to the widget
-they were built for: `.disclosure` / `__chevron` /
-`--open`, `.stat-bar` / `__track` / `__fill` / `.fact-line` / `__label` /
-`__value` / `--row`.
+they were built for: `.disclosure` / `__chevron` / `--open`,
+`.stat-bar` / `__track` / `__fill` / `--over`, `.fact-line` / `__label` /
+`__value` / `--row`, and `.chip-list`.
 
 ### Layout and responsiveness
 
 Layout is flex-dominant with intrinsic sizing (`min()`,
 `flex: 1 1 <rem basis>`, `repeat(auto-fit, minmax(...))`), so most reflow
-happens with no media query at all. Grid is reserved for tabular
-content.
+happens with no media query at all. Grid is reserved for tabular content
+and the calendar weeks.
 
 Because reflow is intrinsic, the few things that do switch on state are
 centralized:
@@ -159,9 +238,21 @@ centralized:
 - **All layout media queries live in `responsive.css`**, and there is
   exactly one breakpoint: `@media (max-width: 68rem)`.
 - **A component that reflows on its own width uses a container query,
-  not a breakpoint.**
+  not a breakpoint.** The calendar grid is the one example.
 
 A flex child that contains text needs `min-width: 0`, or long content
-refuses to shrink. That guard appears over twenty times across the
-sheets, and it is the usual explanation for a panel that overflows its
-column.
+refuses to shrink. That guard appears many times across the sheets, and it
+is the usual explanation for a panel that overflows its column.
+
+### Accessibility
+
+- Every interactive element is a `<button>`, `<a>`, or form control.
+- Every field has a `<label>`. Error text is linked through
+  `aria-describedby`.
+- `Modal.js` traps focus, restores focus on close, and closes on Escape.
+- Gantt bars and handles answer the arrow keys: one day per press, seven
+  with Shift.
+- Each chart has a `<title>` and a visually hidden table twin, so a screen
+  reader gets the numbers.
+- Colour alone never marks state. A complete row also strikes through its
+  title and shows a checkmark.
