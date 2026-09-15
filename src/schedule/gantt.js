@@ -185,16 +185,14 @@ export function moveDates(item, days, edge) {
     return patch;
   }
   if (edge === 'start') {
-    const next = addDays(item.startDate, days);
-    if (next !== item.startDate) {
-      patch.startDate = next > item.endDate ? item.endDate : next;
-    }
+    const moved = addDays(item.startDate, days);
+    const next = moved > item.endDate ? item.endDate : moved;
+    if (next !== item.startDate) patch.startDate = next;
     return patch;
   }
-  const next = addDays(item.endDate, days);
-  if (next !== item.endDate) {
-    patch.endDate = next < item.startDate ? item.startDate : next;
-  }
+  const moved = addDays(item.endDate, days);
+  const next = moved < item.startDate ? item.startDate : moved;
+  if (next !== item.endDate) patch.endDate = next;
   return patch;
 }
 

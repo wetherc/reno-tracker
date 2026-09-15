@@ -1,0 +1,300 @@
+/* Gantt view. One scroll box holds a sticky name column and the chart.
+   --gantt-day and --gantt-row are set inline by src/app/ganttView.js
+   from the same numbers the layout uses, so the CSS grid lines, the
+   name rows, and the bar positions agree to the pixel. The scale is two
+   1.5rem rows, and the corner over the names matches that height. */
+
+.gantt {
+  display: grid;
+  grid-template-columns: min(13rem, 30vw) minmax(max-content, 1fr);
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+/* Names */
+
+.gantt__labels {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  border-right: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+.gantt__corner {
+  display: flex;
+  align-items: flex-end;
+  height: 3rem;
+  padding: 0 var(--space-3) var(--space-1);
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.gantt__status {
+  min-height: 1.25rem;
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt__label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  height: var(--gantt-row);
+  min-width: 0;
+  padding: 0 var(--space-3);
+}
+
+.gantt__names .gantt__label:nth-child(even) {
+  background: color-mix(in srgb, var(--surface-sunken) 50%, transparent);
+}
+
+.gantt__name {
+  display: block;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt__name:hover {
+  color: var(--accent);
+}
+
+.gantt__label--complete .gantt__name {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.gantt__party {
+  overflow: hidden;
+  font-size: var(--text-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Scale */
+
+.gantt__chart {
+  position: relative;
+}
+
+.gantt__scale {
+  height: 3rem;
+  border-bottom: 1px solid var(--border-strong);
+  font-size: var(--text-label);
+  color: var(--text-muted);
+}
+
+.gantt__months,
+.gantt__weeks {
+  position: relative;
+  height: 1.5rem;
+}
+
+.gantt__month,
+.gantt__week {
+  position: absolute;
+  top: 0;
+  line-height: 1.5rem;
+  white-space: nowrap;
+}
+
+.gantt__month {
+  overflow: hidden;
+  padding: 0 var(--space-2);
+  border-left: 1px solid var(--border);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.gantt__week {
+  padding: 0 var(--space-1);
+  border-left: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rows. Three layered backgrounds: a stripe every other row, a shade on
+   the two weekend columns, and a hairline on every day. */
+
+.gantt__rows {
+  position: relative;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--border) 0 1px,
+      transparent 1px var(--gantt-day)
+    ),
+    repeating-linear-gradient(
+      to right,
+      color-mix(in srgb, var(--surface-sunken) 60%, transparent) 0
+        var(--gantt-day),
+      transparent var(--gantt-day) calc(var(--gantt-day) * 6),
+      color-mix(in srgb, var(--surface-sunken) 60%, transparent)
+        calc(var(--gantt-day) * 6) calc(var(--gantt-day) * 7)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 var(--gantt-row),
+      color-mix(in srgb, var(--surface-sunken) 50%, transparent)
+        var(--gantt-row) calc(var(--gantt-row) * 2)
+    );
+}
+
+.gantt__links {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.gantt__link {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.gantt__link--conflict {
+  stroke: var(--danger);
+  stroke-dasharray: 4 3;
+}
+
+.gantt__arrow {
+  fill: var(--border-strong);
+}
+
+.gantt__arrow--conflict {
+  fill: var(--danger);
+}
+
+.gantt__today {
+  position: absolute;
+  top: 1.5rem;
+  bottom: 0;
+  z-index: 1;
+  width: 0;
+  border-left: 2px solid var(--warning);
+  pointer-events: none;
+}
+
+.gantt__today::before {
+  content: 'Today';
+  position: absolute;
+  top: 0;
+  left: -1px;
+  padding: 0 var(--space-1);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--warning);
+  color: var(--warning-contrast);
+  font-size: var(--text-label);
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+/* Bars */
+
+.gantt-bar {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  height: calc(var(--gantt-row) - 12px);
+  margin-top: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: var(--shadow-1);
+  touch-action: none;
+  transition: filter var(--transition-fast);
+}
+
+.gantt-bar:hover {
+  filter: brightness(1.1);
+}
+
+.gantt-bar--dragging {
+  z-index: 3;
+  box-shadow: var(--shadow-2);
+  filter: brightness(1.1);
+}
+
+.gantt-bar__body {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: 0 var(--space-1);
+  color: inherit;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: grab;
+}
+
+.gantt-bar--dragging .gantt-bar__body {
+  cursor: grabbing;
+}
+
+.gantt-bar__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gantt-bar__handle {
+  flex: none;
+  width: 8px;
+  border-radius: inherit;
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.gantt-bar__handle--start {
+  border-right: 2px solid var(--accent-contrast);
+}
+
+.gantt-bar__handle--end {
+  border-left: 2px solid var(--accent-contrast);
+}
+
+.gantt-bar:hover .gantt-bar__handle,
+.gantt-bar:focus-within .gantt-bar__handle {
+  opacity: 0.7;
+}
+
+.gantt-bar__handle:focus-visible {
+  opacity: 1;
+}
+
+.gantt-bar--complete {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
+.gantt-bar--complete .gantt-bar__title {
+  text-decoration: line-through;
+}
+
+.gantt-bar--complete .gantt-bar__body .icon {
+  flex: none;
+  color: var(--success);
+}
+
+.gantt-bar--complete .gantt-bar__handle--start {
+  border-right-color: var(--border-strong);
+}
+
+.gantt-bar--complete .gantt-bar__handle--end {
+  border-left-color: var(--border-strong);
+}

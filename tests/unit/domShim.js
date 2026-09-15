@@ -18,8 +18,16 @@ export class ShimElement {
     this.parentNode = null;
     /** @type {Map<string, Set<Function>>} */
     this.listeners = new Map();
-    /** @type {Record<string, string>} */
-    this.style = {};
+    /** @type {Record<string, string> & { setProperty(name: string, value: string): void }} */
+    this.style = /** @type {any} */ (
+      Object.defineProperty({}, 'setProperty', {
+        enumerable: false,
+        /** @this {Record<string, string>} @param {string} name @param {string} value */
+        value(name, value) {
+          this[name] = value;
+        },
+      })
+    );
     /** @type {Record<string, string>} */
     this.dataset = {};
     this.disabled = false;
@@ -28,6 +36,9 @@ export class ShimElement {
     this.value = '';
     this.checked = false;
     this.selected = false;
+    this.scrollLeft = 0;
+    /** @type {number | null} */
+    this.capturedPointer = null;
     /** @type {string | null} */
     this.returnValue = null;
     const self = this;
@@ -243,6 +254,18 @@ export class ShimElement {
   }
   focus() {
     shimDocument.activeElement = this;
+  }
+  /** @param {number} pointerId */
+  setPointerCapture(pointerId) {
+    this.capturedPointer = pointerId;
+  }
+  /** @param {number} pointerId */
+  releasePointerCapture(pointerId) {
+    if (this.capturedPointer === pointerId) this.capturedPointer = null;
+  }
+  /** @param {number} pointerId */
+  hasPointerCapture(pointerId) {
+    return this.capturedPointer === pointerId;
   }
   blur() {
     if (shimDocument.activeElement === this) shimDocument.activeElement = null;

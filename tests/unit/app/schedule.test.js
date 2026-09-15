@@ -206,12 +206,12 @@ test('title and notes count open the editor on the right tab', async () => {
 
 test('a view that is not built yet says so', async () => {
   const { shell, ctx } = await setup({ schedule: [itemOf('a')] });
-  ctx.prefs.write('lastView', 'gantt');
+  ctx.prefs.write('lastView', 'agenda');
   const panel = mountSchedule({ ctx, shell });
   panel.show();
   assert.equal(
     shell.body.children[0].textContent,
-    'The Gantt view is not built yet.',
+    'The Agenda view is not built yet.',
   );
   $(shell.tools.children[0]).children[0].click();
   assert.equal(shell.body.children[0].tagName, 'TABLE');

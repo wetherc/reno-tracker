@@ -3,6 +3,7 @@
 import { button } from '../ui/buttons.js';
 import { emptyState } from '../ui/emptyState.js';
 import { calendarView } from './calendarView.js';
+import { ganttView } from './ganttView.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 import { scheduleTable } from './scheduleTable.js';
 import { mountViews, VIEWS } from './views.js';
@@ -36,6 +37,7 @@ export function mountSchedule({ ctx, shell }) {
   const renderers = {
     table: scheduleTable({ ctx }),
     calendar: calendarView({ ctx, onMore: (date) => openAgenda(date) }),
+    gantt: ganttView({ ctx }),
   };
 
   /** @param {string} date */

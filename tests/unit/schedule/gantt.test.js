@@ -117,6 +117,12 @@ test('moveDates keeps one day and returns only changed fields', () => {
   assert.deepEqual(moveDates(item, 9, 'start'), { startDate: '2026-10-10' });
   assert.deepEqual(moveDates(item, 7, 'end'), { endDate: '2026-10-17' });
   assert.deepEqual(moveDates(item, -30, 'end'), { endDate: '2026-10-06' });
+  const oneDay = itemOf('b', {
+    startDate: '2026-10-06',
+    endDate: '2026-10-06',
+  });
+  assert.deepEqual(moveDates(oneDay, 1, 'start'), {});
+  assert.deepEqual(moveDates(oneDay, -1, 'end'), {});
 });
 
 test('daysDragged rounds to whole days', () => {
