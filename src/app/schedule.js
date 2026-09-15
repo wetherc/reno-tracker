@@ -2,11 +2,12 @@
 // Add button. The body is drawn by whichever view is on.
 import { button } from '../ui/buttons.js';
 import { emptyState } from '../ui/emptyState.js';
+import { agendaView } from './agendaView.js';
 import { calendarView } from './calendarView.js';
 import { ganttView } from './ganttView.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 import { scheduleTable } from './scheduleTable.js';
-import { mountViews, VIEWS } from './views.js';
+import { mountViews } from './views.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
@@ -33,16 +34,17 @@ export function mountSchedule({ ctx, shell }) {
   });
   const views = mountViews({ prefs: ctx.prefs, onChange: () => show() });
 
-  /** @type {Partial<Record<ViewId, View>>} */
+  /** @type {Record<ViewId, View>} */
   const renderers = {
     table: scheduleTable({ ctx }),
     calendar: calendarView({ ctx, onMore: (date) => openAgenda(date) }),
     gantt: ganttView({ ctx }),
+    agenda: agendaView({ ctx }),
   };
 
   /** @param {string} date */
   function openAgenda(date) {
-    renderers.agenda?.focus?.(date);
+    renderers.agenda.focus?.(date);
     views.set('agenda');
   }
 
@@ -63,13 +65,7 @@ export function mountSchedule({ ctx, shell }) {
       );
       return;
     }
-    const view = renderers[views.view];
-    if (!view) {
-      const label = VIEWS.find((v) => v.id === views.view)?.label;
-      shell.setBody(emptyState(`The ${label} view is not built yet.`));
-      return;
-    }
-    shell.setBody(view.render(payload));
+    shell.setBody(renderers[views.view].render(payload));
   }
 
   return { show };

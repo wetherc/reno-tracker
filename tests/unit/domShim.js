@@ -37,6 +37,8 @@ export class ShimElement {
     this.checked = false;
     this.selected = false;
     this.scrollLeft = 0;
+    /** @type {unknown} the last scrollIntoView argument, or null */
+    this.scrolledInto = null;
     /** @type {number | null} */
     this.capturedPointer = null;
     /** @type {string | null} */
@@ -254,6 +256,10 @@ export class ShimElement {
   }
   focus() {
     shimDocument.activeElement = this;
+  }
+  /** @param {unknown} [options] */
+  scrollIntoView(options) {
+    this.scrolledInto = options ?? true;
   }
   /** @param {number} pointerId */
   setPointerCapture(pointerId) {

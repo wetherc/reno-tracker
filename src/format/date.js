@@ -68,3 +68,32 @@ export function formatRange(start, end) {
   if (start === end) return formatDayMonth(start);
   return `${formatDayMonth(start)} to ${formatDayMonth(end)}`;
 }
+
+const WEEKDAY = new Intl.DateTimeFormat('en-US', {
+  weekday: 'short',
+  timeZone: 'UTC',
+});
+
+/**
+ * @param {string} iso YYYY-MM-DD
+ * @returns {string} "Tue"
+ */
+export function formatWeekday(iso) {
+  return WEEKDAY.format(new Date(`${iso}T00:00:00Z`));
+}
+
+const DAY_LONG = new Intl.DateTimeFormat('en-US', {
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/**
+ * @param {string} iso YYYY-MM-DD
+ * @returns {string} "Tuesday, October 13, 2026", for an accessible name
+ */
+export function formatDayLong(iso) {
+  return DAY_LONG.format(new Date(`${iso}T00:00:00Z`));
+}

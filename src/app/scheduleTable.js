@@ -6,6 +6,7 @@ import { spanDays } from '../schedule/dates.js';
 import { bareButton } from '../ui/buttons.js';
 import { dataTable } from '../ui/DataTable.js';
 import { icon } from '../ui/icon.js';
+import { completeToggle } from './completeToggle.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -89,7 +90,7 @@ export function scheduleTable({ ctx }) {
           label: 'Done',
           hideLabel: true,
           align: 'center',
-          cell: (item) => completeToggle(item),
+          cell: (item) => completeToggle({ ctx, item }),
         },
         {
           key: 'title',
@@ -164,35 +165,6 @@ export function scheduleTable({ ctx }) {
 
   /** @param {ScheduleItem} item */
   const days = (item) => spanDays(item.startDate, item.endDate);
-
-  /** @param {ScheduleItem} item */
-  function completeToggle(item) {
-    const box = document.createElement('input');
-    box.type = 'checkbox';
-    box.className = 'check';
-    box.checked = item.complete;
-    box.setAttribute(
-      'aria-label',
-      item.complete ? `Reopen ${item.title}` : `Mark ${item.title} complete`,
-    );
-    box.addEventListener('change', async () => {
-      box.disabled = true;
-      const next = box.checked;
-      const outcome = await ctx.write(
-        (api) => api.setScheduleComplete(item.id, next),
-        {
-          done: next
-            ? `Marked ${item.title} complete`
-            : `Reopened ${item.title}`,
-        },
-      );
-      if (!outcome.ok) {
-        box.checked = item.complete;
-        box.disabled = false;
-      }
-    });
-    return box;
-  }
 
   /** @param {ScheduleItem} item @param {number} count */
   function notesCell(item, count) {
