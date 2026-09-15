@@ -71,7 +71,7 @@ export function topologicalOrder(ids, edges) {
     edges.filter((e) => index.has(e.predecessorId) && index.has(e.successorId)),
   );
   for (const list of next.values()) {
-    for (const s of list) indegree.set(s, (indegree.get(s) ?? 0) + 1);
+    for (const s of list) indegree.set(s, Number(indegree.get(s)) + 1);
   }
   let ready = ids.filter((id) => indegree.get(id) === 0);
   /** @type {string[]} */

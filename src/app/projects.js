@@ -17,10 +17,12 @@ import { openProjectDialog } from './projectDialog.js';
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').Project} Project */
 
+/** @typedef {import('../storage/exportFile.js').FileDeps} FileDeps */
+
 /**
- * @param {{ ctx: AppContext, host: HTMLElement }} deps
+ * @param {{ ctx: AppContext, host: HTMLElement, files?: FileDeps }} deps files is the document and URL a test hands in
  */
-export function mountProjects({ ctx, host }) {
+export function mountProjects({ ctx, host, files }) {
   const el = document.createElement('div');
   el.className = 'picker';
 
@@ -136,7 +138,7 @@ export function mountProjects({ ctx, host }) {
     try {
       const file = await ctx.api.exportProject(project.id);
       const fileName = exportFileName(project.name, file.exportedAt);
-      saveJson(fileName, file);
+      saveJson(fileName, file, files);
       ctx.toaster.success(`Saved ${fileName}`);
     } catch (error) {
       ctx.toaster.failure(describeFailure(error));
@@ -144,7 +146,7 @@ export function mountProjects({ ctx, host }) {
   }
 
   async function importProject() {
-    const picked = await pickJsonFile();
+    const picked = await pickJsonFile(files);
     if (!picked) return;
     /** @type {import('../types.ts').ExportFile} */
     let file;

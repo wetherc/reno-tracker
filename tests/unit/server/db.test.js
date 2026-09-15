@@ -128,3 +128,10 @@ test('withTransaction commits on success and rolls back on error', () => {
   assert.equal(count(), 1);
   db.close();
 });
+
+test('schemaVersion is 0 when the meta table has no version row', () => {
+  const db = new DatabaseSync(':memory:');
+  db.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)');
+  assert.equal(schemaVersion(db), 0);
+  db.close();
+});

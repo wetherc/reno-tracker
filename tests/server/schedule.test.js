@@ -49,6 +49,12 @@ test('schedule routes: create, patch with variances, complete, delete', async ()
     );
 
     res = await app.api('PATCH', `/api/schedule/${item.id}`, {
+      title: 'Demo day',
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.title, 'Demo day');
+
+    res = await app.api('PATCH', `/api/schedule/${item.id}`, {
       estimatedCents: 1500,
       reason: 'quote',
     });
@@ -81,8 +87,13 @@ test('schedule routes: create, patch with variances, complete, delete', async ()
     });
 
     res = await app.api('GET', `/api/projects/${project.id}`);
-    assert.equal(res.body.variances.length, 1);
-    assert.equal(res.body.variances[0].reason, 'quote');
+    assert.deepEqual(
+      res.body.variances.map((/** @type {any} */ v) => [v.field, v.reason]),
+      [
+        ['title', ''],
+        ['estimatedCents', 'quote'],
+      ],
+    );
 
     res = await app.api('DELETE', `/api/schedule/${item.id}`);
     assert.equal(res.status, 204);

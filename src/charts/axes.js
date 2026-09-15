@@ -11,11 +11,8 @@ import { dayOffset } from '../schedule/dates.js';
  */
 export function niceStep(rough) {
   const power = 10 ** Math.floor(Math.log10(rough));
-  for (const unit of [1, 2, 5, 10]) {
-    if (unit * power >= rough) return unit * power;
-  }
-  /* c8 ignore next */
-  return 10 * power;
+  const unit = [1, 2, 5].find((u) => u * power >= rough) ?? 10;
+  return unit * power;
 }
 
 /**

@@ -74,7 +74,7 @@ export function importProject(db, file) {
     const ids = new Map();
     /** @param {string} old */
     const fresh = (old) => {
-      const id = ids.get(old) ?? randomUUID();
+      const id = randomUUID();
       ids.set(old, id);
       return id;
     };

@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { Router, compilePattern } from '../../../src/server/router.js';
+import {
+  Router,
+  compilePattern,
+  requestTarget,
+} from '../../../src/server/router.js';
 import { badRequest } from '../../../src/server/errors.js';
 
 /**
@@ -115,4 +119,12 @@ test('handle maps errors to 400, 404, 405, 413, and 500', async () => {
   } finally {
     await close();
   }
+});
+
+test('requestTarget reads the method and path and fills a bare request', () => {
+  assert.deepEqual(requestTarget({ method: 'POST', url: '/api/x?y=1' }), {
+    method: 'POST',
+    path: '/api/x',
+  });
+  assert.deepEqual(requestTarget({}), { method: 'GET', path: '/' });
 });

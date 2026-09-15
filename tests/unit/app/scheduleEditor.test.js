@@ -89,6 +89,16 @@ test('a failed create keeps the dialog open and reports', async () => {
   await tick();
   assert.equal(el.open, true);
   assert.deepEqual(fx.toasts, ['bad boom']);
+  form.querySelector('[type="text"]').value = 'taken';
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  const shown = form
+    .querySelectorAll('.form__error')
+    .filter((/** @type {any} */ e) => !e.hidden);
+  assert.deepEqual(
+    shown.map((/** @type {any} */ e) => e.textContent),
+    ['title is taken'],
+  );
   el.close();
 });
 

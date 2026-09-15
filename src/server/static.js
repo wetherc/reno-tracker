@@ -3,6 +3,7 @@
 // tooling stay hidden even though they sit in the same tree.
 import { createReadStream, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
+import { requestTarget } from './router.js';
 
 /** @typedef {import('node:http').IncomingMessage} IncomingMessage */
 /** @typedef {import('node:http').ServerResponse} ServerResponse */
@@ -60,6 +61,8 @@ export function resolveFile(root, urlPath) {
   if (segments[0] === 'src' && segments[1] === 'server') return null;
   if (!(extname(relative) in MIME)) return null;
   const file = resolve(root, relative);
+  // A drive letter in the first segment can leave the root on Windows.
+  /* node:coverage ignore next */
   if (!file.startsWith(resolve(root) + sep)) return null;
   return file;
 }
@@ -70,7 +73,7 @@ export function resolveFile(root, urlPath) {
  */
 export function serveStatic(root) {
   return (req, res) => {
-    const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+    const { path } = requestTarget(req);
     const file = resolveFile(root, path);
     /** @type {import('node:fs').Stats | null} */
     let stats = null;

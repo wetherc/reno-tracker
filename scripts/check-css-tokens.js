@@ -66,9 +66,11 @@ export function report(hits) {
   return lines.join('\n');
 }
 
+/* node:coverage disable */
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const dir = process.argv[2] ?? 'styles';
   const hits = findFallbacks(dir, process.cwd());
   console.log(report(hits));
   process.exit(hits.length === 0 ? 0 : 1);
 }
+/* node:coverage enable */

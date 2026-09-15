@@ -16,6 +16,19 @@ import { HttpError } from './errors.js';
 const MAX_BODY_BYTES = 1_000_000;
 
 /**
+ * The method and path of a request. Node fills both on a real request;
+ * the defaults keep a bare object usable in tests.
+ * @param {Pick<IncomingMessage, 'method' | 'url'>} req
+ * @returns {{ method: string, path: string }}
+ */
+export function requestTarget(req) {
+  return {
+    method: req.method ?? 'GET',
+    path: new URL(req.url ?? '/', 'http://localhost').pathname,
+  };
+}
+
+/**
  * @param {string} pattern
  * @returns {{ keys: string[], regex: RegExp }}
  */
@@ -91,7 +104,7 @@ export class Router {
     /** @type {Route[]} */
     this.routes = [];
     /** @type {(error: unknown) => void} */
-    this.onError = (error) => console.error(error);
+    this.onError = console.error;
   }
 
   /**
@@ -154,8 +167,7 @@ export class Router {
    * @param {ServerResponse} res
    */
   async handle(req, res) {
-    const method = req.method ?? 'GET';
-    const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+    const { method, path } = requestTarget(req);
     try {
       const found = this.match(method, path);
       if (found === null) {

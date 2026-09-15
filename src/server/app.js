@@ -2,7 +2,7 @@
 // rest. Kept apart from index.js so tests can mount it on port 0 with an
 // in-memory database.
 import { createServer } from 'node:http';
-import { Router } from './router.js';
+import { requestTarget, Router } from './router.js';
 import { projectRoot, serveStatic } from './static.js';
 import { projectRoutes } from './routes/projects.js';
 import { scheduleRoutes } from './routes/schedule.js';
@@ -39,7 +39,7 @@ export function createApp(db, { root = projectRoot() } = {}) {
   const router = buildRouter(db);
   const files = serveStatic(root);
   return createServer((req, res) => {
-    const path = new URL(req.url ?? '/', 'http://localhost').pathname;
+    const { path } = requestTarget(req);
     if (path === '/api' || path.startsWith('/api/')) router.handle(req, res);
     else files(req, res);
   });

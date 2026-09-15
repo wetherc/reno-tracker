@@ -59,6 +59,18 @@ function setup() {
       projects = projects.filter((p) => p.id !== id);
       log.push(`delete ${id}`);
     },
+    exportProject: async (/** @type {string} */ id) => {
+      if (id === 'locked') throw new Error('locked');
+      log.push(`export ${id}`);
+      return { format: 'reno-tracker/1', exportedAt: '2026-09-15T10:00:00Z' };
+    },
+    importProject: async (/** @type {any} */ file) => {
+      if (file.project.name === 'boom') throw new Error('boom');
+      const created = projectOf('d', file.project.name);
+      projects = [...projects, created];
+      log.push(`import ${file.project.name}`);
+      return { project: created };
+    },
   });
   const toaster = /** @type {any} */ ({
     success: (/** @type {string} */ m) => toasts.push(`ok ${m}`),
@@ -69,10 +81,29 @@ function setup() {
     prefs: createPrefs(memoryStorage()),
     toaster,
   });
+  /** @type {any[]} */
+  const made = [];
+  /** @type {string[]} */
+  const urlLog = [];
+  const files = {
+    doc: /** @type {any} */ ({
+      body: document.body,
+      createElement: (/** @type {string} */ tag) => {
+        const el = document.createElement(tag);
+        made.push(el);
+        return el;
+      },
+    }),
+    urls: {
+      createObjectURL: () => (urlLog.push('create'), 'blob:fake'),
+      revokeObjectURL: (/** @type {string} */ href) =>
+        void urlLog.push(`revoke ${href}`),
+    },
+  };
   const host = document.createElement('div');
-  const picker = mountProjects({ ctx, host });
+  const picker = mountProjects({ ctx, host, files });
   const select = /** @type {any} */ (host.querySelector('select'));
-  const [edit, remove] = $(host).querySelectorAll('.btn--icon');
+  const [edit, remove, save, load] = $(host).querySelectorAll('.btn--icon');
   const start = /** @type {any} */ (host.querySelector('.btn--primary'));
   return {
     ctx,
@@ -81,9 +112,13 @@ function setup() {
     select,
     edit,
     remove,
+    save,
+    load,
     start,
     log,
     toasts,
+    made,
+    urlLog,
     setProjects: (/** @type {any[]} */ p) => (projects = p),
   };
 }
@@ -212,4 +247,61 @@ test('a failed delete reopens the project', async () => {
   await tick();
   assert.equal(ctx.payload?.project.id, 'locked');
   assert.deepEqual(toasts, ['bad locked']);
+});
+
+test('save downloads the open project as a named file', async () => {
+  const { ctx, save, log, toasts, made, urlLog, setProjects } = setup();
+  $(save).click();
+  await tick();
+  assert.deepEqual(log, []);
+  await ctx.loadProjects();
+  await ctx.openProject('a');
+  $(save).click();
+  await tick();
+  assert.deepEqual(log, ['get a', 'export a']);
+  assert.equal(made[0].download, 'attic-2026-09-15.json');
+  assert.equal(made[0].href, 'blob:fake');
+  assert.deepEqual(urlLog, ['create', 'revoke blob:fake']);
+  assert.deepEqual(toasts, ['ok Saved attic-2026-09-15.json']);
+
+  setProjects([projectOf('locked', 'Locked')]);
+  await ctx.loadProjects();
+  await ctx.openProject('locked');
+  $(save).click();
+  await tick();
+  assert.deepEqual(toasts.at(-1), 'bad locked');
+});
+
+test('load reads a picked file, imports it, and opens the copy', async () => {
+  const { ctx, load, log, toasts, made } = setup();
+  await ctx.loadProjects();
+  const pick = async (
+    /** @type {{ name: string, text: string } | null} */ file,
+  ) => {
+    $(load).click();
+    await tick();
+    const input = made.at(-1);
+    assert.equal(input.type, 'file');
+    if (file) {
+      input.files = [{ name: file.name, text: async () => file.text }];
+      input.dispatchEvent({ type: 'change' });
+    } else {
+      input.dispatchEvent({ type: 'cancel' });
+    }
+    await tick();
+    await tick();
+  };
+  await pick(null);
+  assert.deepEqual(log, []);
+  await pick({ name: 'bad.json', text: '{not json' });
+  assert.deepEqual(toasts, [
+    'bad bad.json is not a JSON file this app can read.',
+  ]);
+  await pick({ name: 'boom.json', text: '{"project":{"name":"boom"}}' });
+  assert.deepEqual(toasts.at(-1), 'bad boom');
+  assert.equal(ctx.payload, null);
+  await pick({ name: 'deck.json', text: '{"project":{"name":"Deck"}}' });
+  assert.deepEqual(log, ['import Deck', 'get d']);
+  assert.deepEqual(toasts.at(-1), 'ok Loaded Deck from deck.json');
+  assert.equal($(ctx).payload?.project.id, 'd');
 });

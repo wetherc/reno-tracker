@@ -93,6 +93,9 @@ export function setupSchedule({
       /** @type {any} */ input,
     ) => {
       if (input.title === 'boom') throw new Error('boom');
+      if (input.title === 'taken') {
+        throw new ApiError(400, { error: 'title is taken', field: 'title' });
+      }
       const created = itemOf(`n${items.length + 1}`, { ...input, projectId });
       items = [...items, created];
       log.push(`create ${input.title}`);

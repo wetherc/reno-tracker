@@ -152,3 +152,61 @@ test('diffTrackedFields emits one row per changed tracked field, in field order'
   ]);
   assert.deepEqual(Object.keys(TRACKED_FIELDS).length, 7);
 });
+
+test('defaults keep every field the caller gives', () => {
+  assert.deepEqual(
+    projectDefaults({ name: 'Bath', budgetCents: 5, startDate: '2026-02-01' }),
+    { name: 'Bath', budgetCents: 5, startDate: '2026-02-01' },
+  );
+  const item = {
+    title: 'Tile',
+    description: 'Floor',
+    startDate: '2026-02-01',
+    endDate: '2026-02-03',
+    responsibleParty: 'Us',
+    estimatedCents: 100,
+    actualCents: 90,
+  };
+  assert.deepEqual(scheduleItemDefaults(item), item);
+  const material = {
+    name: 'Grout',
+    scheduleItemId: 'i',
+    allowanceCents: 10,
+    estimatedCents: 12,
+    actualCents: 11,
+    expectedDate: '2026-02-02',
+  };
+  assert.deepEqual(materialItemDefaults(material), material);
+});
+
+test('defaults fill an empty body and keep an explicit null', () => {
+  assert.deepEqual(projectDefaults({}), {
+    name: '',
+    budgetCents: 0,
+    startDate: '',
+  });
+  assert.deepEqual(scheduleItemDefaults({}), {
+    title: '',
+    description: '',
+    startDate: '',
+    endDate: '',
+    responsibleParty: '',
+    estimatedCents: 0,
+    actualCents: null,
+  });
+  assert.deepEqual(
+    materialItemDefaults({
+      scheduleItemId: null,
+      actualCents: null,
+      expectedDate: null,
+    }),
+    {
+      name: '',
+      scheduleItemId: null,
+      allowanceCents: 0,
+      estimatedCents: 0,
+      actualCents: null,
+      expectedDate: null,
+    },
+  );
+});
