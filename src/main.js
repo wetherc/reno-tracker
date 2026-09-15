@@ -1,6 +1,6 @@
 // Composition root. Builds the AppContext, mounts the shell, then hands
 // the panel to the feature module for the current section.
-import { createApi } from './api/client.js';
+import { createBackend, readBackend } from './api/backend.js';
 import { describeFailure } from './api/errors.js';
 import { createContext } from './app/context.js';
 import { mountCosts } from './app/costs.js';
@@ -21,9 +21,11 @@ function byId(id) {
   return el;
 }
 
-const prefs = createPrefs(browserStorage());
+const storage = browserStorage();
+const prefs = createPrefs(storage);
 const toaster = createToaster(byId('toasts'));
-const ctx = createContext({ api: createApi(), prefs, toaster });
+const api = createBackend(readBackend(document), storage);
+const ctx = createContext({ api, prefs, toaster });
 
 mountTheme(byId('theme-toggle'), prefs);
 const projects = mountProjects({ ctx, host: byId('project-picker') });

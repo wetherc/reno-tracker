@@ -33,6 +33,7 @@ const HIDDEN = new Set([
   'coverage',
   'test-results',
   'playwright-report',
+  'dist',
 ]);
 
 /**

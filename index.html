@@ -4,14 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Renovation Tracker</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="stylesheet" href="/style.css" />
+    <meta name="reno-backend" content="server" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
-    <script src="/src/boot.js"></script>
+    <script src="./src/boot.js"></script>
     <div class="app">
       <header class="app__header">
-        <a class="brand" href="/">
+        <a class="brand" href="./">
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 11l8-7 8 7M6 10v10h12V10" />
           </svg>
@@ -24,6 +25,6 @@
       <main class="app__main" id="main"></main>
     </div>
     <div class="toast-region" id="toasts" aria-live="polite"></div>
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>
