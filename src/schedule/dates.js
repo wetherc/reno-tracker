@@ -84,3 +84,89 @@ export function todayIso(now = new Date()) {
 export function gapDays(end, start) {
   return spanDays(end, start) - 2;
 }
+
+/**
+ * @param {string} iso
+ * @returns {string} YYYY-MM
+ */
+export function monthOf(iso) {
+  return iso.slice(0, 7);
+}
+
+/**
+ * First and last day of a month.
+ * @param {string} yearMonth YYYY-MM
+ * @returns {{ start: string, end: string }}
+ */
+export function monthBounds(yearMonth) {
+  const [y, m] = yearMonth.split('-').map(Number);
+  return {
+    start: toIsoDate(new Date(Date.UTC(y, m - 1, 1))),
+    end: toIsoDate(new Date(Date.UTC(y, m, 0))),
+  };
+}
+
+/**
+ * @param {string} yearMonth YYYY-MM
+ * @param {number} months may be negative
+ * @returns {string} YYYY-MM
+ */
+export function addMonths(yearMonth, months) {
+  const [y, m] = yearMonth.split('-').map(Number);
+  return monthOf(toIsoDate(new Date(Date.UTC(y, m - 1 + months, 1))));
+}
+
+/**
+ * @param {string} iso
+ * @returns {number} 0 for Sunday through 6 for Saturday
+ */
+export function weekday(iso) {
+  return parseDate(iso).getUTCDay();
+}
+
+/**
+ * The Sunday on or before the date.
+ * @param {string} iso
+ * @returns {string}
+ */
+export function startOfWeek(iso) {
+  return addDays(iso, -weekday(iso));
+}
+
+/**
+ * Signed days from one date to another. Zero for the same day, negative
+ * when `iso` is earlier than `from`.
+ * @param {string} from
+ * @param {string} iso
+ * @returns {number}
+ */
+export function dayOffset(from, iso) {
+  return spanDays(from, iso) - 1;
+}
+
+/**
+ * Every day from start to end, inclusive.
+ * @param {string} start
+ * @param {string} end
+ * @returns {string[]}
+ */
+export function eachDay(start, end) {
+  /** @type {string[]} */
+  const out = [];
+  for (let day = start; day <= end; day = addDays(day, 1)) out.push(day);
+  return out;
+}
+
+/** @typedef {{ start: string, end: string }} DateRange */
+
+/**
+ * The days two ranges share, or null when they do not touch.
+ * @param {DateRange} a
+ * @param {DateRange} b
+ * @returns {DateRange | null}
+ */
+export function sharedDays(a, b) {
+  const start = a.start > b.start ? a.start : b.start;
+  const end = a.end < b.end ? a.end : b.end;
+  return start <= end ? { start, end } : null;
+}
