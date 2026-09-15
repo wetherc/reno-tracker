@@ -1,7 +1,7 @@
 // The editor for one schedule item. A new item gets the form alone. An
-// existing item gets tabs: the form, its notes, and its change log. An
-// edit asks for a reason, and the server writes that reason onto every
-// variance row the save produces.
+// existing item gets tabs: the form, the items it waits on, its notes,
+// and its change log. An edit asks for a reason, and the server writes
+// that reason onto every variance row the save produces.
 import { ApiError } from '../api/errors.js';
 import { validateScheduleItem } from '../entities/scheduleItem.js';
 import { todayIso } from '../schedule/dates.js';
@@ -16,17 +16,19 @@ import {
 } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
 import { tabs } from '../ui/Tabs.js';
+import { dependencyLinks } from './dependencies.js';
 import { notesList } from './notesList.js';
 import { FIELD_LABELS, varianceList } from './varianceList.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ScheduleItem} ScheduleItem */
 /** @typedef {import('../types.ts').ScheduleItemInput} ScheduleItemInput */
+/** @typedef {'details' | 'links' | 'notes' | 'changes'} EditorTab */
 
 let counter = 0;
 
 /**
- * @param {{ ctx: AppContext, item?: ScheduleItem, tab?: 'details' | 'notes' | 'changes' }} config
+ * @param {{ ctx: AppContext, item?: ScheduleItem, tab?: EditorTab }} config
  * @returns {import('../ui/Modal.js').ModalHandle}
  */
 export function openScheduleEditor({ ctx, item, tab = 'details' }) {
@@ -127,11 +129,14 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
 
   /** @type {ReturnType<typeof notesList> | null} */
   let notes = null;
+  /** @type {ReturnType<typeof dependencyLinks> | null} */
+  let links = null;
   const changes = document.createElement('div');
   /** @type {(Node | string)[]} */
   let body = [formEl];
 
   if (editing) {
+    links = dependencyLinks({ ctx, item });
     notes = notesList({
       ctx,
       itemId: item.id,
@@ -146,6 +151,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
         selected: tab,
         items: [
           { id: 'details', label: 'Details', panel: details },
+          { id: 'links', label: 'Waits on', panel: links.el },
           { id: 'notes', label: 'Notes', panel: notes.el },
           { id: 'changes', label: 'Changes', panel: changes },
         ],
@@ -182,6 +188,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
       return;
     }
     notes?.update(payload.notes);
+    links?.update(payload);
     renderChanges();
   });
 

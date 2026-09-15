@@ -105,10 +105,10 @@ test('editing shows tabs, logs a reason, and follows the payload', async () => {
   const tabButtons = el.querySelectorAll('[role="tab"]');
   assert.deepEqual(
     tabButtons.map((/** @type {any} */ b) => b.textContent),
-    ['Details', 'Notes', 'Changes'],
+    ['Details', 'Waits on', 'Notes', 'Changes'],
   );
-  assert.equal(tabButtons[2].getAttribute('aria-selected'), 'true');
-  const changes = el.querySelectorAll('[role="tabpanel"]')[2];
+  assert.equal(tabButtons[3].getAttribute('aria-selected'), 'true');
+  const changes = el.querySelectorAll('[role="tabpanel"]')[3];
   assert.equal(changes.querySelector('.empty-state') !== null, true);
   const actions = el.children[2].children;
   assert.equal(actions[0].textContent, 'Delete');
@@ -141,7 +141,7 @@ test('editing shows tabs, logs a reason, and follows the payload', async () => {
   assert.equal(entry.children[2].textContent, 'Plumber quote came in higher');
 
   // A note written from the notes tab appears without reopening.
-  const notesPanel = again.querySelectorAll('[role="tabpanel"]')[1];
+  const notesPanel = again.querySelectorAll('[role="tabpanel"]')[2];
   const composer = notesPanel.querySelector('form');
   composer.querySelector('textarea').value = 'Paid deposit';
   composer.dispatchEvent({ type: 'submit' });

@@ -86,6 +86,46 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
     animations: 'disabled',
   });
 
+  // Chain the three items, then try to close the chain into a loop. The
+  // server refuses and the message names every item in the loop.
+  await dialog.getByRole('tab', { name: 'Waits on' }).click();
+  await dialog.getByLabel('Has to finish first').selectOption('Demo');
+  await dialog.getByRole('button', { name: 'Link', exact: true }).click();
+  await expect(page.locator('.toast').last()).toContainText(
+    'Rough plumbing now waits on Demo',
+  );
+  const waitsOn = dialog.getByRole('list', { name: 'Waits on' });
+  await expect(waitsOn.getByRole('listitem')).toHaveCount(1);
+  await expect(waitsOn).toContainText('Demo');
+  await expect(waitsOn).toContainText('2 days free');
+  await dialog.getByRole('button', { name: 'Close' }).click();
+
+  await table.getByRole('button', { name: 'Cabinets', exact: true }).click();
+  await dialog.getByRole('tab', { name: 'Waits on' }).click();
+  await dialog.getByLabel('Has to finish first').selectOption('Rough plumbing');
+  await dialog.getByRole('button', { name: 'Link', exact: true }).click();
+  await expect(waitsOn).toContainText('overlaps by 2 days');
+  await page.screenshot({
+    path: 'test-results/schedule-links.png',
+    animations: 'disabled',
+  });
+  await dialog.getByRole('button', { name: 'Close' }).click();
+
+  await table.getByRole('button', { name: 'Demo', exact: true }).click();
+  await dialog.getByRole('tab', { name: 'Waits on' }).click();
+  await expect(dialog.getByRole('list', { name: 'Holds up' })).toContainText(
+    'Rough plumbing',
+  );
+  await dialog.getByLabel('Has to finish first').selectOption('Cabinets');
+  await dialog.getByRole('button', { name: 'Link', exact: true }).click();
+  await expect(dialog.locator('.form__error:not([hidden])')).toHaveText(
+    'This dependency makes a loop: Demo -> Rough plumbing -> Cabinets -> Demo',
+  );
+  await dialog.getByRole('button', { name: 'Close' }).click();
+  await table
+    .getByRole('button', { name: 'Rough plumbing', exact: true })
+    .click();
+
   // A note from the notes tab shows without closing.
   await dialog.getByRole('tab', { name: 'Notes' }).click();
   await dialog.getByLabel('New note').fill('Inspector booked for the 15th.');

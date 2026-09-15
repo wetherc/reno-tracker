@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   addDays,
+  gapDays,
   isIsoDate,
   parseDate,
   spanDays,
@@ -45,4 +46,11 @@ test('todayIso uses the local calendar date', () => {
   assert.equal(todayIso(late), '2026-03-08');
   assert.equal(todayIso(new Date(2026, 0, 1, 0, 5)), '2026-01-01');
   assert.match(todayIso(), /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test('gapDays counts free days and reports overlap as negative', () => {
+  assert.equal(gapDays('2026-10-03', '2026-10-06'), 2);
+  assert.equal(gapDays('2026-10-03', '2026-10-04'), 0);
+  assert.equal(gapDays('2026-10-03', '2026-10-03'), -1);
+  assert.equal(gapDays('2026-10-10', '2026-10-06'), -5);
 });

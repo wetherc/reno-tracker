@@ -196,7 +196,7 @@ test('title and notes count open the editor on the right tab', async () => {
   demo.children[9].children[0].click();
   dialog = $(dom.body.children[0]);
   assert.equal(
-    dialog.querySelectorAll('[role="tab"]')[1].getAttribute('aria-selected'),
+    dialog.querySelectorAll('[role="tab"]')[2].getAttribute('aria-selected'),
     'true',
   );
   dialog.close();

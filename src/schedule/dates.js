@@ -72,3 +72,15 @@ export function todayIso(now = new Date()) {
   const d = String(now.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
+
+/**
+ * Free days between one item's end and another item's start. Zero when
+ * the second starts the day after the first ends. Negative when the two
+ * overlap, by the number of shared days.
+ * @param {string} end
+ * @param {string} start
+ * @returns {number}
+ */
+export function gapDays(end, start) {
+  return spanDays(end, start) - 2;
+}

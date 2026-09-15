@@ -2,12 +2,15 @@
 // and variances in memory and writes one variance row per changed
 // tracked field, the way the server does.
 import { createContext } from '../../../src/app/context.js';
+import { ApiError } from '../../../src/api/errors.js';
 import { diffTrackedFields } from '../../../src/entities/variance.js';
+import { findCycle } from '../../../src/schedule/graph.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 
 /** @typedef {import('../../../src/types.ts').ScheduleItem} ScheduleItem */
 /** @typedef {import('../../../src/types.ts').Note} Note */
 /** @typedef {import('../../../src/types.ts').Variance} Variance */
+/** @typedef {import('../../../src/types.ts').Dependency} Dependency */
 
 /**
  * @param {string} id
@@ -32,16 +35,18 @@ export function itemOf(id, extra = {}) {
 }
 
 /**
- * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[] }} [seed]
+ * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[] }} [seed]
  */
 export function setupSchedule({
   schedule = [],
   notes = [],
   variances = [],
+  dependencies = [],
 } = {}) {
   let items = schedule;
   let allNotes = notes;
   let allVariances = variances;
+  let links = dependencies;
   /** @type {string[]} */
   const log = [];
   /** @type {string[]} */
@@ -54,7 +59,7 @@ export function setupSchedule({
     getProject: async () => ({
       project,
       schedule: items,
-      dependencies: [],
+      dependencies: links,
       variances: allVariances,
       notes: allNotes,
       materials: [],
@@ -132,6 +137,28 @@ export function setupSchedule({
       allNotes = allNotes.filter((n) => n.id !== id);
       log.push(`unnote ${id}`);
     },
+    addDependency: async (
+      /** @type {string} */ projectId,
+      /** @type {{ predecessorId: string, successorId: string }} */ input,
+    ) => {
+      if (input.predecessorId === 'boom') throw new Error('boom');
+      const loop = findCycle(links, input);
+      if (loop) {
+        const titles = loop.map((id) => items.find((i) => i.id === id)?.title);
+        throw new ApiError(409, {
+          error: `This dependency makes a loop: ${titles.join(' -> ')}`,
+          field: 'predecessorId',
+        });
+      }
+      const created = { id: `d${links.length + 1}`, projectId, ...input };
+      links = [...links, created];
+      log.push(`link ${input.predecessorId} -> ${input.successorId}`);
+      return created;
+    },
+    deleteDependency: async (/** @type {string} */ id) => {
+      links = links.filter((d) => d.id !== id);
+      log.push(`unlink ${id}`);
+    },
   });
   const project = {
     id: 'p1',
@@ -149,7 +176,14 @@ export function setupSchedule({
     prefs: createPrefs(memoryStorage()),
     toaster,
   });
-  return { ctx, log, toasts, items: () => items, notes: () => allNotes };
+  return {
+    ctx,
+    log,
+    toasts,
+    items: () => items,
+    notes: () => allNotes,
+    links: () => links,
+  };
 }
 
 export const tick = () => new Promise((r) => setTimeout(r, 0));
