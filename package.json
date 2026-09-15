@@ -1,6 +1,6 @@
 {
   "name": "reno-tracker",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Home renovation project tracker. Local Node server, SQLite database, plain web client.",
   "type": "module",
