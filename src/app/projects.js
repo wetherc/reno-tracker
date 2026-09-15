@@ -1,7 +1,15 @@
 // The project picker in the header: a select of every project plus the
-// buttons that start, edit, and delete one. Deleting closes the project
-// first so the refetch after the write has nothing to fetch.
+// buttons that start, edit, delete, save, and load one. Deleting closes
+// the project first so the refetch after the write has nothing to fetch.
+// Loading a file always creates a new project, so a file can be loaded
+// twice without touching the project it came from.
 import { describeFailure } from '../api/errors.js';
+import {
+  exportFileName,
+  parseExportFile,
+  pickJsonFile,
+  saveJson,
+} from '../storage/exportFile.js';
 import { button, iconButton } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
 import { openProjectDialog } from './projectDialog.js';
@@ -39,13 +47,23 @@ export function mountProjects({ ctx, host }) {
     label: 'Delete project',
     onClick: deleteProject,
   });
+  const save = iconButton({
+    icon: 'download',
+    label: 'Save project to a file',
+    onClick: exportProject,
+  });
+  const load = iconButton({
+    icon: 'upload',
+    label: 'Load project from a file',
+    onClick: importProject,
+  });
   const start = button({
     label: 'New project',
     icon: 'plus',
     variant: 'primary',
     onClick: newProject,
   });
-  el.append(label, select, edit, remove, start);
+  el.append(label, select, edit, remove, save, load, start);
   host.replaceChildren(el);
 
   function render() {
@@ -62,10 +80,10 @@ export function mountProjects({ ctx, host }) {
     if (open) select.value = open.id;
     const none = ctx.projects.length === 0;
     select.hidden = none;
-    edit.hidden = none;
-    remove.hidden = none;
-    edit.disabled = !open;
-    remove.disabled = !open;
+    for (const control of [edit, remove, save]) {
+      control.hidden = none;
+      control.disabled = !open;
+    }
   }
 
   function newProject() {
@@ -112,8 +130,41 @@ export function mountProjects({ ctx, host }) {
     if (next) await ctx.openProject(next);
   }
 
+  async function exportProject() {
+    const project = ctx.payload?.project;
+    if (!project) return;
+    try {
+      const file = await ctx.api.exportProject(project.id);
+      const fileName = exportFileName(project.name, file.exportedAt);
+      saveJson(fileName, file);
+      ctx.toaster.success(`Saved ${fileName}`);
+    } catch (error) {
+      ctx.toaster.failure(describeFailure(error));
+    }
+  }
+
+  async function importProject() {
+    const picked = await pickJsonFile();
+    if (!picked) return;
+    /** @type {import('../types.ts').ExportFile} */
+    let file;
+    try {
+      file = parseExportFile(await picked.text(), picked.name);
+    } catch (error) {
+      ctx.toaster.failure(describeFailure(error));
+      return;
+    }
+    const outcome = await ctx.write((api) => api.importProject(file), {
+      reload: true,
+    });
+    if (!outcome.ok) return;
+    const { project } = outcome.result;
+    await ctx.openProject(project.id);
+    ctx.toaster.success(`Loaded ${project.name} from ${picked.name}`);
+  }
+
   ctx.on('projects', render);
   ctx.on('payload', render);
   render();
-  return { el, newProject };
+  return { el, newProject, importProject };
 }

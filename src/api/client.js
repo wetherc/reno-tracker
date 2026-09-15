@@ -110,9 +110,9 @@ export function createApi({
     reorder: (projectId, kind, ids) =>
       request('POST', `/api/projects/${projectId}/reorder`, { kind, ids }),
 
-    /** @param {string} id @returns {string} the URL a download link points at */
-    exportUrl: (id) => `${base}/api/projects/${id}/export`,
-    /** @param {ExportFile} file @returns {Promise<Project>} */
+    /** @param {string} id @returns {Promise<ExportFile>} */
+    exportProject: (id) => request('GET', `/api/projects/${id}/export`),
+    /** @param {ExportFile} file @returns {Promise<ProjectPayload>} */
     importProject: (file) => request('POST', '/api/projects/import', file),
   };
 }

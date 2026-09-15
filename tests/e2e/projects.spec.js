@@ -61,4 +61,53 @@ test('start, edit, and delete a project from the picker', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Delete' }).click();
   await expect(page.locator('.empty-state')).toContainText('No project open');
   await expect(page.getByLabel('Project', { exact: true })).toBeHidden();
+  await expect(
+    page.getByRole('button', { name: 'Load from a file' }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: 'test-results/project-none.png',
+    animations: 'disabled',
+  });
+});
+
+test('save a project to a file and load it back as a new project', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Start a project' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Name').fill('Garage');
+  await dialog.getByLabel('Budget').fill('9,000');
+  await dialog.getByRole('button', { name: 'Start project' }).click();
+  await expect(dialog).toBeHidden();
+
+  const downloading = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Save project to a file' }).click();
+  const download = await downloading;
+  expect(download.suggestedFilename()).toMatch(
+    /^garage-\d{4}-\d{2}-\d{2}\.json$/,
+  );
+  const path = await download.path();
+  await expect(page.locator('.toast').last()).toContainText('Saved garage-');
+
+  const choosing = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Load project from a file' }).click();
+  const chooser = await choosing;
+  await chooser.setFiles(path);
+  await expect(page.locator('.toast').last()).toContainText(
+    'Loaded Garage from',
+  );
+  const select = page.getByLabel('Project', { exact: true });
+  await expect(select.locator('option')).toHaveCount(2);
+  await page.screenshot({
+    path: 'test-results/project-loaded.png',
+    animations: 'disabled',
+  });
+
+  for (let i = 0; i < 2; i += 1) {
+    await page.getByRole('button', { name: 'Delete project' }).click();
+    await dialog.getByRole('button', { name: 'Delete' }).click();
+    await expect(dialog).toBeHidden();
+  }
+  await expect(page.locator('.empty-state')).toContainText('No project open');
 });

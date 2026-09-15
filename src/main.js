@@ -42,16 +42,22 @@ function render() {
   shell.setTitle(section?.label ?? '');
   shell.tools.replaceChildren();
   if (!ctx.payload) {
-    shell.setBody(
-      emptyState('No project open.', {
-        action: button({
-          label: 'Start a project',
-          icon: 'plus',
-          variant: 'primary',
-          onClick: projects.newProject,
-        }),
+    const actions = document.createElement('span');
+    actions.className = 'empty-state__actions';
+    actions.append(
+      button({
+        label: 'Start a project',
+        icon: 'plus',
+        variant: 'primary',
+        onClick: projects.newProject,
+      }),
+      button({
+        label: 'Load from a file',
+        icon: 'upload',
+        onClick: projects.importProject,
       }),
     );
+    shell.setBody(emptyState('No project open.', { action: actions }));
     return;
   }
   if (shell.section === 'schedule') {
