@@ -23,6 +23,9 @@ export const ICON_PATHS = {
   upload: 'M12 15V4M7 9l5-5 5 5M4 20h16',
   grip: 'M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01',
   house: 'M4 11l8-7 8 7M6 10v10h12V10',
+  box: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10',
+  chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  folder: 'M3 6h6l2 2h10v11H3z',
   link: 'M10 14a4 4 0 0 1 0-5.5l3-3a4 4 0 0 1 5.5 5.5l-1.5 1.5M14 10a4 4 0 0 1 0 5.5l-3 3a4 4 0 0 1-5.5-5.5L7 11.5',
 };
 

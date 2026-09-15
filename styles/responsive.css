@@ -4,6 +4,7 @@
 @media (max-width: 68rem) {
   .app {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
     grid-template-areas:
       'header'
       'sidebar'
