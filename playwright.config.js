@@ -12,7 +12,7 @@ export default defineConfig({
   reporter: 'list',
   use: { baseURL },
   webServer: {
-    command: 'node src/server/index.js',
+    command: 'node --disable-warning=ExperimentalWarning src/server/index.js',
     url: baseURL,
     env: { PORT: String(port), RENO_DB_PATH: 'test-results/e2e.sqlite' },
     reuseExistingServer: false,

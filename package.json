@@ -8,14 +8,14 @@
     "node": ">=22.16"
   },
   "scripts": {
-    "dev": "node --watch src/server/index.js",
-    "start": "node src/server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/server/index.js",
+    "start": "node --disable-warning=ExperimentalWarning src/server/index.js",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint . && node scripts/check-css-tokens.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "node --test 'tests/unit/**/*.test.js' 'tests/server/**/*.test.js'",
-    "test:coverage": "node --test --experimental-test-coverage 'tests/unit/**/*.test.js' 'tests/server/**/*.test.js'",
+    "test": "node --disable-warning=ExperimentalWarning --test 'tests/unit/**/*.test.js' 'tests/server/**/*.test.js'",
+    "test:coverage": "node --disable-warning=ExperimentalWarning --test --experimental-test-coverage 'tests/unit/**/*.test.js' 'tests/server/**/*.test.js'",
     "e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks"
   },
