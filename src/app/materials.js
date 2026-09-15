@@ -9,7 +9,7 @@ import { dataTable } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
 import { icon } from '../ui/icon.js';
 import { openMaterialEditor } from './materialEditor.js';
-import { varianceCell } from './schedule.js';
+import { varianceCell } from './scheduleTable.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */

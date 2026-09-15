@@ -1,11 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import {
-  costVariance,
-  mountSchedule,
-  varianceCell,
-} from '../../../src/app/schedule.js';
+import { mountSchedule } from '../../../src/app/schedule.js';
+import { costVariance, varianceCell } from '../../../src/app/scheduleTable.js';
 import { mountShell } from '../../../src/app/shell.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 import { itemOf, setupSchedule, tick } from './scheduleFixtures.js';
@@ -60,7 +57,8 @@ test('show does nothing without a project', () => {
 
 test('an empty schedule invites the first item', async () => {
   const { shell } = await setup();
-  assert.equal(shell.tools.children[0].textContent, 'Add item');
+  assert.equal(shell.tools.children[0].getAttribute('aria-label'), 'View');
+  assert.equal(shell.tools.children[1].textContent, 'Add item');
   const empty = $(shell.body.children[0]);
   assert.equal(empty.className, 'empty-state u-muted');
   assert.match(empty.textContent, /Nothing scheduled for Kitchen yet/);
@@ -200,10 +198,23 @@ test('title and notes count open the editor on the right tab', async () => {
     'true',
   );
   dialog.close();
-  $(shell.tools.children[0]).click();
+  $(shell.tools.children[1]).click();
   dialog = $(dom.body.children[0]);
   assert.equal(dialog.children[0].children[0].textContent, 'New schedule item');
   dialog.close();
+});
+
+test('a view that is not built yet says so', async () => {
+  const { shell, ctx } = await setup({ schedule: [itemOf('a')] });
+  ctx.prefs.write('lastView', 'gantt');
+  const panel = mountSchedule({ ctx, shell });
+  panel.show();
+  assert.equal(
+    shell.body.children[0].textContent,
+    'The Gantt view is not built yet.',
+  );
+  $(shell.tools.children[0]).children[0].click();
+  assert.equal(shell.body.children[0].tagName, 'TABLE');
 });
 
 test('a chosen sort outlives the rebuild after a write', async () => {

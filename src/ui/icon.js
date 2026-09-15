@@ -13,6 +13,7 @@ export const ICON_PATHS = {
   pencil: 'M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4',
   'chevron-down': 'M6 9l6 6 6-6',
   'chevron-right': 'M9 6l6 6-6 6',
+  'chevron-left': 'M15 6l-6 6 6 6',
   sun: 'M12 4V2M12 22v-2M4 12H2M22 12h-2M5 5l-1.5-1.5M19 19l1.5 1.5M5 19l-1.5 1.5M19 5l1.5-1.5M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z',
   moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
   monitor: 'M3 5h18v11H3zM8 20h8M12 16v4',
@@ -26,6 +27,9 @@ export const ICON_PATHS = {
   box: 'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10',
   chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
   folder: 'M3 6h6l2 2h10v11H3z',
+  table: 'M3 5h18v14H3zM3 10h18M3 15h18M9 5v14',
+  gantt: 'M3 6h8M7 12h10M13 18h8',
+  list: 'M4 6h.01M8 6h12M4 12h.01M8 12h12M4 18h.01M8 18h12',
   link: 'M10 14a4 4 0 0 1 0-5.5l3-3a4 4 0 0 1 5.5 5.5l-1.5 1.5M14 10a4 4 0 0 1 0 5.5l-3 3a4 4 0 0 1-5.5-5.5L7 11.5',
 };
 
