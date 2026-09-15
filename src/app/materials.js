@@ -2,6 +2,7 @@
 // table with a totals row, an Add button in the panel header, and a
 // checkbox per row that marks the material bought. The name opens the
 // editor.
+import { landingDate } from '../costs/timeline.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { bareButton, button } from '../ui/buttons.js';
@@ -16,6 +17,10 @@ import { varianceCell } from './scheduleTable.js';
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 
+// The Expected column and the costs panel agree on the landing day
+// because both read it from one function.
+export { landingDate };
+
 /**
  * How far the material runs over its allowance. The actual price counts
  * once it is entered, the estimate before that.
@@ -24,22 +29,6 @@ import { varianceCell } from './scheduleTable.js';
  */
 export function allowanceVariance(item) {
   return (item.actualCents ?? item.estimatedCents) - item.allowanceCents;
-}
-
-/**
- * The day a material's cost lands. An expected date wins, then the
- * start of the schedule item it is for, then the project start.
- * @param {MaterialItem} item
- * @param {ProjectPayload} payload
- * @returns {{ date: string, inferred: boolean }}
- */
-export function landingDate(item, payload) {
-  if (item.expectedDate) return { date: item.expectedDate, inferred: false };
-  const linked = payload.schedule.find((s) => s.id === item.scheduleItemId);
-  return {
-    date: linked?.startDate ?? payload.project.startDate,
-    inferred: true,
-  };
 }
 
 /**
