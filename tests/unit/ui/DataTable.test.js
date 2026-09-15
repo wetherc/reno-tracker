@@ -113,3 +113,17 @@ test('a sort key with no compare leaves the order alone', () => {
   const table = build({ sort: { key: 'name', dir: 'asc' } });
   assert.deepEqual(names(table), ['Tile', 'Paint', 'Sink']);
 });
+
+test('a footer draws one totals cell per column under the body', () => {
+  const table = build({ footer: ['Total', '600'] });
+  const foot = $(table.el.children[3]);
+  assert.equal(foot.tagName, 'TFOOT');
+  const row = foot.children[0];
+  assert.equal(row.className, 'data-table__foot');
+  assert.deepEqual(
+    row.children.map((/** @type {any} */ td) => td.textContent),
+    ['Total', '600', ''],
+  );
+  assert.equal(row.children[1].className, 'data-table__td data-table__td--end');
+  assert.equal(build().el.children.length, 3);
+});

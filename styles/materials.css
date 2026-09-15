@@ -1,0 +1,22 @@
+/* Bill of materials table. */
+
+.material-row--complete .material-name {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.material-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  text-align: left;
+}
+
+.material-name:hover {
+  color: var(--accent);
+}
+
+.material-name .icon {
+  color: var(--success);
+}

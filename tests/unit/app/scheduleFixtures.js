@@ -11,6 +11,7 @@ import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 /** @typedef {import('../../../src/types.ts').Note} Note */
 /** @typedef {import('../../../src/types.ts').Variance} Variance */
 /** @typedef {import('../../../src/types.ts').Dependency} Dependency */
+/** @typedef {import('../../../src/types.ts').MaterialItem} MaterialItem */
 
 /**
  * @param {string} id
@@ -35,15 +36,38 @@ export function itemOf(id, extra = {}) {
 }
 
 /**
- * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[] }} [seed]
+ * @param {string} id
+ * @param {Partial<MaterialItem>} [extra]
+ * @returns {MaterialItem}
+ */
+export function materialOf(id, extra = {}) {
+  return {
+    id,
+    projectId: 'p1',
+    scheduleItemId: null,
+    name: `Material ${id}`,
+    allowanceCents: 10000,
+    estimatedCents: 12000,
+    actualCents: null,
+    complete: false,
+    expectedDate: null,
+    sortOrder: 0,
+    ...extra,
+  };
+}
+
+/**
+ * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[], materials?: MaterialItem[] }} [seed]
  */
 export function setupSchedule({
   schedule = [],
   notes = [],
   variances = [],
   dependencies = [],
+  materials = [],
 } = {}) {
   let items = schedule;
+  let bom = materials;
   let allNotes = notes;
   let allVariances = variances;
   let links = dependencies;
@@ -62,7 +86,7 @@ export function setupSchedule({
       dependencies: links,
       variances: allVariances,
       notes: allNotes,
-      materials: [],
+      materials: bom,
     }),
     createScheduleItem: async (
       /** @type {string} */ projectId,
@@ -159,6 +183,41 @@ export function setupSchedule({
       links = links.filter((d) => d.id !== id);
       log.push(`unlink ${id}`);
     },
+    createMaterial: async (
+      /** @type {string} */ projectId,
+      /** @type {any} */ input,
+    ) => {
+      if (input.name === 'boom') {
+        throw new ApiError(400, {
+          error: 'no such item',
+          field: 'scheduleItemId',
+        });
+      }
+      const created = materialOf(`m${bom.length + 1}`, { ...input, projectId });
+      bom = [...bom, created];
+      log.push(`create material ${input.name}`);
+      return created;
+    },
+    patchMaterial: async (
+      /** @type {string} */ id,
+      /** @type {any} */ patch,
+    ) => {
+      bom = bom.map((m) => (m.id === id ? { ...m, ...patch } : m));
+      log.push(`patch material ${id}`);
+      return bom.find((m) => m.id === id);
+    },
+    deleteMaterial: async (/** @type {string} */ id) => {
+      bom = bom.filter((m) => m.id !== id);
+      log.push(`delete material ${id}`);
+    },
+    setMaterialComplete: async (
+      /** @type {string} */ id,
+      /** @type {boolean} */ complete,
+    ) => {
+      if (id === 'stuck') throw new Error('stuck');
+      bom = bom.map((m) => (m.id === id ? { ...m, complete } : m));
+      log.push(`bought ${id} ${complete}`);
+    },
   });
   const project = {
     id: 'p1',
@@ -183,6 +242,7 @@ export function setupSchedule({
     items: () => items,
     notes: () => allNotes,
     links: () => links,
+    materials: () => bom,
   };
 }
 

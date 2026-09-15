@@ -3,6 +3,7 @@
 import { createApi } from './api/client.js';
 import { describeFailure } from './api/errors.js';
 import { createContext } from './app/context.js';
+import { mountMaterials } from './app/materials.js';
 import { mountProjects } from './app/projects.js';
 import { mountSchedule } from './app/schedule.js';
 import { mountShell, SECTIONS } from './app/shell.js';
@@ -32,6 +33,7 @@ const shell = mountShell({
 });
 
 const schedule = mountSchedule({ ctx, shell });
+const materials = mountMaterials({ ctx, shell });
 
 function render() {
   const section = SECTIONS.find((s) => s.id === shell.section);
@@ -52,6 +54,10 @@ function render() {
   }
   if (shell.section === 'schedule') {
     schedule.show();
+    return;
+  }
+  if (shell.section === 'materials') {
+    materials.show();
     return;
   }
   shell.setBody(emptyState(`Nothing in ${ctx.payload.project.name} yet.`));

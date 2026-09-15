@@ -37,7 +37,9 @@ import { icon } from './icon.js';
  *   rowClass?: (row: R) => string,
  *   sort?: SortState | null,
  *   onSort?: (sort: SortState | null) => void,
- * }} config the caption is read to screen readers and hidden on screen
+ *   footer?: (Node | string)[],
+ * }} config the caption is read to screen readers and hidden on screen;
+ * footer is one cell per column, drawn as a totals row under the body
  * @returns {DataTableHandle<R>}
  */
 export function dataTable({
@@ -48,6 +50,7 @@ export function dataTable({
   rowClass,
   sort = null,
   onSort,
+  footer,
 }) {
   const el = document.createElement('table');
   el.className = 'data-table';
@@ -59,6 +62,7 @@ export function dataTable({
   const body = document.createElement('tbody');
   head.append(headRow);
   el.append(captionEl, head, body);
+  if (footer) el.append(footerRow(columns, footer));
 
   /** @type {SortState | null} */
   let current = sort;
@@ -157,6 +161,26 @@ export function dataTable({
 function cellClass(base, column) {
   const align = column.align ?? 'start';
   return align === 'start' ? base : `${base} ${base}--${align}`;
+}
+
+/**
+ * @template R
+ * @param {Column<R>[]} columns
+ * @param {(Node | string)[]} cells
+ * @returns {HTMLTableSectionElement}
+ */
+function footerRow(columns, cells) {
+  const foot = document.createElement('tfoot');
+  const tr = document.createElement('tr');
+  tr.className = 'data-table__foot';
+  columns.forEach((column, i) => {
+    const td = document.createElement('td');
+    td.className = cellClass('data-table__td', column);
+    td.append(cells[i] ?? '');
+    tr.append(td);
+  });
+  foot.append(tr);
+  return foot;
 }
 
 /**
