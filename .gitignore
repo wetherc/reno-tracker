@@ -3,3 +3,4 @@ data/
 coverage/
 test-results/
 playwright-report/
+dist/

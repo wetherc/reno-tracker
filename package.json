@@ -1,8 +1,8 @@
 {
   "name": "reno-tracker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
-  "description": "Home renovation project tracker. Local Node server, SQLite database, plain web client.",
+  "description": "Home renovation project tracker. Local Node server with SQLite, or a static site that keeps data in the browser. Plain web client.",
   "type": "module",
   "engines": {
     "node": ">=22.16"
@@ -10,6 +10,8 @@
   "scripts": {
     "dev": "node --disable-warning=ExperimentalWarning --watch src/server/index.js",
     "start": "node --disable-warning=ExperimentalWarning src/server/index.js",
+    "build:pages": "node scripts/build-pages.js dist",
+    "serve:pages": "node scripts/serve-pages.js",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint . && node scripts/check-css-tokens.js",
     "format": "prettier --write .",

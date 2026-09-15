@@ -3,7 +3,8 @@
 This project tracks home renovation projects for one household, as an
 alternative to JobTread. A small Node server serves the page and owns one
 SQLite database. The browser client is plain HTML, CSS, and JavaScript with
-no framework and no runtime dependency.
+no framework and no runtime dependency. The same client also runs as a
+static site on GitHub Pages, where it keeps its data in the browser.
 
 ## Features
 
@@ -41,6 +42,37 @@ types, `pnpm lint` runs ESLint and the CSS token check, and `pnpm e2e` runs
 the Playwright specs against a server it starts itself. The pre-commit hook
 in `.githooks/` runs format, lint, typecheck, and the unit tests.
 
+## Deploying to GitHub Pages
+
+GitHub Pages serves files only, so the page cannot reach a Node server
+there. The static build switches the page to a browser-side data store.
+Every project then lives in the browser's `localStorage` under the key
+`reno-tracker:db`, on the one device and in the one browser profile that
+wrote it. The Save button in the project picker writes a project to a JSON
+file, and Load reads that file back, so a project can move between the
+static site and a local server or between two browsers.
+
+```sh
+pnpm build:pages   # writes the site to dist/
+pnpm serve:pages   # builds, then serves dist/ on http://127.0.0.1:3118
+```
+
+`scripts/build-pages.js` copies `index.html`, `style.css`, `favicon.svg`,
+`styles/`, and `src/` without `src/server/` into `dist/`, and sets the
+`reno-backend` meta tag in the page to `local`. `src/api/backend.js` reads
+that tag on load and builds either the fetch client or the browser store.
+The paths in `index.html` are relative, so the site works under a project
+path such as `/reno-tracker/` as well as at a domain root.
+
+`.github/workflows/pages.yml` runs the build on every push to `main` and
+publishes `dist/` with `actions/deploy-pages`. Enable Pages once in the
+repository settings with GitHub Actions as the source. The build needs
+Node only, so the workflow installs no packages.
+
+The Playwright project named `pages` runs `tests/e2e/pages.spec.js`
+against the static build with no API, and checks that no request goes to
+`/api` and that a project comes back after a reload.
+
 ## Architecture
 
 ```
@@ -63,14 +95,27 @@ in `.githooks/` runs format, lint, typecheck, and the unit tests.
              gantt, agenda  totals      models       per entity
     |
     v
-  src/api/ ................. fetch wrapper and error text
+  src/api/ ................. fetch wrapper, error text, backend picker
   src/storage/ ............. localStorage prefs, file save and load
           |
-          v  HTTP, JSON under /api
-  src/server/ .............. node:http router, static files,
-    routes/ repo/ db/        one route module and one repo module
-                             per entity, SQLite through node:sqlite
+          |-----------------------------------.
+          v  HTTP, JSON under /api            v  static site only
+  src/server/ .............. node:http     src/local/ ...... the same
+    routes/ repo/ db/        router,         api.js store.js  methods
+                             static files,   projects.js      over one
+                             one route and   schedule.js      JSON
+                             one repo module materials.js     document in
+                             per entity,     transfer.js      localStorage
+                             SQLite through
+                             node:sqlite
 ```
+
+`src/api/backend.js` reads the `reno-backend` meta tag in `index.html`
+and returns one of two objects with the same methods. `server` is the
+fetch wrapper in `src/api/client.js`. `local` is `src/local/api.js`,
+which runs the same field checks as the routes and throws the same
+`ApiError` statuses and messages, so the toasts and field marks read the
+same in both modes.
 
 The client fetches one project payload, keeps it in memory as the single
 source of truth, and refetches the whole project after every write. A

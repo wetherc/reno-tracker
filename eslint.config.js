@@ -9,6 +9,7 @@ export default [
       'coverage/',
       'test-results/',
       'playwright-report/',
+      'dist/',
     ],
   },
   js.configs.recommended,
