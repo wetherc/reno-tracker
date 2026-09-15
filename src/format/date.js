@@ -97,3 +97,18 @@ const DAY_LONG = new Intl.DateTimeFormat('en-US', {
 export function formatDayLong(iso) {
   return DAY_LONG.format(new Date(`${iso}T00:00:00Z`));
 }
+
+const MONTH_SHORT = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  timeZone: 'UTC',
+});
+
+/**
+ * @param {string} yearMonth YYYY-MM
+ * @param {{ year?: boolean }} [options] year adds " 2026"
+ * @returns {string} "Oct", or "Oct 2026" with the year
+ */
+export function formatMonthShort(yearMonth, { year = false } = {}) {
+  const text = MONTH_SHORT.format(new Date(`${yearMonth}-01T00:00:00Z`));
+  return year ? `${text} ${yearMonth.slice(0, 4)}` : text;
+}

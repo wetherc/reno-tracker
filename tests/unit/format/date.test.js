@@ -8,6 +8,7 @@ import {
   formatMoment,
   formatWeekday,
   formatDayLong,
+  formatMonthShort,
 } from '../../../src/format/date.js';
 
 test('formatDate shows the calendar day in UTC', () => {
@@ -41,4 +42,9 @@ test('formatWeekday and formatDayLong read the day in UTC', () => {
   assert.equal(formatWeekday('2026-10-13'), 'Tue');
   assert.equal(formatWeekday('2026-10-18'), 'Sun');
   assert.equal(formatDayLong('2026-10-13'), 'Tuesday, October 13, 2026');
+});
+
+test('formatMonthShort names the month with or without the year', () => {
+  assert.equal(formatMonthShort('2026-10'), 'Oct');
+  assert.equal(formatMonthShort('2026-10', { year: true }), 'Oct 2026');
 });
