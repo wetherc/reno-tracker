@@ -1,0 +1,133 @@
+/* Schedule table and the item editor. */
+
+.schedule-row--complete .schedule-title {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.schedule-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  text-align: left;
+}
+
+.schedule-title:hover {
+  color: var(--accent);
+}
+
+.schedule-title .icon {
+  color: var(--success);
+}
+
+.schedule-title__days {
+  white-space: nowrap;
+}
+
+.variance--over {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.variance--under {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.editor__reason {
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border);
+}
+
+.editor__delete {
+  margin-right: auto;
+}
+
+/* Notes */
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.notes__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  list-style: none;
+}
+
+.note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.note__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.note__when {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.note__body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Variance log */
+
+.variances {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.variance-entry {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr);
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.variance-entry:last-child {
+  border-bottom: 0;
+}
+
+.variance-entry__when {
+  grid-row: 1 / span 2;
+  font-size: var(--text-label);
+  color: var(--text-muted);
+}
+
+.variance-entry__change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.variance-entry__field {
+  font-weight: 600;
+}
+
+.variance-entry__old {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.variance-entry__reason {
+  color: var(--text-muted);
+  font-style: italic;
+}

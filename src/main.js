@@ -4,6 +4,7 @@ import { createApi } from './api/client.js';
 import { describeFailure } from './api/errors.js';
 import { createContext } from './app/context.js';
 import { mountProjects } from './app/projects.js';
+import { mountSchedule } from './app/schedule.js';
 import { mountShell, SECTIONS } from './app/shell.js';
 import { mountTheme } from './app/theme.js';
 import { browserStorage, createPrefs } from './storage/prefs.js';
@@ -30,21 +31,30 @@ const shell = mountShell({
   prefs,
 });
 
+const schedule = mountSchedule({ ctx, shell });
+
 function render() {
   const section = SECTIONS.find((s) => s.id === shell.section);
   shell.setTitle(section?.label ?? '');
-  shell.setBody(
-    ctx.payload
-      ? emptyState(`Nothing in ${ctx.payload.project.name} yet.`)
-      : emptyState('No project open.', {
-          action: button({
-            label: 'Start a project',
-            icon: 'plus',
-            variant: 'primary',
-            onClick: projects.newProject,
-          }),
+  shell.tools.replaceChildren();
+  if (!ctx.payload) {
+    shell.setBody(
+      emptyState('No project open.', {
+        action: button({
+          label: 'Start a project',
+          icon: 'plus',
+          variant: 'primary',
+          onClick: projects.newProject,
         }),
-  );
+      }),
+    );
+    return;
+  }
+  if (shell.section === 'schedule') {
+    schedule.show();
+    return;
+  }
+  shell.setBody(emptyState(`Nothing in ${ctx.payload.project.name} yet.`));
 }
 
 shell.onSection(render);

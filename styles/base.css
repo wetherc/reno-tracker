@@ -268,6 +268,14 @@ textarea.field {
   resize: vertical;
 }
 
+.check {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .form {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
@@ -516,6 +524,10 @@ textarea.field {
   background: var(--surface-raised);
   color: var(--text);
   box-shadow: var(--shadow-3);
+}
+
+.modal--wide {
+  width: min(52rem, calc(100vw - 2 * var(--space-4)));
 }
 
 .modal::backdrop {

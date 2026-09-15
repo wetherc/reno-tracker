@@ -184,6 +184,16 @@ export class ShimElement {
     siblings.splice(siblings.indexOf(this), 1);
     this.parentNode = null;
   }
+  /** @param {ShimElement} node */
+  replaceWith(node) {
+    const parent = this.parentNode;
+    if (!parent) return;
+    const index = parent.childNodes.indexOf(this);
+    node.remove();
+    node.parentNode = parent;
+    parent.childNodes[index] = node;
+    this.parentNode = null;
+  }
   /**
    * @param {ShimElement} node
    * @returns {boolean}

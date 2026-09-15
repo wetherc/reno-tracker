@@ -17,7 +17,7 @@ test('start, edit, and delete a project from the picker', async ({ page }) => {
   await expect(page.getByLabel('Project', { exact: true })).toHaveValue(/./);
   await expect(page.locator('.toast')).toContainText('Started Kitchen remodel');
   await expect(page.locator('.empty-state')).toContainText(
-    'Nothing in Kitchen remodel yet',
+    'Nothing scheduled for Kitchen remodel yet',
   );
 
   await page.getByRole('button', { name: 'New project' }).click();

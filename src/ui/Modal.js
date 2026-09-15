@@ -15,12 +15,18 @@ let counter = 0;
  */
 
 /**
- * @param {{ title: string, body?: (Node | string)[], actions?: HTMLElement[], onClose?: () => void }} config
+ * @param {{ title: string, body?: (Node | string)[], actions?: HTMLElement[], wide?: boolean, onClose?: () => void }} config wide fits a form beside a list
  * @returns {ModalHandle}
  */
-export function modal({ title, body = [], actions = [], onClose }) {
+export function modal({
+  title,
+  body = [],
+  actions = [],
+  wide = false,
+  onClose,
+}) {
   const el = document.createElement('dialog');
-  el.className = 'modal';
+  el.className = wide ? 'modal modal--wide' : 'modal';
   const titleId = `modal-title-${++counter}`;
   el.setAttribute('aria-labelledby', titleId);
 
