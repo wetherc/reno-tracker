@@ -1,0 +1,14 @@
+#!/bin/sh
+# Formats staged files, then runs lint, typecheck, and unit tests.
+# Any failure stops the commit.
+set -e
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+if [ -n "$staged" ]; then
+  echo "$staged" | xargs pnpm exec prettier --ignore-unknown --write
+  echo "$staged" | xargs git add
+fi
+
+pnpm lint
+pnpm typecheck
+pnpm test
