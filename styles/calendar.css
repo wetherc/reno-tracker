@@ -1,0 +1,185 @@
+/* Calendar view. Each week is one grid: seven day columns, a row for the
+   day numbers, one row per bar lane, and a last row for the hidden
+   count. The three lane rows match MAX_LANES in src/schedule/calendar.js,
+   so a day cell can span every row with 1 / -1. */
+
+.cal {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.cal__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.cal__title {
+  min-width: 11rem;
+  text-align: center;
+  font-size: var(--text-heading);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cal__nav .btn:last-child {
+  margin-left: auto;
+}
+
+.cal__weekdays,
+.cal__week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cal__weekdays {
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.cal__weekday {
+  padding: 0 var(--space-2) var(--space-1);
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.cal__week {
+  grid-template-rows: 1.75rem repeat(3, 1.5rem) minmax(1.5rem, auto);
+  column-gap: 0;
+  row-gap: 2px;
+}
+
+.cal__day {
+  grid-row: 1 / -1;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-1) var(--space-2);
+}
+
+.cal__day:first-child {
+  border-left: 1px solid var(--border);
+}
+
+.cal__day--weekend {
+  background: color-mix(in srgb, var(--surface-sunken) 60%, transparent);
+}
+
+.cal__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-label);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.cal__day--outside .cal__num {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.cal__day--today .cal__num {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Bars */
+
+.cal-bar {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  margin: 0 3px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: var(--text-label);
+  font-weight: 600;
+  text-align: left;
+  transition: filter var(--transition-fast);
+}
+
+.cal-bar:hover {
+  filter: brightness(1.1);
+}
+
+.cal-bar__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-bar--complete {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+}
+
+.cal-bar--complete .cal-bar__title {
+  text-decoration: line-through;
+}
+
+.cal-bar--complete .icon {
+  flex: none;
+  color: var(--success);
+}
+
+.cal-bar--before {
+  margin-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.cal-bar--after {
+  margin-right: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.cal-more {
+  z-index: 1;
+  justify-self: start;
+  margin: 0 3px;
+  padding: 0 var(--space-1);
+  font-size: var(--text-label);
+  color: var(--text-muted);
+}
+
+.cal-more:hover {
+  color: var(--accent);
+}
+
+/* Narrow: bars keep their color and name but the text goes, so seven
+   columns still fit. */
+@container (max-width: 40rem) {
+  .cal__week {
+    grid-template-rows: 1.75rem repeat(3, 0.5rem) minmax(1.25rem, auto);
+  }
+
+  .cal-bar {
+    padding: 0;
+  }
+
+  .cal-bar__title,
+  .cal-bar .icon {
+    display: none;
+  }
+
+  .cal__title {
+    min-width: 0;
+  }
+}

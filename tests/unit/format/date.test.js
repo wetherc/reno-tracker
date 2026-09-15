@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   formatDate,
   formatDayMonth,
+  formatMonth,
+  formatRange,
   formatMoment,
 } from '../../../src/format/date.js';
 
@@ -21,4 +23,14 @@ test('formatMoment includes a time', () => {
   const text = formatMoment('2026-10-01T15:04:00.000Z');
   assert.match(text, /2026/);
   assert.match(text, /\d{1,2}:\d{2}/);
+});
+
+test('formatMonth names the month and year', () => {
+  assert.equal(formatMonth('2026-10'), 'October 2026');
+  assert.equal(formatMonth('2024-02'), 'February 2024');
+});
+
+test('formatRange collapses a one-day range', () => {
+  assert.equal(formatRange('2026-10-13', '2026-10-15'), 'Oct 13 to Oct 15');
+  assert.equal(formatRange('2026-10-13', '2026-10-13'), 'Oct 13');
 });

@@ -2,6 +2,7 @@
 // Add button. The body is drawn by whichever view is on.
 import { button } from '../ui/buttons.js';
 import { emptyState } from '../ui/emptyState.js';
+import { calendarView } from './calendarView.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 import { scheduleTable } from './scheduleTable.js';
 import { mountViews, VIEWS } from './views.js';
@@ -11,7 +12,12 @@ import { mountViews, VIEWS } from './views.js';
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /** @typedef {import('./views.js').ViewId} ViewId */
 
-/** @typedef {{ render(payload: ProjectPayload): HTMLElement }} View */
+/**
+ * @typedef {{
+ *   render(payload: ProjectPayload): HTMLElement,
+ *   focus?(date: string): void,
+ * }} View focus asks a view to bring one day into sight
+ */
 
 /**
  * @param {{ ctx: AppContext, shell: Shell }} deps
@@ -29,7 +35,14 @@ export function mountSchedule({ ctx, shell }) {
   /** @type {Partial<Record<ViewId, View>>} */
   const renderers = {
     table: scheduleTable({ ctx }),
+    calendar: calendarView({ ctx, onMore: (date) => openAgenda(date) }),
   };
+
+  /** @param {string} date */
+  function openAgenda(date) {
+    renderers.agenda?.focus?.(date);
+    views.set('agenda');
+  }
 
   function show() {
     const payload = ctx.payload;

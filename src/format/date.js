@@ -44,3 +44,27 @@ export function formatDayMonth(iso) {
 export function formatMoment(iso) {
   return MOMENT.format(new Date(iso));
 }
+
+const MONTH = new Intl.DateTimeFormat('en-US', {
+  month: 'long',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+/**
+ * @param {string} yearMonth YYYY-MM
+ * @returns {string} "October 2026"
+ */
+export function formatMonth(yearMonth) {
+  return MONTH.format(new Date(`${yearMonth}-01T00:00:00Z`));
+}
+
+/**
+ * @param {string} start YYYY-MM-DD
+ * @param {string} end YYYY-MM-DD
+ * @returns {string} "Oct 13 to Oct 15", or the one day when both match
+ */
+export function formatRange(start, end) {
+  if (start === end) return formatDayMonth(start);
+  return `${formatDayMonth(start)} to ${formatDayMonth(end)}`;
+}
