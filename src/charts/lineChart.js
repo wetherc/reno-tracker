@@ -71,8 +71,8 @@ export function lineChartModel({
   start,
   end,
   today,
-  width = 720,
-  height = 260,
+  width = 960,
+  height = 280,
 }) {
   const plot = {
     x: PAD.left,
@@ -167,6 +167,16 @@ export function renderLineChart(model, title) {
         y1: model.plot.y,
         y2: floor,
       }),
+      svgEl(
+        'text',
+        {
+          class: 'chart__tick chart__today-label',
+          x: model.todayX + 4,
+          y: model.plot.y + 4,
+          'dominant-baseline': 'hanging',
+        },
+        'Today',
+      ),
     );
   }
   if (model.expectedPath) {

@@ -46,7 +46,7 @@ const r = (n) => Math.round(n * 10) / 10;
  * @param {BarChartInput} input
  * @returns {BarChartModel}
  */
-export function barChartModel({ months, width = 720, height = 220 }) {
+export function barChartModel({ months, width = 960, height = 220 }) {
   const plot = {
     x: PAD.left,
     y: PAD.top,

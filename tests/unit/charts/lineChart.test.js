@@ -104,7 +104,8 @@ test('renderLineChart draws a titled svg with grid, budget, today, and lines', (
   assert.equal(title.textContent, 'Cost over time');
   assert.equal(svg.getAttribute('aria-labelledby'), title.id);
   assert.equal(svg.querySelectorAll('.chart__grid').length, 5);
-  assert.equal(svg.querySelectorAll('.chart__tick').length, 7);
+  assert.equal(svg.querySelectorAll('.chart__tick').length, 8);
+  assert.equal(svg.querySelector('.chart__today-label').textContent, 'Today');
   assert.equal(svg.querySelector('.chart__budget').getAttribute('y1'), '12');
   assert.equal(svg.querySelector('.chart__today').getAttribute('x1'), '226.4');
   assert.equal(
