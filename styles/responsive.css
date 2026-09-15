@@ -1,0 +1,34 @@
+/* The one breakpoint. Below it the section nav becomes a row above the
+   panel and the header wraps. Every other reflow is intrinsic. */
+
+@media (max-width: 68rem) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'header'
+      'sidebar'
+      'main';
+  }
+
+  .app__header {
+    flex-wrap: wrap;
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .app__sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: var(--space-2) var(--space-4);
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav {
+    flex-direction: row;
+  }
+
+  .app__main {
+    padding: var(--space-4);
+  }
+}

@@ -1,0 +1,90 @@
+/* App shell: header across the top, section nav on the left, one panel
+   in the main column. */
+
+.app {
+  display: grid;
+  grid-template-columns: 14rem minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'header header'
+    'sidebar main';
+  min-height: 100vh;
+}
+
+.app__header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand .icon {
+  color: var(--accent);
+  font-size: 1.25rem;
+}
+
+.app__picker {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.app__sidebar {
+  grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app__main {
+  grid-area: main;
+  padding: var(--space-5);
+  min-width: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.panel__header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.panel__title {
+  flex: 1 1 auto;
+  font-size: var(--text-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.panel__body {
+  min-width: 0;
+}
