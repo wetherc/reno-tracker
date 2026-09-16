@@ -1,6 +1,6 @@
 # Renovation Project Tracker
 
-This project tracks home renovation projects for one household, as an
+This project tracks home renovation work for one household, as an
 alternative to JobTread. A small Node server serves the page and owns one
 SQLite database. The browser client is plain HTML, CSS, and JavaScript with
 no framework and no runtime dependency. The same client also runs as a
@@ -8,27 +8,30 @@ static site on GitHub Pages, where it keeps its data in the browser.
 
 ## Features
 
-- A schedule of work (items, start date, end date, description, responsible
-  party, estimated and actual costs, dependencies)
+- A schedule of work. Each item has a title, a description, start and end
+  dates, a responsible party, estimated and actual costs, and dependencies
+  on other items.
 - A change log on every schedule item. The server writes one entry for each
-  tracked field that a save changes, with an optional reason
-- User-authored notes on each schedule item
-- A bill of materials for non-labor costs (allowance, estimated cost, actual
-  cost, expected day). A material with no estimate counts its allowance
-  as its expected cost
-- A complete checkbox on every schedule and material row, shared by every
-  view
-- Four views of the schedule: table, calendar, gantt, and agenda
+  tracked field that a save changes, with an optional reason.
+- Notes on each schedule item, and a Notes section that lists every note
+  in the project under the day it was written, newest first. Each note
+  names its item, and that name opens the item's editor on its Notes tab.
+- A bill of materials for non-labor costs. Each material has an allowance,
+  an estimated cost, an actual cost, and an expected day. A material with
+  no estimate counts its allowance as its expected cost.
+- A complete checkbox on every schedule and material row. Every view shares
+  it.
+- Four views of the schedule: table, calendar, Gantt, and agenda.
 - A costs panel with summary tiles, a cumulative cost line against the
-  budget, a cost-by-week bar chart, and a table of every line item,
-  labor and materials together. A line under the table totals the cost
-  incurred but not invoiced: the estimate on every complete row with no
-  actual price entered yet. The time axis marks every Sunday with its
-  day number and names each month once, on both charts. Pointing at or
-  tabbing to a dot on the line or a week bar opens a callout with the
-  rows that land that day and the running totals, and drops a line
-  from the dot to the axis
-- Save of a project to a JSON file and load of that file as a new project
+  budget, a cost-by-week bar chart, and a table of every line item, labor
+  and materials together. A line under the table totals the cost incurred
+  but not invoiced, which is the estimate on every complete row with no
+  actual price entered yet. The time axis on both charts marks every Sunday
+  with its day number and names each month once. Pointing at or tabbing to
+  a dot on the line or a bar in the week chart opens a callout with the
+  rows that land that day and the running totals, and drops a line from
+  the dot to the axis.
+- Save of a project to a JSON file, and load of that file as a new project.
 
 ## Running
 
@@ -41,24 +44,29 @@ pnpm dev
 ```
 
 Then open `http://localhost:3000`. `pnpm dev` restarts the server when a
-file under `src/server` changes. `pnpm start` runs it once. `PORT` changes
-the port. The server binds to `127.0.0.1` only, because the app has no
-login.
+file under `src/server` changes, and `pnpm start` runs it once. `PORT`
+changes the port. The server binds to `127.0.0.1` only, because the app has
+no login.
 
-`pnpm test` runs the unit and server tests, `pnpm run typecheck` checks the
-types, `pnpm lint` runs ESLint and the CSS token check, and `pnpm e2e` runs
-the Playwright specs against a server it starts itself. The pre-commit hook
-in `.githooks/` runs format, lint, typecheck, and the unit tests.
+| Script               | Runs                                                    |
+| -------------------- | ------------------------------------------------------- |
+| `pnpm test`          | the unit and server tests                               |
+| `pnpm run typecheck` | the type check over every `.js` and `.ts` file          |
+| `pnpm lint`          | ESLint and the CSS token check                          |
+| `pnpm e2e`           | the Playwright specs, against a server it starts itself |
+
+The pre-commit hook in `.githooks/` runs format, lint, typecheck, and the
+unit tests.
 
 ## Deploying to GitHub Pages
 
 GitHub Pages serves files only, so the page cannot reach a Node server
 there. The static build switches the page to a browser-side data store.
 Every project then lives in the browser's `localStorage` under the key
-`reno-tracker:db`, on the one device and in the one browser profile that
-wrote it. The Save button in the project picker writes a project to a JSON
-file, and Load reads that file back, so a project can move between the
-static site and a local server or between two browsers.
+`reno-tracker:db`, on the device and in the browser profile that wrote it.
+The Save button in the project picker writes a project to a JSON file, and
+Load reads that file back, so a project can move between the static site
+and a local server, or between two browsers.
 
 ```sh
 pnpm build:pages   # writes the site to dist/
@@ -78,52 +86,14 @@ repository settings with GitHub Actions as the source. The build needs
 Node only, so the workflow installs no packages.
 
 The Playwright project named `pages` runs `tests/e2e/pages.spec.js`
-against the static build with no API, and checks that no request goes to
+against the static build with no API. It checks that no request goes to
 `/api` and that a project comes back after a reload.
 
 ## Architecture
 
-```
-  index.html + style.css
-          |
-          v
-  src/main.js ................ composition root: builds one AppContext,
-          |                    mounts the shell, then hands the panel to
-          |                    the module for the current section
-          v
-  src/app/*.js ............... one module per feature area: project
-          |                    picker, schedule and its four views,
-          |                    notes, materials, costs, editors, shell,
-          |                    theme
-     _____|_______________________________________
-    |          |            |           |          |
-    v          v            v           v          v
-  src/ui/    src/schedule/  src/costs/  src/charts/  src/entities/
-  DOM        dates, graph,  landing     axes, line   defaults and
-  widgets    calendar,      days,       and bar      validation
-             gantt, agenda  totals      models       per entity
-             src/notes/
-             notes by day
-    |
-    v
-  src/api/ ................. fetch wrapper, error text, backend picker
-  src/storage/ ............. localStorage prefs, file save and load
-          |
-          |-----------------------------------.
-          v  HTTP, JSON under /api            v  static site only
-  src/server/ .............. node:http     src/local/ ...... the same
-    routes/ repo/ db/        router,         api.js store.js  methods
-                             static files,   projects.js      over one
-                             one route and   schedule.js      JSON
-                             one repo module materials.js     document in
-                             per entity,     transfer.js      localStorage
-                             SQLite through
-                             node:sqlite
-```
-
 `src/api/backend.js` reads the `reno-backend` meta tag in `index.html`
 and returns one of two objects with the same methods. `server` is the
-fetch wrapper in `src/api/client.js`. `local` is `src/local/api.js`,
+fetch wrapper in `src/api/client.js`, and `local` is `src/local/api.js`,
 which runs the same field checks as the routes and throws the same
 `ApiError` statuses and messages, so the toasts and field marks read the
 same in both modes.
@@ -137,16 +107,16 @@ Every write on the client goes through `ctx.write` in
 `src/app/context.js`, which toasts the failure text or the success
 sentence and then refetches.
 
-The project is written in plain JavaScript and is fully typechecked. Types
-live in `.ts` files that contain only declarations, and the `.js` files
-reference those types through JSDoc comments. `tsconfig.json` sets `allowJs`
-and `checkJs`, so `pnpm run typecheck` checks the whole project and emits
-nothing. `src/types.ts` holds the domain types that the client and the
-server share.
+The whole project is plain JavaScript with full typechecking. Types live
+in `.ts` files that contain only declarations, and the `.js` files
+reference them through JSDoc comments. `tsconfig.json` sets `allowJs` and
+`checkJs`, so `pnpm run typecheck` checks every file and emits nothing.
+`src/types.ts` defines the domain types that the client and the server
+share.
 
 `style.css` is an import manifest. It `@import`s the feature sheets under
-`styles/`, with base tokens and primitives first and the responsive
-overrides last, so the cascade order is stated in exactly one place.
+`styles/`, base tokens and primitives first and the responsive overrides
+last, so one file states the cascade order.
 
 ### Data persistence
 
@@ -161,9 +131,9 @@ schema version. `migrate.js` then applies each numbered file under
 one transaction, and writes the new version. Every child table declares
 `ON DELETE CASCADE`, so deleting a project removes its rows.
 
-Money is stored as integer cents. Dates are stored as `YYYY-MM-DD`
-strings, and date math runs on UTC midnight so daylight saving cannot
-shift a day. Ids are UUIDs that the server makes.
+The database stores money as integer cents and dates as `YYYY-MM-DD`
+strings. Date math runs on UTC midnight, so daylight saving cannot shift a
+day. The server makes every id as a UUID.
 
 `GET /api/projects/:id/export` returns the project as one JSON document:
 
@@ -187,14 +157,9 @@ these two routes. The file name is the project slug plus the export day.
 
 ## UI components
 
-This codebase has no component framework: a component here is a plain
-function that builds DOM elements and returns a handle, and the consistency
-comes from a small set of shared builders plus one CSS token file.
-
-Read this guide before you add anything to `src/ui/` or `styles/`, because
-almost every widget pattern that you need already exists, and a hand-rolled
-copy of one tends to miss the accessibility attributes that the shared
-builder sets.
+This codebase has no component framework. A component is a plain function
+that builds DOM elements and returns a handle, using a
+small set of shared builders plus one CSS token file.
 
 ### Tokens
 
@@ -214,47 +179,48 @@ defined in one `:root` block in `styles/base.css`:
 | Radius           | `--radius-sm`, `--radius`, `--radius-lg`, `--radius-pill`                                                      |
 | Motion           | `--transition-press` (40ms), `--transition-fast` (120ms), `--transition-base` (250ms)                          |
 
-The token system depends on these rules:
+Never write a fallback such as `var(--border, #ccc)`. A missing token
+renders as nothing and shows the typo, while a fallback hides it.
+`scripts/check-css-tokens.js` fails the lint when a sheet uses a token that
+`base.css` does not define.
 
-- **Never write a fallback** (`var(--border, #ccc)`), because a missing
-  token renders as nothing and shows the typo, while a fallback hides it.
-  `scripts/check-css-tokens.js` fails the lint when a sheet uses a token
-  that `base.css` does not define.
-- **Every accent has a `*-contrast` partner**, and a filled element always
-  declares its own foreground color from it. Add new accents as a pair.
+Every accent has a `*-contrast` partner, and a filled element always
+declares its own foreground color from it. Add new accents as a pair.
 
 Elevation uses `color-mix` to fade `--shadow-tint` to the wanted alpha, so
 shadows follow the theme without restating a color.
 
 ### Theming
 
-There is one set of tokens. Each color is a single
-`light-dark(light, dark)` declaration resolved by the root `color-scheme`:
+One set of tokens serves both themes. Each color is a single
+`light-dark(light, dark)` declaration that the root `color-scheme`
+resolves:
 
 - `:root { color-scheme: light dark }` follows the OS preference by
   default.
 - `:root[data-theme='light']` and `:root[data-theme='dark']` pin the
   theme. The attribute selector outranks the bare `:root`, so an explicit
   choice always wins.
-- `src/ui/ThemeToggle.js` writes `data-theme` on `<html>` (and deletes it
-  for System), and persists the choice under `reno-tracker:theme`.
+- `src/ui/ThemeToggle.js` writes `data-theme` on `<html>`, deletes it for
+  System, and saves the choice under `reno-tracker:theme`.
 - `src/boot.js`, a plain script that `index.html` loads at the top of
   `<body>`, re-applies the saved value before first paint, so a dark-theme
   reload does not flash light.
 
 The one non-color themed value is `--select-chevron`, an inline SVG data
 URI. `light-dark()` resolves `<color>` only, so it cannot contain a `url()`.
-Instead, the arrow is swapped in a `prefers-color-scheme` block plus the
-two `data-theme` blocks, so that token appears four times.
+Instead, a `prefers-color-scheme` block plus the two `data-theme` blocks
+swap the arrow, so that token appears four times.
 
 `--overlay-*` is the one exception, pinned dark in both themes because
 toasts and tooltips float over the page rather than sit in it.
 
 ### Shared classes
 
-Class names are BEM-ish: `block__element--modifier`. Everything below
-lives in `base.css` and is shared across features. Reuse the class, and
-keep only layout (margins, grid placement) in the component's own class.
+Class names follow BEM (block, element, modifier):
+`block__element--modifier`. Every feature shares the classes below, which
+live in `base.css`. Reuse the class, and keep only layout (margins, grid
+placement) in the component's own class.
 
 | Class                                                | Role                                                                                                                             |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
@@ -269,7 +235,7 @@ keep only layout (margins, grid placement) in the component's own class.
 | `.section-label`                                     | in-panel sub-heading: uppercase, tracked, muted, built through `sectionLabel`                                                    |
 | `.empty-state`, `__actions`                          | the "nothing here yet" paragraph and its buttons. The class sets margin, padding, and italic only. `emptyState()` adds `u-muted` |
 | `.chip`, `.chip__remove`                             | a small labeled tag, with or without an x, built through `buttons.js`                                                            |
-| `.badge` + `--success`/`--danger`/`--neutral`        | a read-only status marker on a list row. A colour outside the three shared readings comes from a per-feature modifier            |
+| `.badge` + `--success`/`--danger`/`--neutral`        | a read-only status marker on a list row. A color outside the three shared readings comes from a per-feature modifier             |
 | `.icon`                                              | the SVG wrapper that `icon()` applies                                                                                            |
 | `.tabs`, `__tab`, `__panel`                          | a tab strip over a stack of panels (the item editor)                                                                             |
 | `.modal` and its parts                               | the native `<dialog>`, built through `Modal.js`                                                                                  |
@@ -285,33 +251,14 @@ they were built for: `.disclosure` / `__chevron` / `--open`,
 
 Layout is flex-dominant with intrinsic sizing (`min()`,
 `flex: 1 1 <rem basis>`, `repeat(auto-fit, minmax(...))`), so most reflow
-happens with no media query at all. Grid is reserved for tabular content
+happens with no media query at all. Grid appears only in tabular content
 and the calendar weeks.
 
-Because reflow is intrinsic, the few things that do switch on state are
-centralized:
-
-- **All layout media queries live in `responsive.css`**, and there is
-  exactly one breakpoint: `@media (max-width: 68rem)`.
-- **A component that reflows on its own width uses a container query,
-  not a breakpoint.** The calendar grid is the one example.
+`responsive.css` contains every layout media query, and the one breakpoint
+is `@media (max-width: 68rem)`. A component that reflows on its own width
+uses a container query, not a breakpoint. The calendar grid is the one
+example.
 
 A flex child that contains text needs `min-width: 0`, or long content
-refuses to shrink. That guard appears many times across the sheets, and it
-is the usual explanation for a panel that overflows its column.
-
-### Accessibility
-
-- Every interactive element is a `<button>`, `<a>`, or form control.
-- Every field has a `<label>`. Error text is linked through
-  `aria-describedby`.
-- `Modal.js` traps focus, restores focus on close, and closes on Escape.
-- Gantt bars and handles answer the arrow keys: one day per press, seven
-  with Shift.
-- Each chart has a `<title>`, and its numbers are also in a table: the
-  line items table under the cumulative chart, and a visually hidden twin
-  of the week chart. The hover targets over a chart are buttons named
-  with their numbers, so the arrow keys walk them and a screen reader
-  hears each one as focus lands on it.
-- Colour alone never marks state. A complete row also strikes through its
-  title and shows a checkmark.
+refuses to shrink. That guard appears many times across the sheets, and a
+panel that overflows its column usually lacks it.
