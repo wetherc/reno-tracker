@@ -71,7 +71,7 @@ test('renders caption, headers, and one row per item', () => {
   );
 });
 
-test('clicking a sortable header cycles asc, desc, off', () => {
+test('clicking a sortable header flips between asc and desc', () => {
   /** @type {unknown[]} */
   const seen = [];
   const table = build({ onSort: (s) => seen.push(s) });
@@ -86,13 +86,13 @@ test('clicking a sortable header cycles asc, desc, off', () => {
   assert.equal(cost.getAttribute('aria-sort'), 'descending');
   assert.equal(cost.classList.contains('data-table__th--desc'), true);
   btn.click();
-  assert.deepEqual(names(table), ['Tile', 'Paint', 'Sink']);
-  assert.equal(cost.getAttribute('aria-sort'), null);
+  assert.deepEqual(names(table), ['Paint', 'Sink', 'Tile']);
+  assert.equal(cost.getAttribute('aria-sort'), 'ascending');
   assert.equal(cost.classList.contains('data-table__th--desc'), false);
   assert.deepEqual(seen, [
     { key: 'cost', dir: 'asc' },
     { key: 'cost', dir: 'desc' },
-    null,
+    { key: 'cost', dir: 'asc' },
   ]);
 });
 

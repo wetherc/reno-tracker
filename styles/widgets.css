@@ -189,7 +189,10 @@
     transform var(--transition-fast);
 }
 
-.data-table__sort:hover .icon,
+.data-table__sort:hover .icon {
+  opacity: 0.35;
+}
+
 .data-table__th--sorted .data-table__sort .icon {
   opacity: 1;
 }

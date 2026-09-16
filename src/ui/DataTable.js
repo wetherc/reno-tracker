@@ -38,7 +38,7 @@ import { icon } from './icon.js';
  *   rowKey: (row: R) => string,
  *   rowClass?: (row: R) => string,
  *   sort?: SortState | null,
- *   onSort?: (sort: SortState | null) => void,
+ *   onSort?: (sort: SortState) => void,
  *   footer?: (Node | string)[],
  * }} config the caption is read to screen readers and hidden on screen;
  * footer is one cell per column, drawn as a totals row under the body
@@ -88,18 +88,22 @@ export function dataTable({
     return th;
   });
 
+  // A click on a new column sorts it ascending. A click on the sorted
+  // column flips the direction. There is no unsorted state, because the
+  // header of an unsorted table looks the same as one nobody has clicked
+  // yet, so a person cannot tell the two apart.
   /** @param {string} key */
   function toggleSort(key) {
-    if (current?.key !== key) current = { key, dir: 'asc' };
-    else if (current.dir === 'asc') current = { key, dir: 'desc' };
-    else current = null;
+    const dir = current?.key === key && current.dir === 'asc' ? 'desc' : 'asc';
+    current = { key, dir };
     render();
     onSort?.(current);
   }
 
   function sorted() {
     if (!current) return currentRows;
-    const column = columns.find((c) => c.key === current?.key);
+    const { key } = current;
+    const column = columns.find((c) => c.key === key);
     if (!column?.compare) return currentRows;
     const compare = column.compare;
     const sign = current.dir === 'asc' ? 1 : -1;

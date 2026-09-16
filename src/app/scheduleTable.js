@@ -89,9 +89,10 @@ const byText = (a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' });
  * @returns {{ render(payload: ProjectPayload): HTMLElement }}
  */
 export function scheduleTable({ ctx }) {
-  // The sort a person picked outlives the rebuild after each write.
-  /** @type {import('../ui/DataTable.js').SortState | null} */
-  let sort = null;
+  // The table opens in date order. The sort a person picks outlives the
+  // rebuild after each write.
+  /** @type {import('../ui/DataTable.js').SortState} */
+  let sort = { key: 'start', dir: 'asc' };
 
   /** @param {ProjectPayload} payload */
   function noteCounts(payload) {

@@ -255,6 +255,21 @@ test('every view id has a renderer', async () => {
   assert.equal(shell.body.children[0].children[0].tagName, 'TABLE');
 });
 
+test('the table opens in start date order', async () => {
+  const { shell } = await setup({
+    schedule: [
+      itemOf('a', { title: 'Later', startDate: '2026-10-05' }),
+      itemOf('b', { title: 'Sooner', startDate: '2026-10-02' }),
+    ],
+  });
+  const titles = rows(shell).map(
+    (/** @type {any} */ r) => r.children[1].textContent,
+  );
+  assert.deepEqual(titles, ['Sooner', 'Later']);
+  const start = $(table(shell).children[1]).children[0].children[3];
+  assert.equal(start.getAttribute('aria-sort'), 'ascending');
+});
+
 test('a chosen sort outlives the rebuild after a write', async () => {
   const { shell, ctx } = await setup({
     schedule: [
