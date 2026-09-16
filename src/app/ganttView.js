@@ -1,8 +1,9 @@
-// The gantt view: one row per item in dependency order, bars on a day
-// grid that scrolls sideways, and a connector from each predecessor to
-// its successor. The item names stay fixed on the left while the grid
-// scrolls. A bar moves by drag or by arrow key and the change is saved
-// at once, so the change log records it like any other edit.
+// The gantt view: one row per item in date order with a predecessor above
+// its successors, bars on a day grid that scrolls sideways, and a
+// connector from each predecessor to its successor. The item names stay
+// fixed on the left while the grid scrolls. A bar moves by drag or by
+// arrow key and the change is saved at once, so the change log records
+// it like any other edit.
 import { formatDayMonth } from '../format/date.js';
 import { todayIso } from '../schedule/dates.js';
 import { ganttLayout } from '../schedule/gantt.js';

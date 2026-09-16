@@ -35,7 +35,40 @@ const link = (
   successorId,
 });
 
-test('ganttLayout covers whole weeks and orders rows by dependency', () => {
+test('ganttLayout orders rows by start date, then end date, then sortOrder', () => {
+  const layout = ganttLayout({
+    items: [
+      itemOf('late', {
+        startDate: '2026-10-08',
+        endDate: '2026-10-09',
+        sortOrder: 0,
+      }),
+      itemOf('long', {
+        startDate: '2026-10-01',
+        endDate: '2026-10-05',
+        sortOrder: 1,
+      }),
+      itemOf('b', {
+        startDate: '2026-10-01',
+        endDate: '2026-10-02',
+        sortOrder: 3,
+      }),
+      itemOf('a', {
+        startDate: '2026-10-01',
+        endDate: '2026-10-02',
+        sortOrder: 2,
+      }),
+    ],
+    dependencies: [],
+    today: '2026-10-07',
+  });
+  assert.deepEqual(
+    layout.rows.map((r) => r.item.id),
+    ['a', 'b', 'long', 'late'],
+  );
+});
+
+test('ganttLayout keeps a predecessor above a successor that starts earlier', () => {
   const layout = ganttLayout({
     items,
     dependencies: [link('cabs', 'plumb')],

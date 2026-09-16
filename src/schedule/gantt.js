@@ -1,7 +1,7 @@
-// Gantt geometry. Rows follow the dependency order, bars are placed on a
-// day grid that covers whole weeks, and each dependency becomes one
-// connector path from the end of its predecessor to the start of its
-// successor.
+// Gantt geometry. Rows run in date order, with a predecessor always above
+// its successors. Bars are placed on a day grid that covers whole weeks,
+// and each dependency becomes one connector path from the end of its
+// predecessor to the start of its successor.
 import { addDays, dayOffset, spanDays, startOfWeek } from './dates.js';
 import { topologicalOrder } from './graph.js';
 
@@ -58,6 +58,22 @@ const MONTH = new Intl.DateTimeFormat('en-US', {
 });
 
 /**
+ * Earlier start first, then earlier end, then the table order. Without the
+ * date keys a row lands where its item was created, so an item added last
+ * sits at the bottom even when it starts first.
+ * @param {ScheduleItem} a
+ * @param {ScheduleItem} b
+ * @returns {number}
+ */
+function byDate(a, b) {
+  return (
+    a.startDate.localeCompare(b.startDate) ||
+    a.endDate.localeCompare(b.endDate) ||
+    a.sortOrder - b.sortOrder
+  );
+}
+
+/**
  * @param {GanttOptions} options
  * @returns {GanttLayout}
  */
@@ -68,7 +84,7 @@ export function ganttLayout({
   dayWidth = 28,
   rowHeight = 40,
 }) {
-  const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder);
+  const sorted = [...items].sort(byDate);
   const byId = new Map(sorted.map((item) => [item.id, item]));
   const order = topologicalOrder(
     sorted.map((item) => item.id),
