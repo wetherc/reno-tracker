@@ -24,10 +24,10 @@ static site on GitHub Pages, where it keeps its data in the browser.
   labor and materials together. A line under the table totals the cost
   incurred but not invoiced: the estimate on every complete row with no
   actual price entered yet. The time axis marks every Sunday with its
-  day number and names each month once. Pointing at or tabbing to a dot
-  on the line or a week bar opens a callout with the rows that land
-  that day and the running totals, drops a line from the dot to the
-  axis, and reads the same numbers out for a screen reader
+  day number and names each month once, on both charts. Pointing at or
+  tabbing to a dot on the line or a week bar opens a callout with the
+  rows that land that day and the running totals, and drops a line
+  from the dot to the axis
 - Save of a project to a JSON file and load of that file as a new project
 
 ## Running
@@ -307,7 +307,8 @@ is the usual explanation for a panel that overflows its column.
   with Shift.
 - Each chart has a `<title>`, and its numbers are also in a table: the
   line items table under the cumulative chart, and a visually hidden twin
-  of the week chart. The hover targets over a chart are buttons, so the
-  arrow keys walk them and a status line reads each one out.
+  of the week chart. The hover targets over a chart are buttons named
+  with their numbers, so the arrow keys walk them and a screen reader
+  hears each one as focus lands on it.
 - Colour alone never marks state. A complete row also strikes through its
   title and shows a checkmark.

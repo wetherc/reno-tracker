@@ -110,14 +110,13 @@ test('the costs panel sums the project and draws both charts', async ({
   await expect(bars.locator('.chart__expected-bar')).toHaveCount(11);
   await expect(bars.locator('.chart__actual-bar')).toHaveCount(1);
 
-  // Pointing at a mark reads its numbers out; the arrow keys walk them.
-  const readouts = page.locator('.chart-readout');
-  await expect(readouts.first()).toHaveText(/Point at or tab/);
-  const demoDot = page.getByRole('button', { name: /^Sep 3, 2026 · Demo/ });
+  // Each mark is a button named with its numbers; the arrow keys walk
+  // them and the picked one lights up.
+  await expect(page.locator('.chart-readout')).toHaveCount(0);
+  const demoDot = page.getByRole('button', {
+    name: 'Sep 3, 2026 · Demo · $3,500.00 expected so far · $2,400.00 paid so far · $46,500.00 of budget left',
+  });
   await demoDot.hover();
-  await expect(readouts.first()).toHaveText(
-    'Sep 3, 2026 · Demo · $3,500.00 expected so far · $2,400.00 paid so far · $46,500.00 of budget left',
-  );
   await expect(line.locator('.chart__mark--active')).toHaveCount(1);
   // The callout lists the row and the running totals.
   const tip = page.locator('.chart-tip').first();
@@ -138,13 +137,26 @@ test('the costs panel sums the project and draws both charts', async ({
   await expect(line.locator('.chart__tick--week').first()).toHaveText('6');
   await demoDot.focus();
   await page.keyboard.press('ArrowRight');
-  await expect(readouts.first()).toHaveText(/^Sep 12, 2026 · Rough plumbing/);
+  await expect(
+    page.getByRole('button', { name: /^Sep 12, 2026 · Rough plumbing/ }),
+  ).toBeFocused();
   await page.keyboard.press('End');
-  await expect(readouts.first()).toHaveText(/^Nov 10, 2026 · Quartz counter/);
-  await page.getByRole('button', { name: /^Week of Oct 25, 2026/ }).hover();
-  await expect(readouts.nth(1)).toHaveText(
-    'Week of Oct 25, 2026 · $18,000.00 expected · $0.00 paid',
-  );
+  await expect(
+    page.getByRole('button', { name: /^Nov 10, 2026 · Quartz counter/ }),
+  ).toBeFocused();
+  await expect(tip.locator('.chart-tip__date')).toHaveText('Tue, Nov 10, 2026');
+  // The week axis names the Sundays by day and the months once. August
+  // has one bar, so September takes its name slot and the year.
+  await expect(bars.locator('.chart__tick--month')).toHaveText([
+    'Sep 2026',
+    'Oct',
+    'Nov',
+  ]);
+  await page
+    .getByRole('button', {
+      name: 'Week of Oct 25, 2026 · $18,000.00 expected · $0.00 paid',
+    })
+    .hover();
   await expect(bars.locator('.chart__expected-bar--active')).toHaveCount(1);
 
   const dismiss = page.getByRole('button', { name: 'Dismiss' });

@@ -96,7 +96,7 @@ export function summaryTiles(summary) {
 }
 
 /**
- * The readout for one day on the cumulative chart: the day, what landed
+ * The label for one day on the cumulative chart: the day, what landed
  * on it, both running totals, and where that leaves the budget.
  * @param {Marker} marker
  * @param {string[]} titles the rows that land that day
@@ -123,7 +123,7 @@ export function describeMarker(marker, titles, budgetCents) {
 }
 
 /**
- * The readout for one week on the bar chart.
+ * The label for one week on the bar chart.
  * @param {Bar} bar
  * @returns {string}
  */
@@ -202,8 +202,6 @@ const pct = (part, whole) => Math.round((part / whole) * 10000) / 100;
  */
 const toggler = (svg, selector, className) => (on) =>
   svg.querySelector(selector)?.classList.toggle(className, on);
-
-const IDLE = 'Point at or tab to a mark for its numbers';
 
 /**
  * @param {{ ctx: AppContext, shell: Shell }} deps
@@ -349,14 +347,13 @@ function chartCard(heading, svg, targets, twin, legend) {
   title.textContent = heading;
   const figure = document.createElement('figure');
   figure.className = 'cost-figure';
-  const { layer, readout } = chartPicker({ targets, idle: IDLE });
-  figure.append(svg, layer);
+  figure.append(svg, chartPicker({ targets }));
   const scroll = document.createElement('div');
   scroll.className = 'cost-scroll';
   scroll.append(figure);
   card.append(title);
   if (legend) card.append(legend);
-  card.append(scroll, readout);
+  card.append(scroll);
   if (twin) card.append(twin);
   return card;
 }

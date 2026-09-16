@@ -15,8 +15,7 @@ function setup() {
   const highlight = (name) => (/** @type {boolean} */ on) => {
     lit.push(`${name} ${on ? 'on' : 'off'}`);
   };
-  const { layer, readout } = chartPicker({
-    idle: 'Point at a mark',
+  const layer = chartPicker({
     targets: [
       { text: 'First', left: 10, top: 20, highlight: highlight('a') },
       { text: 'Second', left: 50, top: 30 },
@@ -36,15 +35,12 @@ function setup() {
       },
     ],
   });
-  return { layer: $(layer), readout: $(readout), lit };
+  return { layer: $(layer), lit };
 }
 
-test('chartPicker lays one button per target and starts idle', () => {
-  const { layer, readout } = setup();
+test('chartPicker lays one button per target', () => {
+  const { layer } = setup();
   assert.equal(layer.getAttribute('role'), 'group');
-  assert.equal(readout.getAttribute('role'), 'status');
-  assert.equal(readout.textContent, 'Point at a mark');
-  assert.equal(readout.className, 'chart-readout u-muted');
   const [dot, , column] = layer.children;
   assert.equal(dot.className, 'btn-bare chart-picker__target');
   assert.equal(dot.getAttribute('aria-label'), 'First');
@@ -65,26 +61,22 @@ test('chartPicker lays one button per target and starts idle', () => {
   );
 });
 
-test('pointing at a target reads it out and lights its mark', () => {
-  const { layer, readout, lit } = setup();
-  const [dot, second] = layer.children;
+test('pointing at a target lights its mark until the pointer leaves', () => {
+  const { layer, lit } = setup();
+  const [dot, , column] = layer.children;
   dot.dispatchEvent({ type: 'pointerenter' });
-  assert.equal(readout.textContent, 'First');
-  assert.equal(readout.className, 'chart-readout chart-readout--picked');
   assert.deepEqual(lit, ['a on']);
   dot.dispatchEvent({ type: 'pointerenter' });
   assert.deepEqual(lit, ['a on']);
   dot.dispatchEvent({ type: 'pointerleave' });
-  assert.equal(readout.textContent, 'Point at a mark');
   assert.deepEqual(lit, ['a on', 'a off']);
   // A focused target stays picked when the pointer leaves it.
-  second.focus();
-  second.dispatchEvent({ type: 'focus' });
-  second.dispatchEvent({ type: 'pointerleave' });
-  assert.equal(readout.textContent, 'Second');
-  second.dispatchEvent({ type: 'blur' });
-  assert.equal(readout.textContent, 'Point at a mark');
-  assert.equal(readout.className, 'chart-readout u-muted');
+  column.focus();
+  column.dispatchEvent({ type: 'focus' });
+  column.dispatchEvent({ type: 'pointerleave' });
+  assert.deepEqual(lit, ['a on', 'a off', 'c on']);
+  column.dispatchEvent({ type: 'blur' });
+  assert.deepEqual(lit, ['a on', 'a off', 'c on', 'c off']);
 });
 
 test('a target with a detail opens the callout at its anchor', () => {
@@ -119,7 +111,7 @@ test('tipPlacement hangs the box from the side it is near', () => {
 });
 
 test('the arrow keys move between targets and Home and End jump', () => {
-  const { layer, readout, lit } = setup();
+  const { layer, lit } = setup();
   const [first, second, third] = layer.children;
   first.focus();
   first.dispatchEvent({ type: 'focus' });
@@ -127,10 +119,8 @@ test('the arrow keys move between targets and Home and End jump', () => {
   const press = (el, key) => el.dispatchEvent({ type: 'keydown', key });
   assert.equal(press(first, 'ArrowRight'), false);
   assert.equal(dom.activeElement, second);
-  assert.equal(readout.textContent, 'Second');
   assert.equal(press(second, 'End'), false);
   assert.equal(dom.activeElement, third);
-  assert.equal(readout.textContent, 'Third');
   assert.equal(press(third, 'ArrowRight'), true);
   assert.equal(dom.activeElement, third);
   assert.equal(press(third, 'Home'), false);

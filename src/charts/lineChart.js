@@ -133,7 +133,7 @@ export function lineChartModel({
   end,
   today,
   width = 960,
-  height = 280,
+  height = 220,
 }) {
   const plot = {
     x: PAD.left,
@@ -317,7 +317,7 @@ export function renderLineChart(model, title) {
           class: 'chart__marker',
           cx: marker.x,
           cy: marker.y,
-          r: 4,
+          r: 3,
         }),
       ),
     );

@@ -177,8 +177,8 @@ test('markerTargets and weekTargets place a target on each mark, in percent', ()
   assert.deepEqual(
     columns.map((c) => [c.left, c.top, c.width, c.height]),
     [
-      [15.05, 8.57, 40.32, 71.43],
-      [55.38, 8.57, 40.32, 71.43],
+      [15.05, 8.57, 40.32, 62.86],
+      [55.38, 8.57, 40.32, 62.86],
     ],
   );
   assert.equal(
@@ -253,10 +253,12 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
     picker.children[0].getAttribute('aria-label'),
     /^Oct 3, 2026 · Demo/,
   );
-  const readout = cards[0].querySelector('.chart-readout');
-  assert.match(readout.textContent, /Point at or tab/);
+  assert.equal(cards[0].querySelector('.chart-readout'), null);
+  assert.match(
+    picker.children[0].getAttribute('aria-label'),
+    /\$1,100\.00 paid so far/,
+  );
   picker.children[0].dispatchEvent({ type: 'pointerenter' });
-  assert.match(readout.textContent, /\$1,100\.00 paid so far/);
   assert.equal(
     cards[0].querySelector('.chart__mark').className,
     'chart__mark chart__mark--active',

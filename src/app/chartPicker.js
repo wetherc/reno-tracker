@@ -1,8 +1,9 @@
 // Hover and keyboard targets over a chart. Each target is a button laid
 // over one point or one column of the svg, placed by percentages so it
-// scales with the figure. Pointing at or focusing a target puts its text
-// in the readout line under the chart and turns the matching mark on.
-// The arrow keys move between targets, Home and End jump to the ends.
+// scales with the figure. Each button's label is the full text for its
+// point, so a screen reader hears the numbers as focus lands on it.
+// Pointing at or focusing a target turns the matching mark on. The
+// arrow keys move between targets, Home and End jump to the ends.
 // A target with a detail also opens a callout box beside its anchor. The
 // box sits above the anchor and flips below it near the top of the
 // figure, and it hangs from its left or right edge near the sides so
@@ -11,7 +12,7 @@ import { bareButton } from '../ui/buttons.js';
 
 /**
  * @typedef {object} PickTarget
- * @property {string} text what the readout says for this target
+ * @property {string} text the button's label: the numbers for this target
  * @property {number} left percent of the figure width
  * @property {number} top percent of the figure height
  * @property {number} [width] percent; a target with a width is a column
@@ -52,16 +53,10 @@ function fitsIn(el, frame) {
 const STEP = { ArrowLeft: -1, ArrowRight: 1 };
 
 /**
- * @param {{ targets: PickTarget[], idle: string }} config idle is the
- * readout text while nothing is picked
- * @returns {{ layer: HTMLDivElement, readout: HTMLParagraphElement }}
+ * @param {{ targets: PickTarget[] }} config
+ * @returns {HTMLDivElement} the layer to place over the svg
  */
-export function chartPicker({ targets, idle }) {
-  const readout = document.createElement('p');
-  readout.className = 'chart-readout u-muted';
-  readout.setAttribute('role', 'status');
-  readout.textContent = idle;
-
+export function chartPicker({ targets }) {
   const layer = document.createElement('div');
   layer.className = 'chart-picker';
   layer.setAttribute('role', 'group');
@@ -82,9 +77,6 @@ export function chartPicker({ targets, idle }) {
     picked?.highlight?.(false);
     picked = target;
     picked?.highlight?.(true);
-    readout.textContent = target ? target.text : idle;
-    readout.classList.toggle('u-muted', target === null);
-    readout.classList.toggle('chart-readout--picked', target !== null);
     tip.hidden = !target?.detail;
     if (!target?.detail) return;
     const anchor = target.anchor ?? { left: target.left, top: target.top };
@@ -141,5 +133,5 @@ export function chartPicker({ targets, idle }) {
     return el;
   });
   layer.append(...buttons, tip);
-  return { layer, readout };
+  return layer;
 }
