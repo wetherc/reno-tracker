@@ -88,8 +88,40 @@
 /* Chart cards */
 
 .cost-figure {
+  position: relative;
   margin: 0;
   min-width: 0;
+}
+
+/* Hover and keyboard targets laid over the svg. A dot target sits on
+   its mark; a column target covers one month. */
+
+.chart-picker {
+  position: absolute;
+  inset: 0;
+}
+
+.chart-picker__target {
+  position: absolute;
+  width: 1.5rem;
+  height: 1.5rem;
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.chart-picker__target--column {
+  width: auto;
+  height: auto;
+  transform: none;
+  border-radius: var(--radius-sm);
+}
+
+.chart-readout {
+  margin: var(--space-3) 0 0;
+  min-height: calc(var(--text-label) * var(--line-body));
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
 }
 
 .chart {
@@ -142,10 +174,27 @@
   stroke-linejoin: round;
 }
 
+.chart__marker {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 2;
+  transition: r var(--transition-fast);
+}
+
+.chart__marker--active {
+  r: 6;
+  fill: var(--accent);
+}
+
 .chart__expected-bar {
   fill: color-mix(in srgb, var(--accent) 30%, transparent);
   stroke: var(--accent);
   stroke-width: 1.5;
+  transition: fill var(--transition-fast);
+}
+
+.chart__expected-bar--active {
+  fill: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .chart__actual-bar {

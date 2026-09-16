@@ -23,6 +23,15 @@ import { chartFrame, svgEl } from './svg.js';
  */
 
 /**
+ * @typedef {object} Marker one day that a cost lands on
+ * @property {string} date
+ * @property {number} x
+ * @property {number} y on the expected line
+ * @property {number} expectedCents running total that day
+ * @property {number | null} actualCents running total, null before any actual
+ */
+
+/**
  * @typedef {object} LineChartModel
  * @property {number} width
  * @property {number} height
@@ -33,6 +42,7 @@ import { chartFrame, svgEl } from './svg.js';
  * @property {string} actualPath
  * @property {number} budgetY
  * @property {number | null} todayX null when today is off the axis
+ * @property {Marker[]} markers one per day in either series, in date order
  */
 
 const PAD = { top: 12, right: 16, bottom: 28, left: 56 };
@@ -59,6 +69,43 @@ export function stepPath(points, x, y, floorY, untilX) {
 
 /** @param {number} n */
 const r = (n) => Math.round(n * 10) / 10;
+
+/**
+ * The running total of a series on a day: the last point on or before it.
+ * @param {SeriesPoint[]} points
+ * @param {string} date
+ * @returns {number | null} null before the first point
+ */
+function totalOn(points, date) {
+  let total = null;
+  for (const point of points) {
+    if (point.date > date) break;
+    total = point.cents;
+  }
+  return total;
+}
+
+/**
+ * One marker per day that appears in either series.
+ * @param {SeriesPoint[]} expected
+ * @param {SeriesPoint[]} actual
+ * @param {(date: string) => number} x
+ * @param {(cents: number) => number} y
+ * @returns {Marker[]}
+ */
+export function markersOf(expected, actual, x, y) {
+  const dates = [...new Set([...expected, ...actual].map((p) => p.date))];
+  return dates.sort().map((date) => {
+    const expectedCents = totalOn(expected, date) ?? 0;
+    return {
+      date,
+      x: r(x(date)),
+      y: r(y(expectedCents)),
+      expectedCents,
+      actualCents: totalOn(actual, date),
+    };
+  });
+}
 
 /**
  * @param {LineChartInput} input
@@ -124,6 +171,7 @@ export function lineChartModel({
     actualPath: stepPath(actual, x, y, floorY, actualEnd),
     budgetY: r(y(budgetCents)),
     todayX: inRange ? r(x(today)) : null,
+    markers: markersOf(expected, actual, x, y),
   };
 }
 
@@ -186,6 +234,17 @@ export function renderLineChart(model, title) {
   }
   if (model.actualPath) {
     svg.append(svgEl('path', { class: 'chart__actual', d: model.actualPath }));
+  }
+  for (const marker of model.markers) {
+    svg.append(
+      svgEl('circle', {
+        class: 'chart__marker',
+        'data-date': marker.date,
+        cx: marker.x,
+        cy: marker.y,
+        r: 4,
+      }),
+    );
   }
   return svg;
 }

@@ -48,7 +48,9 @@ test('renderBarChart draws one expected bar per month and an actual bar where pa
   const model = barChartModel({ months, width: 372, height: 140 });
   const svg = /** @type {any} */ (renderBarChart(model, 'Cost by month'));
   assert.equal(svg.querySelector('title').textContent, 'Cost by month');
-  assert.equal(svg.querySelectorAll('.chart__expected-bar').length, 3);
+  const expected = svg.querySelectorAll('.chart__expected-bar');
+  assert.equal(expected.length, 3);
+  assert.equal(expected[1].getAttribute('data-month'), '2026-12');
   const paid = svg.querySelectorAll('.chart__actual-bar');
   assert.equal(paid.length, 1);
   assert.equal(paid[0].getAttribute('x'), '88.5');

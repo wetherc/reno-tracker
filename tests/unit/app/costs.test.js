@@ -3,9 +3,15 @@ import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
 import {
   chartRange,
+  describeMarker,
+  describeMonth,
+  markerTargets,
+  monthTargets,
   mountCosts,
   summaryTiles,
 } from '../../../src/app/costs.js';
+import { barChartModel } from '../../../src/charts/barChart.js';
+import { lineChartModel } from '../../../src/charts/lineChart.js';
 import { mountShell } from '../../../src/app/shell.js';
 import { costSummary } from '../../../src/costs/summary.js';
 import { todayIso } from '../../../src/schedule/dates.js';
@@ -84,6 +90,93 @@ test('summaryTiles names the five numbers and flips the remaining tile when over
   assert.equal(over[3].over, true);
 });
 
+test('describeMarker and describeMonth read one mark out in words', () => {
+  const marker = {
+    date: '2026-10-03',
+    x: 0,
+    y: 0,
+    expectedCents: 100000,
+    actualCents: null,
+  };
+  assert.equal(
+    describeMarker(marker, ['Demo', 'Grout'], 500000),
+    'Oct 3, 2026 · Demo, Grout · $1,000.00 expected so far · nothing paid yet · $4,000.00 of budget left',
+  );
+  assert.equal(
+    describeMarker({ ...marker, actualCents: 110000 }, ['Demo'], 90000),
+    'Oct 3, 2026 · Demo · $1,000.00 expected so far · $1,100.00 paid so far · $100.00 over budget',
+  );
+  assert.equal(
+    describeMonth({
+      month: '2026-10',
+      label: 'Oct',
+      x: 0,
+      width: 0,
+      expectedY: 0,
+      expectedHeight: 0,
+      actualY: 0,
+      actualHeight: 0,
+      expectedCents: 250000,
+      actualCents: 0,
+    }),
+    'October 2026 · $2,500.00 expected · $0.00 paid',
+  );
+});
+
+test('markerTargets and monthTargets place a target on each mark, in percent', () => {
+  const events = /** @type {any} */ ([
+    { date: '2026-10-11', title: 'Demo' },
+    { date: '2026-10-11', title: 'Grout' },
+    { date: '2026-10-21', title: 'Tile' },
+  ]);
+  const line = lineChartModel({
+    expected: [
+      { date: '2026-10-11', cents: 20000 },
+      { date: '2026-10-21', cents: 50000 },
+    ],
+    actual: [],
+    budgetCents: 80000,
+    start: '2026-10-01',
+    end: '2026-11-20',
+    today: '2026-10-31',
+    width: 356,
+    height: 140,
+  });
+  const svg = $(document.createElement('svg'));
+  const dot = $(document.createElement('circle'));
+  dot.setAttribute('data-date', '2026-10-21');
+  svg.append(dot);
+  const dots = markerTargets(line, events, 80000, svg);
+  assert.equal(dots.length, 2);
+  assert.match(dots[0].text, /^Oct 11, 2026 · Demo, Grout · /);
+  assert.deepEqual([dots[0].left, dots[0].top], [31.69, 62.14]);
+  assert.equal(dots[0].width, undefined);
+  dots[1].highlight?.(true);
+  assert.equal(dot.className, 'chart__marker--active');
+  dots[1].highlight?.(false);
+  assert.equal(dot.className, '');
+  dots[0].highlight?.(true);
+
+  const bars = barChartModel({
+    months: [
+      { month: '2026-11', expectedCents: 40000, actualCents: 10000 },
+      { month: '2026-12', expectedCents: 0, actualCents: 0 },
+    ],
+    width: 372,
+    height: 140,
+  });
+  const columns = monthTargets(bars, svg);
+  assert.deepEqual(
+    columns.map((c) => [c.left, c.top, c.width, c.height]),
+    [
+      [15.05, 8.57, 40.32, 71.43],
+      [55.38, 8.57, 40.32, 71.43],
+    ],
+  );
+  assert.equal(columns[1].text, 'December 2026 · $0.00 expected · $0.00 paid');
+  assert.deepEqual(monthTargets(barChartModel({ months: [] }), svg), []);
+});
+
 test('mountCosts shows an empty state until something has a cost', async () => {
   const { shell } = await setup();
   assert.match(shell.body.textContent, /No costs in Kitchen yet/);
@@ -142,6 +235,21 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   assert.ok(cards[0].querySelector('.chart__expected'));
   assert.ok(cards[0].querySelector('.chart__actual'));
   assert.equal(cards[0].querySelector('table'), null);
+  const picker = cards[0].querySelector('.chart-picker');
+  assert.equal(picker.children.length, 3);
+  assert.match(
+    picker.children[0].getAttribute('aria-label'),
+    /^Oct 3, 2026 · Demo/,
+  );
+  const readout = cards[0].querySelector('.chart-readout');
+  assert.match(readout.textContent, /Point at or tab/);
+  picker.children[0].dispatchEvent({ type: 'pointerenter' });
+  assert.match(readout.textContent, /\$1,100\.00 paid so far/);
+  assert.equal(
+    cards[0].querySelector('.chart__marker').className,
+    'chart__marker chart__marker--active',
+  );
+  assert.equal(cards[1].querySelector('.chart-picker').children.length, 2);
 
   assert.equal(
     cards[1].querySelector('.card__title').textContent,

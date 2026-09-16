@@ -8,9 +8,11 @@ import { barChartModel, renderBarChart } from '../charts/barChart.js';
 import { lineChartModel, renderLineChart } from '../charts/lineChart.js';
 import { costSummary } from '../costs/summary.js';
 import { byMonth, costEvents, cumulative } from '../costs/timeline.js';
+import { formatDate, formatMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { addDays, todayIso } from '../schedule/dates.js';
 import { emptyState } from '../ui/emptyState.js';
+import { chartPicker } from './chartPicker.js';
 import { lineItemTable, monthTable } from './costTables.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -18,6 +20,11 @@ import { lineItemTable, monthTable } from './costTables.js';
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /** @typedef {import('../costs/summary.js').CostSummary} CostSummary */
 /** @typedef {import('../costs/timeline.js').CostEvent} CostEvent */
+/** @typedef {import('../charts/lineChart.js').LineChartModel} LineChartModel */
+/** @typedef {import('../charts/lineChart.js').Marker} Marker */
+/** @typedef {import('../charts/barChart.js').BarChartModel} BarChartModel */
+/** @typedef {import('../charts/barChart.js').Bar} Bar */
+/** @typedef {import('./chartPicker.js').PickTarget} PickTarget */
 
 /**
  * The days the cumulative chart spans: from the project start or the
@@ -87,6 +94,107 @@ export function summaryTiles(summary) {
 }
 
 /**
+ * The readout for one day on the cumulative chart: the day, what landed
+ * on it, both running totals, and where that leaves the budget.
+ * @param {Marker} marker
+ * @param {string[]} titles the rows that land that day
+ * @param {number} budgetCents
+ * @returns {string}
+ */
+export function describeMarker(marker, titles, budgetCents) {
+  const left = budgetCents - marker.expectedCents;
+  const budget =
+    left >= 0
+      ? `${formatCents(left)} of budget left`
+      : `${formatCents(-left)} over budget`;
+  const actual =
+    marker.actualCents === null
+      ? 'nothing paid yet'
+      : `${formatCents(marker.actualCents)} paid so far`;
+  return [
+    formatDate(marker.date),
+    titles.join(', '),
+    `${formatCents(marker.expectedCents)} expected so far`,
+    actual,
+    budget,
+  ].join(' · ');
+}
+
+/**
+ * The readout for one month on the bar chart.
+ * @param {Bar} bar
+ * @returns {string}
+ */
+export function describeMonth(bar) {
+  return [
+    formatMonth(bar.month),
+    `${formatCents(bar.expectedCents)} expected`,
+    `${formatCents(bar.actualCents)} paid`,
+  ].join(' · ');
+}
+
+/**
+ * One target per marker on the cumulative chart, placed on the dot.
+ * @param {LineChartModel} model
+ * @param {CostEvent[]} events
+ * @param {number} budgetCents
+ * @param {SVGElement} svg
+ * @returns {PickTarget[]}
+ */
+export function markerTargets(model, events, budgetCents, svg) {
+  return model.markers.map((marker) => ({
+    text: describeMarker(
+      marker,
+      events.filter((e) => e.date === marker.date).map((e) => e.title),
+      budgetCents,
+    ),
+    left: pct(marker.x, model.width),
+    top: pct(marker.y, model.height),
+    highlight: toggler(
+      svg,
+      `[data-date="${marker.date}"]`,
+      'chart__marker--active',
+    ),
+  }));
+}
+
+/**
+ * One target per month on the bar chart, covering the whole column.
+ * @param {BarChartModel} model
+ * @param {SVGElement} svg
+ * @returns {PickTarget[]}
+ */
+export function monthTargets(model, svg) {
+  const slot = model.bars.length ? model.plot.width / model.bars.length : 0;
+  return model.bars.map((bar, i) => ({
+    text: describeMonth(bar),
+    left: pct(model.plot.x + slot * i, model.width),
+    top: pct(model.plot.y, model.height),
+    width: pct(slot, model.width),
+    height: pct(model.plot.height, model.height),
+    highlight: toggler(
+      svg,
+      `[data-month="${bar.month}"]`,
+      'chart__expected-bar--active',
+    ),
+  }));
+}
+
+/** @param {number} part @param {number} whole */
+const pct = (part, whole) => Math.round((part / whole) * 10000) / 100;
+
+/**
+ * @param {SVGElement} svg
+ * @param {string} selector
+ * @param {string} className
+ * @returns {(on: boolean) => void}
+ */
+const toggler = (svg, selector, className) => (on) =>
+  svg.querySelector(selector)?.classList.toggle(className, on);
+
+const IDLE = 'Point at or tab to a mark for its numbers';
+
+/**
  * @param {{ ctx: AppContext, shell: Shell }} deps
  * @returns {{ show(): void }} show fills the panel with the tiles and charts
  */
@@ -130,15 +238,25 @@ export function mountCosts({ ctx, shell }) {
       sort,
       onSort: (next) => (sort = next),
     });
+    const lineSvg = renderLineChart(
+      line,
+      `Cumulative cost of ${payload.project.name}`,
+    );
+    const barSvg = renderBarChart(
+      bars,
+      `Cost of ${payload.project.name} by month`,
+    );
     root.append(
       tiles(summary),
       chartCard(
         'Cost over time',
-        renderLineChart(line, `Cumulative cost of ${payload.project.name}`),
+        lineSvg,
+        markerTargets(line, events, payload.project.budgetCents, lineSvg),
       ),
       chartCard(
         'Cost by month',
-        renderBarChart(bars, `Cost of ${payload.project.name} by month`),
+        barSvg,
+        monthTargets(bars, barSvg),
         monthTable(months),
       ),
       listCard('Line items', items.el),
@@ -183,9 +301,10 @@ function tiles(summary) {
 /**
  * @param {string} heading
  * @param {SVGElement} svg
+ * @param {PickTarget[]} targets
  * @param {HTMLTableElement} [twin] a visually hidden table with the numbers
  */
-function chartCard(heading, svg, twin) {
+function chartCard(heading, svg, targets, twin) {
   const card = document.createElement('section');
   card.className = 'card cost-card';
   const title = document.createElement('h2');
@@ -193,8 +312,9 @@ function chartCard(heading, svg, twin) {
   title.textContent = heading;
   const figure = document.createElement('figure');
   figure.className = 'cost-figure';
-  figure.append(svg);
-  card.append(title, figure);
+  const { layer, readout } = chartPicker({ targets, idle: IDLE });
+  figure.append(svg, layer);
+  card.append(title, figure, readout);
   if (twin) card.append(twin);
   return card;
 }

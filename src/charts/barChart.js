@@ -105,6 +105,7 @@ export function renderBarChart(model, title) {
     svg.append(
       svgEl('rect', {
         class: 'chart__expected-bar',
+        'data-month': bar.month,
         x: bar.x,
         y: bar.expectedY,
         width: bar.width,

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
 import {
   lineChartModel,
+  markersOf,
   renderLineChart,
   stepPath,
 } from '../../../src/charts/lineChart.js';
@@ -50,6 +51,48 @@ test('lineChartModel places the axes and lines on a fixed frame', () => {
   assert.equal(model.expectedPath, 'M112.8 112H112.8V87H169.6V49.5H340');
   // The actual line stops at today.
   assert.equal(model.actualPath, 'M112.8 112H112.8V80.8H226.4');
+});
+
+test('lineChartModel marks each day a cost lands on, on the expected line', () => {
+  const model = lineChartModel(input);
+  assert.deepEqual(model.markers, [
+    {
+      date: '2026-10-11',
+      x: 112.8,
+      y: 87,
+      expectedCents: 20000,
+      actualCents: 25000,
+    },
+    {
+      date: '2026-10-21',
+      x: 169.6,
+      y: 49.5,
+      expectedCents: 50000,
+      actualCents: 25000,
+    },
+  ]);
+});
+
+test('markersOf reads a day in one series only from the other running total', () => {
+  const id = (/** @type {any} */ v) => Number(String(v).slice(-2));
+  const markers = markersOf(
+    [{ date: '2026-10-11', cents: 100 }],
+    [
+      { date: '2026-10-05', cents: 40 },
+      { date: '2026-10-20', cents: 90 },
+    ],
+    id,
+    (cents) => cents,
+  );
+  assert.deepEqual(
+    markers.map((m) => [m.date, m.x, m.expectedCents, m.actualCents]),
+    [
+      ['2026-10-05', 5, 0, 40],
+      ['2026-10-11', 11, 100, 40],
+      ['2026-10-20', 20, 100, 90],
+    ],
+  );
+  assert.deepEqual(markersOf([], [], id, id), []);
 });
 
 test('lineChartModel keeps today off the axis when it is outside the range', () => {
@@ -116,6 +159,11 @@ test('renderLineChart draws a titled svg with grid, budget, today, and lines', (
     svg.querySelector('.chart__actual').getAttribute('d'),
     model.actualPath,
   );
+  const dots = svg.querySelectorAll('.chart__marker');
+  assert.equal(dots.length, 2);
+  assert.equal(dots[1].getAttribute('data-date'), '2026-10-21');
+  assert.equal(dots[1].getAttribute('cx'), '169.6');
+  assert.equal(dots[1].getAttribute('cy'), '49.5');
 });
 
 test('renderLineChart leaves out what the model does not have', () => {
@@ -129,4 +177,5 @@ test('renderLineChart leaves out what the model does not have', () => {
   assert.equal(svg.querySelector('.chart__today'), null);
   assert.equal(svg.querySelector('.chart__expected'), null);
   assert.equal(svg.querySelector('.chart__actual'), null);
+  assert.equal(svg.querySelector('.chart__marker'), null);
 });

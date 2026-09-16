@@ -109,8 +109,36 @@ test('the costs panel sums the project and draws both charts', async ({
   await expect(bars.locator('.chart__expected-bar')).toHaveCount(3);
   await expect(bars.locator('.chart__actual-bar')).toHaveCount(1);
 
+  // Pointing at a mark reads its numbers out; the arrow keys walk them.
+  const readouts = page.locator('.chart-readout');
+  await expect(readouts.first()).toHaveText(/Point at or tab/);
+  const demoDot = page.getByRole('button', { name: /^Sep 3, 2026 · Demo/ });
+  await demoDot.hover();
+  await expect(readouts.first()).toHaveText(
+    'Sep 3, 2026 · Demo · $3,500.00 expected so far · $2,400.00 paid so far · $46,500.00 of budget left',
+  );
+  await expect(line.locator('.chart__marker--active')).toHaveCount(1);
+  await demoDot.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(readouts.first()).toHaveText(/^Sep 12, 2026 · Rough plumbing/);
+  await page.keyboard.press('End');
+  await expect(readouts.first()).toHaveText(/^Nov 10, 2026 · Quartz counter/);
+  await page.getByRole('button', { name: /^October 2026/ }).hover();
+  await expect(readouts.nth(1)).toHaveText(
+    'October 2026 · $18,000.00 expected · $0.00 paid',
+  );
+  await expect(bars.locator('.chart__expected-bar--active')).toHaveCount(1);
+
   const dismiss = page.getByRole('button', { name: 'Dismiss' });
   while ((await dismiss.count()) > 0) await dismiss.first().click();
+  await page.screenshot({
+    path: 'test-results/costs-panel-hover.png',
+    animations: 'disabled',
+    fullPage: true,
+  });
+  await page.mouse.move(0, 0);
+  await page.keyboard.press('Escape');
+  await page.getByRole('heading', { name: 'Costs' }).click();
   await page.screenshot({
     path: 'test-results/costs-panel.png',
     animations: 'disabled',
