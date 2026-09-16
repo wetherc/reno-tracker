@@ -29,21 +29,21 @@ import { accruedLine, lineItemTable, weekTable } from './costTables.js';
 
 /**
  * The days the cumulative chart spans: from the project start or the
- * first cost, whichever is earlier, to a week past the last cost or
- * today, whichever is later. The week gives the last step a flat run so
- * it reads as a plateau and not as a spike at the edge.
+ * first cost, whichever is earlier, to a week past the last cost. The
+ * week gives the last step a flat run so it reads as a plateau and not
+ * as a spike at the edge. Today does not stretch the axis, so a project
+ * that finished months ago does not draw a long flat tail up to now.
  * @param {ProjectPayload} payload
  * @param {CostEvent[]} events
- * @param {string} today
  * @returns {{ start: string, end: string }}
  */
-export function chartRange(payload, events, today) {
+export function chartRange(payload, events) {
   const dates = events.map((e) => e.date);
   const first = dates[0] ?? payload.project.startDate;
   const last = dates[dates.length - 1] ?? payload.project.startDate;
   const start =
     first < payload.project.startDate ? first : payload.project.startDate;
-  const end = [last, today, start].sort()[2];
+  const end = last > start ? last : start;
   return { start, end: addDays(end, 7) };
 }
 
@@ -220,7 +220,7 @@ export function mountCosts({ ctx, shell }) {
     const today = todayIso();
     const summary = costSummary(events, payload.project.budgetCents);
     const weeks = byWeek(events);
-    const range = chartRange(payload, events, today);
+    const range = chartRange(payload, events);
     const line = lineChartModel({
       expected: cumulative(events, 'expectedCents'),
       actual: cumulative(events, 'actualCents'),

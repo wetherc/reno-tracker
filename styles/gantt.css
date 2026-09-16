@@ -2,11 +2,14 @@
    --gantt-day and --gantt-row are set inline by src/app/ganttView.js
    from the same numbers the layout uses, so the CSS grid lines, the
    name rows, and the bar positions agree to the pixel. The scale is two
-   1.5rem rows, and the corner over the names matches that height. */
+   1.5rem rows, and the corner over the names matches that height. The
+   chart column is max-content, not 1fr, because the row background is a
+   repeating gradient that would paint day lines and weekend shading
+   across any extra width past the last week of the schedule. */
 
 .gantt {
   display: grid;
-  grid-template-columns: min(13rem, 30vw) minmax(max-content, 1fr);
+  grid-template-columns: min(13rem, 30vw) max-content;
   overflow-x: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);

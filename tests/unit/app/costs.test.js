@@ -41,18 +41,26 @@ const payload = /** @type {any} */ ({ project: { startDate: '2026-09-01' } });
 /** @param {string} date */
 const at = (date) => /** @type {any} */ ({ date });
 
-test('chartRange runs from the earlier of start and first cost to a week past the later of last cost and today', () => {
-  assert.deepEqual(
-    chartRange(payload, [at('2026-10-01'), at('2026-11-05')], '2026-10-20'),
-    { start: '2026-09-01', end: '2026-11-12' },
-  );
-  assert.deepEqual(
-    chartRange(payload, [at('2026-08-15'), at('2026-09-05')], '2026-10-20'),
-    { start: '2026-08-15', end: '2026-10-27' },
-  );
-  assert.deepEqual(chartRange(payload, [], '2026-05-01'), {
+test('chartRange runs from the earlier of start and first cost to a week past the last cost', () => {
+  assert.deepEqual(chartRange(payload, [at('2026-10-01'), at('2026-11-05')]), {
+    start: '2026-09-01',
+    end: '2026-11-12',
+  });
+  assert.deepEqual(chartRange(payload, [at('2026-08-15'), at('2026-09-05')]), {
+    start: '2026-08-15',
+    end: '2026-09-12',
+  });
+  assert.deepEqual(chartRange(payload, []), {
     start: '2026-09-01',
     end: '2026-09-08',
+  });
+});
+
+test('chartRange does not stretch the axis to today when the last cost is in the past', () => {
+  const past = /** @type {any} */ ({ project: { startDate: '2025-01-01' } });
+  assert.deepEqual(chartRange(past, [at('2025-02-01'), at('2025-03-01')]), {
+    start: '2025-01-01',
+    end: '2025-03-08',
   });
 });
 

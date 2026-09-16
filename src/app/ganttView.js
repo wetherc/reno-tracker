@@ -90,7 +90,7 @@ export function ganttView({ ctx }) {
 
     const chart = document.createElement('div');
     chart.className = 'gantt__chart';
-    chart.style.minWidth = `${layout.width}px`;
+    chart.style.width = `${layout.width}px`;
     chart.append(scale(layout), rows);
     if (layout.todayX !== null) {
       const today = document.createElement('div');
