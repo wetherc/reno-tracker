@@ -8,6 +8,7 @@ import {
   markerTargets,
   weekTargets,
   mountCosts,
+  materialsNote,
   summaryTiles,
 } from '../../../src/app/costs.js';
 import { barChartModel } from '../../../src/charts/barChart.js';
@@ -65,7 +66,13 @@ test('chartRange does not stretch the axis to today when the last cost is in the
 });
 
 test('summaryTiles names the six numbers and flips the headroom tile when over', () => {
-  const done = { percentWork: 40, percentMaterials: 100 };
+  const done = {
+    percentWork: 40,
+    percentMaterials: 100,
+    materialsBought: 2,
+    materialsAll: 2,
+    materialsUninvoiced: 1,
+  };
   const under = summaryTiles(
     costSummary(
       [
@@ -95,6 +102,11 @@ test('summaryTiles names the six numbers and flips the headroom tile when over',
     ],
   );
   assert.equal(under[3].note, 'budget minus $120.00 projected');
+  assert.equal(under[5].note, '2 of 2 bought, 1 not yet invoiced');
+  assert.equal(
+    materialsNote({ ...done, materialsUninvoiced: 0 }),
+    '2 of 2 bought',
+  );
   const over = summaryTiles(costSummary([], -5000), done);
   assert.equal(over[3].label, 'Over budget');
   assert.equal(over[3].value, '$50.00');

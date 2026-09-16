@@ -98,9 +98,21 @@ export function summaryTiles(summary, progress) {
     {
       label: 'Materials bought',
       value: `${progress.percentMaterials}%`,
-      note: 'of material rows',
+      note: materialsNote(progress),
     },
   ];
+}
+
+/**
+ * "3 of 8 bought", plus how many of those still wait on an invoice.
+ * @param {Progress} progress
+ * @returns {string}
+ */
+export function materialsNote(progress) {
+  const bought = `${progress.materialsBought} of ${progress.materialsAll} bought`;
+  const open = progress.materialsUninvoiced;
+  if (open === 0) return bought;
+  return `${bought}, ${open} not yet invoiced`;
 }
 
 /**

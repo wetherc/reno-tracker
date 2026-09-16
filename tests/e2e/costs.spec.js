@@ -87,6 +87,7 @@ test('the costs panel sums the project and draws both charts', async ({
   await expect(tiles.nth(4)).toContainText('15%');
   await expect(tiles.nth(5)).toContainText('Materials bought');
   await expect(tiles.nth(5)).toContainText('0%');
+  await expect(tiles.nth(5)).toContainText('0 of 2 bought');
 
   const items = page.getByRole('table', { name: 'Line items in Kitchen' });
   await expect(items.locator('tbody tr')).toHaveCount(5);
