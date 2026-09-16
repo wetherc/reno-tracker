@@ -45,6 +45,16 @@ export function formatMoment(iso) {
   return MOMENT.format(new Date(iso));
 }
 
+const TIME = new Intl.DateTimeFormat('en-US', { timeStyle: 'short' });
+
+/**
+ * @param {string} iso full ISO 8601 timestamp
+ * @returns {string} "3:04 PM" in local time, for a list already under a day
+ */
+export function formatTime(iso) {
+  return TIME.format(new Date(iso));
+}
+
 const MONTH = new Intl.DateTimeFormat('en-US', {
   month: 'long',
   year: 'numeric',

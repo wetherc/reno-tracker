@@ -93,7 +93,8 @@ against the static build with no API, and checks that no request goes to
           v
   src/app/*.js ............... one module per feature area: project
           |                    picker, schedule and its four views,
-          |                    materials, costs, editors, shell, theme
+          |                    notes, materials, costs, editors, shell,
+          |                    theme
      _____|_______________________________________
     |          |            |           |          |
     v          v            v           v          v
@@ -101,6 +102,8 @@ against the static build with no API, and checks that no request goes to
   DOM        dates, graph,  landing     axes, line   defaults and
   widgets    calendar,      days,       and bar      validation
              gantt, agenda  totals      models       per entity
+             src/notes/
+             notes by day
     |
     v
   src/api/ ................. fetch wrapper, error text, backend picker

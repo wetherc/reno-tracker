@@ -1,0 +1,60 @@
+/* Notes section. Every note in the project under the day it was written.
+   The note card itself comes from schedule.css, so a note reads the same
+   here and in the item editor. */
+
+.notes-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.notes-day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.notes-day__date {
+  font-size: var(--text-heading);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.notes-day__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 0;
+  list-style: none;
+}
+
+/* The item name is the way back into the note. */
+
+.note__item {
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 0.15em;
+  transition: text-decoration-color var(--transition-fast);
+}
+
+.note__item:hover {
+  text-decoration-color: var(--accent);
+}
+
+.note__party::before {
+  content: '·';
+  margin-right: var(--space-2);
+}
+
+/* The time moves to the far edge when the item name comes first. */
+
+.note__when--end {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: var(--text-label);
+}

@@ -5,6 +5,7 @@ import { describeFailure } from './api/errors.js';
 import { createContext } from './app/context.js';
 import { mountCosts } from './app/costs.js';
 import { mountMaterials } from './app/materials.js';
+import { mountNotes } from './app/notesView.js';
 import { mountProjects } from './app/projects.js';
 import { mountSchedule } from './app/schedule.js';
 import { mountShell, SECTIONS } from './app/shell.js';
@@ -36,6 +37,7 @@ const shell = mountShell({
 });
 
 const schedule = mountSchedule({ ctx, shell });
+const notes = mountNotes({ ctx, shell });
 const materials = mountMaterials({ ctx, shell });
 const costs = mountCosts({ ctx, shell });
 
@@ -64,6 +66,10 @@ function render() {
   }
   if (shell.section === 'schedule') {
     schedule.show();
+    return;
+  }
+  if (shell.section === 'notes') {
+    notes.show();
     return;
   }
   if (shell.section === 'materials') {

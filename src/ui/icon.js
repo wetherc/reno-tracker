@@ -30,6 +30,7 @@ export const ICON_PATHS = {
   table: 'M3 5h18v14H3zM3 10h18M3 15h18M9 5v14',
   gantt: 'M3 6h8M7 12h10M13 18h8',
   list: 'M4 6h.01M8 6h12M4 12h.01M8 12h12M4 18h.01M8 18h12',
+  note: 'M6 3h9l4 4v14H6zM15 3v4h4M9 12h6M9 16h4',
   link: 'M10 14a4 4 0 0 1 0-5.5l3-3a4 4 0 0 1 5.5 5.5l-1.5 1.5M14 10a4 4 0 0 1 0 5.5l-3 3a4 4 0 0 1-5.5-5.5L7 11.5',
 };
 

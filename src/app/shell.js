@@ -3,12 +3,13 @@
 import { bareButton } from '../ui/buttons.js';
 import { icon } from '../ui/icon.js';
 
-/** @typedef {'schedule' | 'materials' | 'costs'} SectionId */
+/** @typedef {'schedule' | 'notes' | 'materials' | 'costs'} SectionId */
 /** @typedef {import('../storage/prefs.js').Prefs} Prefs */
 
 /** @type {{ id: SectionId, label: string, icon: string }[]} */
 export const SECTIONS = [
   { id: 'schedule', label: 'Schedule', icon: 'calendar' },
+  { id: 'notes', label: 'Notes', icon: 'note' },
   { id: 'materials', label: 'Materials', icon: 'box' },
   { id: 'costs', label: 'Costs', icon: 'chart' },
 ];

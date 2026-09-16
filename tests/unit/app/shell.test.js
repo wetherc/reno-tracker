@@ -24,7 +24,8 @@ test('mountShell builds the nav and panel and tracks the section', () => {
   const nav = sidebar.children[0];
   assert.equal(nav.className, 'nav');
   assert.equal(nav.children.length, SECTIONS.length);
-  const [schedule, materials] = nav.children;
+  const [schedule, notes, materials] = nav.children;
+  assert.equal(notes.textContent, 'Notes');
   assert.equal(materials.textContent, 'Materials');
   assert.equal(materials.className, 'btn-bare row-select row-select--current');
   assert.equal(materials.getAttribute('aria-current'), 'page');
