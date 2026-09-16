@@ -8,6 +8,7 @@ import { formatDayMonth } from '../format/date.js';
 import { todayIso } from '../schedule/dates.js';
 import { ganttLayout } from '../schedule/gantt.js';
 import { bareButton } from '../ui/buttons.js';
+import { completeToggle } from './completeToggle.js';
 import { ganttBar, moveMessage } from './ganttBar.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
@@ -136,7 +137,10 @@ export function ganttView({ ctx }) {
       label: item.title,
       onClick: () => openScheduleEditor({ ctx, item }),
     });
-    el.append(name);
+    const head = document.createElement('div');
+    head.className = 'gantt__head';
+    head.append(completeToggle({ ctx, item }), name);
+    el.append(head);
     if (item.responsibleParty) {
       const party = document.createElement('span');
       party.className = 'gantt__party u-muted';

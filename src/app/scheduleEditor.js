@@ -16,6 +16,7 @@ import {
 } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
 import { tabs } from '../ui/Tabs.js';
+import { completeToggle } from './completeToggle.js';
 import { dependencyLinks } from './dependencies.js';
 import { discardGuard } from './discardGuard.js';
 import { notesList } from './notesList.js';
@@ -164,7 +165,17 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
   /** @type {(Node | string)[]} */
   let body = [formEl];
 
+  // The complete checkbox writes at once, like the one in the table, so
+  // Calendar and Gantt reach it through the editor. The box is rebuilt
+  // from each new payload so its label and rollback state match the
+  // saved item.
+  const completeBox = document.createElement('label');
+  completeBox.className = 'editor__complete';
+
   if (editing) {
+    const completeText = document.createElement('span');
+    completeText.textContent = 'Complete';
+    completeBox.append(completeToggle({ ctx, item }), completeText);
     links = dependencyLinks({ ctx, item });
     notes = notesList({
       ctx,
@@ -173,7 +184,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     });
     renderChanges();
     const details = document.createElement('div');
-    details.append(formEl);
+    details.append(completeBox, formEl);
     body = [
       tabs({
         id: prefix,
@@ -221,6 +232,9 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     notes?.update(payload.notes);
     links?.update(payload);
     renderChanges();
+    const fresh = payload.schedule.find((s) => s.id === item.id);
+    if (fresh)
+      completeBox.firstChild?.replaceWith(completeToggle({ ctx, item: fresh }));
   });
 
   function renderChanges() {

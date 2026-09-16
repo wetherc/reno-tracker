@@ -101,6 +101,14 @@ test('the gantt draws bars in order, links them, and moves a bar by key and by d
     gantt.getByRole('button', { name: 'Rough plumbing, Oct 8 to Oct 12' }),
   ).toBeVisible();
 
+  // The name column marks an item complete without leaving the view.
+  await gantt.getByLabel('Mark Demo complete').check();
+  await expect(page.getByText('Marked Demo complete')).toBeVisible();
+  await expect(gantt.locator('.gantt__label').first()).toHaveClass(
+    /gantt__label--complete/,
+  );
+  await expect(gantt.getByLabel('Reopen Demo')).toBeChecked();
+
   // The change log has the drag.
   await gantt.getByRole('button', { name: 'Rough plumbing' }).first().click();
   await dialog.getByRole('tab', { name: 'Changes' }).click();
