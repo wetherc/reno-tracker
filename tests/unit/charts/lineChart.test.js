@@ -95,10 +95,23 @@ test('markersOf reads a day in one series only from the other running total', ()
   assert.deepEqual(markersOf([], [], id, id), []);
 });
 
+test('lineChartModel runs the actual line past today to a step that lands later', () => {
+  const model = lineChartModel({
+    ...input,
+    actual: [
+      { date: '2026-10-11', cents: 25000 },
+      { date: '2026-11-10', cents: 45000 },
+    ],
+  });
+  // The line ends on Nov 10, not back at today (x 226.4).
+  assert.equal(model.actualPath, 'M112.8 112H112.8V80.8H283.2V55.8H283.2');
+});
+
 test('lineChartModel keeps today off the axis when it is outside the range', () => {
   const before = lineChartModel({ ...input, today: '2026-09-01' });
   assert.equal(before.todayX, null);
-  assert.equal(before.actualPath, 'M112.8 112H112.8V80.8H56');
+  // The actual line still reaches its own last step.
+  assert.equal(before.actualPath, 'M112.8 112H112.8V80.8H112.8');
   const after = lineChartModel({ ...input, today: '2027-01-01' });
   assert.equal(after.todayX, null);
   assert.equal(after.actualPath, 'M112.8 112H112.8V80.8H340');

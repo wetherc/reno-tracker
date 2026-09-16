@@ -2,7 +2,8 @@
 // project, expected and actual, against the budget. A cost lands on one
 // day, so each line is a staircase: flat until a cost lands, then a
 // vertical step. The expected line runs to the end of the range. The
-// actual line stops at today because nothing has been paid past it.
+// actual line stops at today, or at its last step when a complete row
+// lands after today, so the line never turns back on itself.
 import { addMonths, monthBounds, monthOf } from '../schedule/dates.js';
 import { formatMonthShort } from '../format/date.js';
 import { dayScale, formatAxisCents, linear, moneyAxis } from './axes.js';
@@ -142,7 +143,10 @@ export function lineChartModel({
   const rightX = plot.x + plot.width;
 
   const inRange = today >= start && today <= end;
-  const actualEnd = today < start ? plot.x : today > end ? rightX : x(today);
+  const lastActual = actual[actual.length - 1]?.date ?? today;
+  const actualUntil = lastActual > today ? lastActual : today;
+  const actualEnd =
+    actualUntil < start ? plot.x : actualUntil > end ? rightX : x(actualUntil);
 
   /** @type {LineChartModel['xTicks']} */
   const xTicks = [];
