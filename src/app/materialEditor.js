@@ -13,6 +13,7 @@ import {
   textField,
 } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
+import { discardGuard } from './discardGuard.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
@@ -115,7 +116,7 @@ export function openMaterialEditor({ ctx, item }) {
   });
   save.setAttribute('form', formEl.id);
   const actions = [
-    button({ label: 'Cancel', onClick: () => dialog.close() }),
+    button({ label: 'Cancel', onClick: () => dialog.requestClose() }),
     save,
   ];
   if (editing) {
@@ -133,6 +134,7 @@ export function openMaterialEditor({ ctx, item }) {
     title: editing ? item.name : 'New material',
     body: [formEl],
     actions,
+    beforeClose: discardGuard(fields),
     onClose: () => {
       unsubscribe();
       dialog.el.remove();

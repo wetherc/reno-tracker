@@ -301,6 +301,12 @@ textarea.field {
   grid-column: 1 / -1;
 }
 
+/* Two columns however wide the form is, so the start and end dates sit
+   side by side and the two prices under them. */
+.form--pairs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .form__number {
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -309,6 +315,15 @@ textarea.field {
 .form__error {
   color: var(--danger);
   font-size: var(--text-label);
+}
+
+.form__hint {
+  color: var(--text-muted);
+  font-size: var(--text-label);
+}
+
+.form__hint:empty {
+  display: none;
 }
 
 .form__actions {

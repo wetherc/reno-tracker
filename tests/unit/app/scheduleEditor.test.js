@@ -1,7 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import { openScheduleEditor } from '../../../src/app/scheduleEditor.js';
+import {
+  describeLength,
+  openScheduleEditor,
+} from '../../../src/app/scheduleEditor.js';
 import { itemOf, setupSchedule, tick } from './scheduleFixtures.js';
 
 const dom = installDom();
@@ -25,6 +28,8 @@ test('a new item defaults to the project start and saves', async () => {
   assert.equal(form.querySelectorAll('.editor__reason').length, 0);
   const start = form.querySelector('[type="date"]');
   assert.equal(start.value, '2026-09-01');
+  const hint = form.querySelector('.form__hint');
+  assert.equal(hint.textContent, '1 day');
   form.dispatchEvent({ type: 'submit' });
   await tick();
   const errors = form
@@ -47,6 +52,8 @@ test('a new item defaults to the project start and saves', async () => {
     /endDate .* is before startDate/,
   );
   dates[1].value = '2026-09-04';
+  dates[1].dispatchEvent({ type: 'input' });
+  assert.equal(hint.textContent, '4 days');
   form.dispatchEvent({ type: 'submit' });
   await tick();
   assert.deepEqual(fx.log, ['create Demo']);
@@ -123,6 +130,12 @@ test('editing shows tabs, logs a reason, and follows the payload', async () => {
   const actions = el.children[2].children;
   assert.equal(actions[0].textContent, 'Delete');
   assert.equal(actions[0].classList.contains('editor__delete'), true);
+  // Save and Cancel belong to the form, so the Changes tab hides them.
+  assert.equal(actions[1].hidden, true);
+  assert.equal(actions[2].hidden, true);
+  tabButtons[0].click();
+  assert.equal(actions[1].hidden, false);
+  assert.equal(actions[2].hidden, false);
 
   const form = el.querySelector('form');
   const reason = byId(form, form.id.replace('-form', '-reason'));
@@ -166,6 +179,37 @@ test('editing shows tabs, logs a reason, and follows the payload', async () => {
   await fx.ctx.write((api) => api.deleteScheduleItem('a'));
   assert.equal(again.open, false);
   assert.equal(dom.body.children.length, 0);
+});
+
+test('describeLength counts the days or names an end before the start', () => {
+  assert.equal(describeLength('2026-09-01', '2026-09-01'), '1 day');
+  assert.equal(describeLength('2026-09-01', '2026-09-08'), '8 days');
+  assert.equal(
+    describeLength('2026-09-08', '2026-09-01'),
+    'Ends before it starts',
+  );
+});
+
+test('an edited form asks before it closes', async () => {
+  const fx = setupSchedule({ schedule: [itemOf('a', { title: 'Demo' })] });
+  await fx.ctx.openProject('p1');
+  const dialog = openScheduleEditor({ ctx: fx.ctx, item: fx.items()[0] });
+  const el = $(dialog.el);
+  el.children[0].children[1].click();
+  await tick();
+  assert.equal(el.open, false);
+  const again = openScheduleEditor({ ctx: fx.ctx, item: fx.items()[0] });
+  $(again.el).querySelector('[type="text"]').value = 'Demo day';
+  $(again.el).children[0].children[1].click();
+  await tick();
+  assert.equal(again.el.open, true);
+  assert.equal(
+    $(dom.body.children[1]).children[0].children[0].textContent,
+    'Discard changes?',
+  );
+  $(dom.body.children[1]).children[2].children[1].click();
+  await tick();
+  assert.equal(again.el.open, false);
 });
 
 test('delete asks, then removes the item', async () => {

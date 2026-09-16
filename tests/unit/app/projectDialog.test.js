@@ -6,6 +6,8 @@ import { ApiError } from '../../../src/api/errors.js';
 
 const dom = installDom();
 
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
 /** @param {unknown} el */
 const $ = (el) => /** @type {any} */ (el);
 
@@ -59,7 +61,7 @@ test('a new project dialog defaults to today and a zero budget', () => {
   });
 });
 
-test('an edit dialog is prefilled and cancel closes without saving', () => {
+test('an edit dialog is prefilled and cancel closes without saving', async () => {
   let calls = 0;
   const dialog = openProjectDialog({
     project,
@@ -75,8 +77,36 @@ test('an edit dialog is prefilled and cancel closes without saving', () => {
   assert.equal(budget.value, '12500.00');
   assert.equal(save.textContent, 'Save');
   $(cancel).click();
+  await tick();
   assert.equal(dialog.el.open, false);
   assert.equal(calls, 0);
+});
+
+test('an edited form asks before it closes and keeps the edits on no', async () => {
+  const dialog = openProjectDialog({
+    project,
+    onSave: async () => ({ ok: true, result: undefined }),
+  });
+  const { name, cancel } = parts(dialog);
+  name.value = 'Kitchen and pantry';
+  $(cancel).click();
+  await tick();
+  assert.equal(dialog.el.open, true);
+  const ask = $(dom.body.children[1]);
+  assert.equal(ask.children[0].children[0].textContent, 'Discard changes?');
+  const [keep, discard] = ask.children[2].children;
+  assert.equal(discard.textContent, 'Discard');
+  keep.click();
+  await tick();
+  assert.equal(dialog.el.open, true);
+  assert.equal(name.value, 'Kitchen and pantry');
+  // Escape asks the same way, and Discard closes.
+  assert.equal($(dialog.el).dispatchEvent({ type: 'cancel' }), false);
+  await tick();
+  $(dom.body.children[1]).children[2].children[1].click();
+  await tick();
+  assert.equal(dialog.el.open, false);
+  assert.equal(dom.body.children.length, 0);
 });
 
 test('field errors block the save and clear on the next try', async () => {

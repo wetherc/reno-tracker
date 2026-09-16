@@ -47,8 +47,18 @@
   border-top: 1px dashed var(--border);
 }
 
+/* Delete sits at the far end from Save and stays quiet until pointed
+   at, so a slip of the hand does not land on it. */
 .editor__delete {
   margin-right: auto;
+  background: none;
+  border-color: transparent;
+  color: var(--danger);
+}
+
+.editor__delete:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-color: transparent;
 }
 
 /* Notes */

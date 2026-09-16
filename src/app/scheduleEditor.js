@@ -4,7 +4,7 @@
 // that reason onto every variance row the save produces.
 import { ApiError } from '../api/errors.js';
 import { validateScheduleItem } from '../entities/scheduleItem.js';
-import { todayIso } from '../schedule/dates.js';
+import { spanDays, todayIso } from '../schedule/dates.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
 import {
@@ -17,6 +17,7 @@ import {
 import { modal } from '../ui/Modal.js';
 import { tabs } from '../ui/Tabs.js';
 import { dependencyLinks } from './dependencies.js';
+import { discardGuard } from './discardGuard.js';
 import { notesList } from './notesList.js';
 import { FIELD_LABELS, varianceList } from './varianceList.js';
 
@@ -26,6 +27,18 @@ import { FIELD_LABELS, varianceList } from './varianceList.js';
 /** @typedef {'details' | 'links' | 'notes' | 'changes'} EditorTab */
 
 let counter = 0;
+
+/**
+ * The words under the end date for the span the two dates make.
+ * @param {string} start
+ * @param {string} end
+ * @returns {string}
+ */
+export function describeLength(start, end) {
+  if (end < start) return 'Ends before it starts';
+  const days = spanDays(start, end);
+  return days === 1 ? '1 day' : `${days} days`;
+}
 
 /**
  * @param {{ ctx: AppContext, item?: ScheduleItem, tab?: EditorTab }} config
@@ -50,19 +63,26 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     label: FIELD_LABELS.responsibleParty,
     value: item?.responsibleParty ?? '',
     placeholder: 'Contractor, plumber, us',
+    wide: true,
   });
   const startDate = dateField({
     id: `${prefix}-start`,
     label: FIELD_LABELS.startDate,
     value: item?.startDate ?? ctx.payload?.project.startDate ?? todayIso(),
     required: true,
+    onInput: () => showLength(),
   });
   const endDate = dateField({
     id: `${prefix}-end`,
     label: FIELD_LABELS.endDate,
     value: item?.endDate ?? startDate.input.value,
     required: true,
+    onInput: () => showLength(),
   });
+  const length = document.createElement('p');
+  length.className = 'form__hint';
+  endDate.el.append(length);
+  showLength();
   const estimatedCents = moneyField({
     id: `${prefix}-estimate`,
     label: FIELD_LABELS.estimatedCents,
@@ -105,6 +125,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     onSubmit: submit,
   });
   formEl.id = `${prefix}-form`;
+  formEl.classList.add('form--pairs');
   formEl.append(
     title.el,
     responsibleParty.el,
@@ -122,10 +143,18 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     type: 'submit',
   });
   save.setAttribute('form', formEl.id);
-  const actions = [
-    button({ label: 'Cancel', onClick: () => dialog.close() }),
-    save,
-  ];
+  const cancel = button({
+    label: 'Cancel',
+    onClick: () => dialog.requestClose(),
+  });
+  const actions = [cancel, save];
+  // Save and Cancel belong to the form, so the other tabs hide them.
+  /** @param {string} id */
+  const showFormActions = (id) => {
+    save.hidden = id !== 'details';
+    cancel.hidden = id !== 'details';
+  };
+  showFormActions(tab);
 
   /** @type {ReturnType<typeof notesList> | null} */
   let notes = null;
@@ -149,6 +178,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
       tabs({
         id: prefix,
         selected: tab,
+        onChange: showFormActions,
         items: [
           { id: 'details', label: 'Details', panel: details },
           { id: 'links', label: 'Waits on', panel: links.el },
@@ -172,6 +202,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     body,
     actions,
     wide: editing,
+    beforeClose: discardGuard(fields),
     onClose: () => {
       unsubscribe();
       dialog.el.remove();
@@ -197,6 +228,13 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     changes.replaceChildren(
       varianceList(all.filter((v) => v.scheduleItemId === item?.id)),
     );
+  }
+
+  // The length under the end date follows both dates as they are typed.
+  function showLength() {
+    const start = startDate.input.value;
+    const end = endDate.input.value;
+    length.textContent = start && end ? describeLength(start, end) : '';
   }
 
   /** @param {FieldName} field @param {string | null} message */

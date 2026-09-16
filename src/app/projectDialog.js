@@ -7,6 +7,7 @@ import { todayIso } from '../schedule/dates.js';
 import { button } from '../ui/buttons.js';
 import { dateField, form, moneyField, textField } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
+import { discardGuard } from './discardGuard.js';
 
 /** @typedef {import('../types.ts').Project} Project */
 /** @typedef {import('../types.ts').ProjectInput} ProjectInput */
@@ -63,7 +64,11 @@ export function openProjectDialog({ project, onSave }) {
   const dialog = modal({
     title: editing ? `Edit ${project.name}` : 'New project',
     body: [formEl],
-    actions: [button({ label: 'Cancel', onClick: () => dialog.close() }), save],
+    actions: [
+      button({ label: 'Cancel', onClick: () => dialog.requestClose() }),
+      save,
+    ],
+    beforeClose: discardGuard(fields),
     onClose: () => dialog.el.remove(),
   });
 
