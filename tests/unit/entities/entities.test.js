@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { isLate } from '../../../src/entities/scheduleItem.js';
 import {
   projectDefaults,
   validateProject,
@@ -209,4 +210,14 @@ test('defaults fill an empty body and keep an explicit null', () => {
       expectedDate: null,
     },
   );
+});
+
+test('isLate is true only for an open item past its end date', () => {
+  const today = '2026-09-15';
+  assert.equal(isLate({ endDate: '2026-09-14', complete: false }, today), true);
+  assert.equal(
+    isLate({ endDate: '2026-09-15', complete: false }, today),
+    false,
+  );
+  assert.equal(isLate({ endDate: '2026-09-14', complete: true }, today), false);
 });

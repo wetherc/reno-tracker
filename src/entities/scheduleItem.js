@@ -86,3 +86,12 @@ export function validateScheduleItem(input, { partial = false, current } = {}) {
   }
   return null;
 }
+
+/**
+ * True when the item is past its end date and not marked complete.
+ * @param {Pick<ScheduleItem, 'endDate' | 'complete'>} item
+ * @param {string} today an ISO date
+ */
+export function isLate(item, today) {
+  return !item.complete && item.endDate < today;
+}

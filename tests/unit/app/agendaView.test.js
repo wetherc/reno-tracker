@@ -215,3 +215,17 @@ test('the calendar count lands on that day in the agenda', async () => {
     true,
   );
 });
+
+test('an open item past its end date is marked late on both of its days', async () => {
+  const { el } = await setup([
+    itemOf('late', {
+      title: 'Permit',
+      startDate: addDays(today, -3),
+      endDate: addDays(today, -2),
+    }),
+  ]);
+  const badges = el.querySelectorAll('.badge');
+  assert.equal(badges.length, 2);
+  assert.equal(badges[0].textContent, 'Late');
+  assert.equal(badges[0].className, 'badge badge--danger');
+});

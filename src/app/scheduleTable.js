@@ -2,11 +2,12 @@
 // that marks the work done, and a title that opens the editor.
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
-import { spanDays } from '../schedule/dates.js';
+import { spanDays, todayIso } from '../schedule/dates.js';
 import { bareButton } from '../ui/buttons.js';
 import { dataTable } from '../ui/DataTable.js';
 import { icon } from '../ui/icon.js';
 import { completeToggle } from './completeToggle.js';
+import { lateBadge } from './lateBadge.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -109,6 +110,7 @@ export function scheduleTable({ ctx }) {
   function buildTable(payload) {
     const counts = noteCounts(payload);
     const totals = scheduleTotals(payload.schedule);
+    const today = todayIso();
     return dataTable({
       caption: `Schedule for ${payload.project.name}`,
       rows: payload.schedule,
@@ -140,14 +142,7 @@ export function scheduleTable({ ctx }) {
           key: 'title',
           label: 'Item',
           compare: (a, b) => byText(a.title, b.title),
-          cell: (item) =>
-            bareButton({
-              className: 'schedule-title',
-              children: item.complete
-                ? [icon('check', { label: 'Complete' }), item.title]
-                : [item.title],
-              onClick: () => openScheduleEditor({ ctx, item }),
-            }),
+          cell: (item) => titleCell(item, today),
         },
         {
           key: 'party',
@@ -207,6 +202,26 @@ export function scheduleTable({ ctx }) {
         },
       ],
     });
+  }
+
+  /**
+   * The title opens the editor. A late item gets its badge beside it.
+   * @param {ScheduleItem} item @param {string} today
+   */
+  function titleCell(item, today) {
+    const el = document.createElement('span');
+    el.className = 'schedule-title-cell';
+    el.append(
+      bareButton({
+        className: 'schedule-title',
+        children: item.complete
+          ? [icon('check', { label: 'Complete' }), item.title]
+          : [item.title],
+        onClick: () => openScheduleEditor({ ctx, item }),
+      }),
+      ...lateBadge(item, today),
+    );
+    return el;
   }
 
   /** @param {ScheduleItem} item */

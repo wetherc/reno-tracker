@@ -146,7 +146,7 @@ test('the table has one row per item with the planned columns', async () => {
   assert.equal(box.getAttribute('type'), 'checkbox');
   assert.equal(box.checked, true);
   assert.equal(box.getAttribute('aria-label'), 'Reopen Demo');
-  const title = demo.children[1].children[0];
+  const title = demo.children[1].children[0].children[0];
   assert.equal(title.className, 'btn-bare schedule-title');
   assert.equal(title.children[0].getAttribute('aria-label'), 'Complete');
   assert.equal(cabinets.classList.contains('schedule-row--complete'), false);
@@ -224,7 +224,7 @@ test('the checkbox writes complete and rolls back on failure', async () => {
 test('title and notes count open the editor on the right tab', async () => {
   const { shell } = await setup({ schedule: [itemOf('a', { title: 'Demo' })] });
   const [demo] = rows(shell);
-  demo.children[1].children[0].click();
+  demo.children[1].children[0].children[0].click();
   let dialog = $(dom.body.children[0]);
   assert.equal(
     dialog.querySelectorAll('[role="tab"]')[0].getAttribute('aria-selected'),
@@ -274,4 +274,19 @@ test('a chosen sort outlives the rebuild after a write', async () => {
     ),
     'ascending',
   );
+});
+
+test('an open item past its end date is marked late', async () => {
+  const { shell } = await setup({
+    schedule: [
+      itemOf('a', { title: 'Demo', endDate: '2020-01-02' }),
+      itemOf('b', { title: 'Done', endDate: '2020-01-02', complete: true }),
+      itemOf('c', { title: 'Soon', endDate: '2999-01-02' }),
+    ],
+  });
+  const badges = rows(shell).map(
+    (/** @type {any} */ tr) =>
+      tr.children[1].querySelector('.badge')?.textContent,
+  );
+  assert.deepEqual(badges, ['Late', undefined, undefined]);
 });

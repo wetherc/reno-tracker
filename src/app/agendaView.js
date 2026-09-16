@@ -16,6 +16,7 @@ import { emptyState } from '../ui/emptyState.js';
 import { icon } from '../ui/icon.js';
 import { sectionLabel } from '../ui/sectionLabel.js';
 import { completeToggle } from './completeToggle.js';
+import { lateBadge } from './lateBadge.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -168,7 +169,11 @@ export function agendaView({ ctx }) {
           : [item.title],
         onClick: () => openScheduleEditor({ ctx, item }),
       });
-      el.append(completeToggle({ ctx, item }), title);
+      el.append(
+        completeToggle({ ctx, item }),
+        title,
+        ...lateBadge(item, today),
+      );
       const meta = document.createElement('span');
       meta.className = 'agenda-row__meta u-muted';
       const parts = [spanText(item, edge)];
