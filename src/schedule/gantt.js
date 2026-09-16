@@ -93,7 +93,9 @@ export function ganttLayout({
   const starts = sorted.map((i) => i.startDate).sort();
   const ends = sorted.map((i) => i.endDate).sort();
   const start = startOfWeek(starts[0] ?? today);
-  const end = addDays(startOfWeek(ends[ends.length - 1] ?? today), 6);
+  // One empty week after the last item, so the title beside a narrow bar
+  // in the last week has grid under it instead of spilling past the edge.
+  const end = addDays(startOfWeek(ends[ends.length - 1] ?? today), 13);
   const days = spanDays(start, end);
 
   /** @type {GanttRow[]} */

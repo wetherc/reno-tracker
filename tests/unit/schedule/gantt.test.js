@@ -77,9 +77,9 @@ test('ganttLayout keeps a predecessor above a successor that starts earlier', ()
     rowHeight: 20,
   });
   assert.equal(layout.start, '2026-09-27');
-  assert.equal(layout.end, '2026-10-17');
-  assert.equal(layout.days, 21);
-  assert.equal(layout.width, 210);
+  assert.equal(layout.end, '2026-10-24');
+  assert.equal(layout.days, 28);
+  assert.equal(layout.width, 280);
   assert.equal(layout.height, 60);
   assert.deepEqual(
     layout.rows.map((r) => r.item.id),
@@ -89,11 +89,11 @@ test('ganttLayout keeps a predecessor above a successor that starts earlier', ()
   assert.deepEqual([cabs.x, cabs.width, cabs.y], [110, 100, 20]);
   assert.deepEqual(layout.months, [
     { label: 'Sep 2026', x: 0, width: 40 },
-    { label: 'Oct 2026', x: 40, width: 170 },
+    { label: 'Oct 2026', x: 40, width: 240 },
   ]);
   assert.deepEqual(
     layout.weeks.map((w) => w.x),
-    [0, 70, 140],
+    [0, 70, 140, 210],
   );
   assert.equal(layout.weeks[1].date, '2026-10-04');
   assert.equal(layout.todayX, 105);
@@ -120,14 +120,14 @@ test('ganttLayout marks a successor that starts before its predecessor ends', ()
   assert.equal(layout.todayX, null);
 });
 
-test('ganttLayout with no items spans the week of today', () => {
+test('ganttLayout with no items spans the week of today and the week after', () => {
   const layout = ganttLayout({
     items: [],
     dependencies: [],
     today: '2026-10-07',
   });
   assert.equal(layout.start, '2026-10-04');
-  assert.equal(layout.end, '2026-10-10');
+  assert.equal(layout.end, '2026-10-17');
   assert.equal(layout.rows.length, 0);
   assert.equal(layout.height, 0);
   assert.equal(layout.todayX, 3 * 28 + 14);

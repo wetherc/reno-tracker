@@ -49,8 +49,8 @@ test('lineChartModel places the axes and lines on a fixed frame', () => {
   assert.equal(model.todayX, 226.4);
   // Flat from the start, one step at each landing day, flat to the end.
   assert.equal(model.expectedPath, 'M112.8 112H112.8V87H169.6V49.5H340');
-  // The actual line stops at today.
-  assert.equal(model.actualPath, 'M112.8 112H112.8V80.8H226.4');
+  // The actual line runs flat to the end after its last step.
+  assert.equal(model.actualPath, 'M112.8 112H112.8V80.8H340');
 });
 
 test('lineChartModel marks each day a cost lands on, on the expected line', () => {
@@ -95,7 +95,7 @@ test('markersOf reads a day in one series only from the other running total', ()
   assert.deepEqual(markersOf([], [], id, id), []);
 });
 
-test('lineChartModel runs the actual line past today to a step that lands later', () => {
+test('lineChartModel steps the actual line at a row that lands after today', () => {
   const model = lineChartModel({
     ...input,
     actual: [
@@ -103,15 +103,13 @@ test('lineChartModel runs the actual line past today to a step that lands later'
       { date: '2026-11-10', cents: 45000 },
     ],
   });
-  // The line ends on Nov 10, not back at today (x 226.4).
-  assert.equal(model.actualPath, 'M112.8 112H112.8V80.8H283.2V55.8H283.2');
+  assert.equal(model.actualPath, 'M112.8 112H112.8V80.8H283.2V55.8H340');
 });
 
 test('lineChartModel keeps today off the axis when it is outside the range', () => {
   const before = lineChartModel({ ...input, today: '2026-09-01' });
   assert.equal(before.todayX, null);
-  // The actual line still reaches its own last step.
-  assert.equal(before.actualPath, 'M112.8 112H112.8V80.8H112.8');
+  assert.equal(before.actualPath, 'M112.8 112H112.8V80.8H340');
   const after = lineChartModel({ ...input, today: '2027-01-01' });
   assert.equal(after.todayX, null);
   assert.equal(after.actualPath, 'M112.8 112H112.8V80.8H340');

@@ -86,14 +86,14 @@ test('the scale names the months and the first day of every week', async () => {
     ]),
     [
       ['Sep 2026', '0px', '112px'],
-      ['Oct 2026', '112px', '476px'],
+      ['Oct 2026', '112px', '672px'],
     ],
   );
   const weeks = el.querySelectorAll('.gantt__week');
-  assert.equal(weeks.length, 3);
+  assert.equal(weeks.length, 4);
   assert.equal(weeks[0].textContent, 'Sep 27');
   assert.equal(weeks[1].style.left, '196px');
-  assert.equal(el.querySelector('.gantt__chart').style.width, '588px');
+  assert.equal(el.querySelector('.gantt__chart').style.width, '784px');
 });
 
 test('bars land on their days and a complete bar is marked', async () => {
@@ -127,7 +127,7 @@ test('bars land on their days and a complete bar is marked', async () => {
 test('connectors follow the links and a late start turns one red', async () => {
   const { el } = await setup();
   const svg = el.querySelector('.gantt__links');
-  assert.equal(svg.getAttribute('width'), '588');
+  assert.equal(svg.getAttribute('width'), '784');
   assert.equal(svg.getAttribute('height'), '120');
   const links = svg.querySelectorAll('.gantt__link');
   assert.equal(links.length, 2);

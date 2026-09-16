@@ -1,9 +1,9 @@
 // The cumulative cost chart. Two running totals over the life of the
 // project, expected and actual, against the budget. A cost lands on one
 // day, so each line is a staircase: flat until a cost lands, then a
-// vertical step. The expected line runs to the end of the range. The
-// actual line stops at today, or at its last step when a complete row
-// lands after today, so the line never turns back on itself.
+// vertical step. Both lines run flat to the end of the range after
+// their last step, so the three lines end at the same edge. Today is a
+// vertical marker only.
 import { addMonths, monthBounds, monthOf } from '../schedule/dates.js';
 import { formatMonthShort } from '../format/date.js';
 import { dayScale, formatAxisCents, linear, moneyAxis } from './axes.js';
@@ -143,10 +143,6 @@ export function lineChartModel({
   const rightX = plot.x + plot.width;
 
   const inRange = today >= start && today <= end;
-  const lastActual = actual[actual.length - 1]?.date ?? today;
-  const actualUntil = lastActual > today ? lastActual : today;
-  const actualEnd =
-    actualUntil < start ? plot.x : actualUntil > end ? rightX : x(actualUntil);
 
   /** @type {LineChartModel['xTicks']} */
   const xTicks = [];
@@ -172,7 +168,7 @@ export function lineChartModel({
     })),
     xTicks,
     expectedPath: stepPath(expected, x, y, floorY, rightX),
-    actualPath: stepPath(actual, x, y, floorY, actualEnd),
+    actualPath: stepPath(actual, x, y, floorY, rightX),
     budgetY: r(y(budgetCents)),
     todayX: inRange ? r(x(today)) : null,
     markers: markersOf(expected, actual, x, y),
