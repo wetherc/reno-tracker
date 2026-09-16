@@ -260,6 +260,13 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
     'Cost by week',
   );
   assert.equal(cards[1].querySelectorAll('.chart__expected-bar').length, 8);
+  const key = cards[1].querySelector('.chart-legend');
+  assert.equal(key.getAttribute('aria-label'), 'Key');
+  assert.deepEqual(
+    key.children.map((/** @type {any} */ li) => li.textContent),
+    ['Estimate', 'Paid on finished rows'],
+  );
+  assert.equal(cards[0].querySelector('.chart-legend'), null);
   const twin = cards[1].querySelector('table');
   assert.equal(twin.className, 'sr-only');
   const weekRows = $(twin.querySelectorAll('td')).map(

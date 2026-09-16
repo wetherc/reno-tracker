@@ -258,6 +258,7 @@ export function mountCosts({ ctx, shell }) {
         barSvg,
         weekTargets(bars, barSvg),
         weekTable(weeks),
+        weekLegend(),
       ),
       listCard('Line items', items.el, accruedLine(summary)),
     );
@@ -299,12 +300,37 @@ function tiles(summary) {
 }
 
 /**
+ * The key for the week chart. The tiles are the key for the line chart,
+ * but the week bars use a fill of their own, so they name it here.
+ * @returns {HTMLUListElement}
+ */
+function weekLegend() {
+  const list = document.createElement('ul');
+  list.className = 'chart-legend';
+  list.setAttribute('aria-label', 'Key');
+  for (const [kind, text] of [
+    ['expected', 'Estimate'],
+    ['actual', 'Paid on finished rows'],
+  ]) {
+    const li = document.createElement('li');
+    li.className = 'chart-legend__item';
+    const swatch = document.createElement('span');
+    swatch.className = `chart-legend__swatch chart-legend__swatch--${kind}`;
+    swatch.setAttribute('aria-hidden', 'true');
+    li.append(swatch, text);
+    list.append(li);
+  }
+  return list;
+}
+
+/**
  * @param {string} heading
  * @param {SVGElement} svg
  * @param {PickTarget[]} targets
  * @param {HTMLTableElement} [twin] a visually hidden table with the numbers
+ * @param {HTMLElement} [legend] a key drawn between the heading and the chart
  */
-function chartCard(heading, svg, targets, twin) {
+function chartCard(heading, svg, targets, twin, legend) {
   const card = document.createElement('section');
   card.className = 'card cost-card';
   const title = document.createElement('h2');
@@ -314,7 +340,9 @@ function chartCard(heading, svg, targets, twin) {
   figure.className = 'cost-figure';
   const { layer, readout } = chartPicker({ targets, idle: IDLE });
   figure.append(svg, layer);
-  card.append(title, figure, readout);
+  card.append(title);
+  if (legend) card.append(legend);
+  card.append(figure, readout);
   if (twin) card.append(twin);
   return card;
 }
