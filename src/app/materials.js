@@ -6,7 +6,7 @@ import { landingDate, materialExpected } from '../costs/timeline.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { bareButton, button } from '../ui/buttons.js';
-import { dataTable } from '../ui/DataTable.js';
+import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
 import { icon } from '../ui/icon.js';
 import { openMaterialEditor } from './materialEditor.js';
@@ -262,7 +262,7 @@ export function mountMaterials({ ctx, shell }) {
       );
       return;
     }
-    shell.setBody(buildTable(payload).el);
+    shell.setBody(tableScroll(buildTable(payload).el));
   }
 
   return { show };

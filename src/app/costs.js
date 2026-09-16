@@ -13,6 +13,7 @@ import { formatCents } from '../format/money.js';
 import { addDays, todayIso } from '../schedule/dates.js';
 import { emptyState } from '../ui/emptyState.js';
 import { chartPicker } from './chartPicker.js';
+import { tableScroll } from '../ui/DataTable.js';
 import { accruedLine, lineItemTable, weekTable } from './costTables.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -340,9 +341,12 @@ function chartCard(heading, svg, targets, twin, legend) {
   figure.className = 'cost-figure';
   const { layer, readout } = chartPicker({ targets, idle: IDLE });
   figure.append(svg, layer);
+  const scroll = document.createElement('div');
+  scroll.className = 'cost-scroll';
+  scroll.append(figure);
   card.append(title);
   if (legend) card.append(legend);
-  card.append(figure, readout);
+  card.append(scroll, readout);
   if (twin) card.append(twin);
   return card;
 }
@@ -358,6 +362,6 @@ function listCard(heading, table, summary) {
   const title = document.createElement('h2');
   title.className = 'card__title';
   title.textContent = heading;
-  card.append(title, table, summary);
+  card.append(title, tableScroll(table), summary);
   return card;
 }

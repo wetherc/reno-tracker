@@ -156,6 +156,19 @@ export function dataTable({
 }
 
 /**
+ * Wraps a table so it scrolls sideways on its own when it is wider than
+ * the panel, instead of widening the page.
+ * @param {HTMLTableElement} table
+ * @returns {HTMLDivElement}
+ */
+export function tableScroll(table) {
+  const el = document.createElement('div');
+  el.className = 'table-scroll';
+  el.append(table);
+  return el;
+}
+
+/**
  * @template R
  * @param {string} base
  * @param {Column<R>} column

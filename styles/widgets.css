@@ -124,7 +124,12 @@
   opacity: 1;
 }
 
-/* Data table */
+/* Data table. The wrapper scrolls sideways on a narrow screen so the
+   table never widens the page, and the page keeps its own scroll. */
+
+.table-scroll {
+  overflow-x: auto;
+}
 
 .data-table {
   width: 100%;

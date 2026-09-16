@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import { dataTable } from '../../../src/ui/DataTable.js';
+import { dataTable, tableScroll } from '../../../src/ui/DataTable.js';
 
 installDom();
 
@@ -140,4 +140,11 @@ test('a nowrap column marks its header and cells', () => {
     table.body.children[0].children[0].className,
     'data-table__td data-table__td--nowrap',
   );
+});
+
+test('tableScroll wraps a table in the sideways scroller', () => {
+  const table = build();
+  const wrap = tableScroll(table.el);
+  assert.equal(wrap.className, 'table-scroll');
+  assert.equal(wrap.children[0], table.el);
 });

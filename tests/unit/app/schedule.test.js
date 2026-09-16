@@ -32,7 +32,7 @@ async function setup(seed) {
 }
 
 /** @param {any} shell */
-const table = (shell) => shell.body.children[0];
+const table = (shell) => shell.body.children[0].children[0];
 /** @param {any} shell */
 const rows = (shell) => $(table(shell).children[2]).children;
 
@@ -251,7 +251,8 @@ test('every view id has a renderer', async () => {
   panel.show();
   assert.equal(shell.body.children[0].className, 'agenda');
   $(shell.tools.children[0]).children[0].click();
-  assert.equal(shell.body.children[0].tagName, 'TABLE');
+  assert.equal(shell.body.children[0].className, 'table-scroll');
+  assert.equal(shell.body.children[0].children[0].tagName, 'TABLE');
 });
 
 test('a chosen sort outlives the rebuild after a write', async () => {

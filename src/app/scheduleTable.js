@@ -4,7 +4,7 @@ import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { spanDays, todayIso } from '../schedule/dates.js';
 import { bareButton } from '../ui/buttons.js';
-import { dataTable } from '../ui/DataTable.js';
+import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { icon } from '../ui/icon.js';
 import { completeToggle } from './completeToggle.js';
 import { lateBadge } from './lateBadge.js';
@@ -238,6 +238,6 @@ export function scheduleTable({ ctx }) {
   }
 
   return {
-    render: (payload) => buildTable(payload).el,
+    render: (payload) => tableScroll(buildTable(payload).el),
   };
 }

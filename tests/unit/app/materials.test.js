@@ -32,7 +32,7 @@ async function setup(seed) {
 }
 
 /** @param {any} shell */
-const table = (shell) => shell.body.children[0];
+const table = (shell) => shell.body.children[0].children[0];
 /** @param {any} shell */
 const rows = (shell) => $(table(shell).children[2]).children;
 /** @param {any} shell */
