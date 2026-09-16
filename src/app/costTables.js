@@ -1,8 +1,8 @@
 // The tables of the costs section. The line items table lists every
 // cost in the project, labor and materials together, and is the data
-// behind the cumulative chart. The month table is the visually hidden
-// twin of the month chart.
-import { formatDayMonth, formatMonth } from '../format/date.js';
+// behind the cumulative chart. The week table is the visually hidden
+// twin of the week chart.
+import { formatDate, formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { bareButton } from '../ui/buttons.js';
 import { dataTable } from '../ui/DataTable.js';
@@ -18,7 +18,7 @@ import {
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /** @typedef {import('../costs/timeline.js').CostEvent} CostEvent */
-/** @typedef {import('../costs/timeline.js').MonthTotal} MonthTotal */
+/** @typedef {import('../costs/timeline.js').WeekTotal} WeekTotal */
 /** @typedef {import('../ui/DataTable.js').SortState} SortState */
 
 const KIND = { schedule: 'Labor', material: 'Material' };
@@ -145,18 +145,18 @@ export function lineItemTable({ ctx, payload, events, sort, onSort }) {
 }
 
 /**
- * The hidden twin of the month chart.
- * @param {MonthTotal[]} months
+ * The hidden twin of the week chart.
+ * @param {WeekTotal[]} weeks
  * @returns {HTMLTableElement}
  */
-export function monthTable(months) {
+export function weekTable(weeks) {
   const el = document.createElement('table');
   el.className = 'sr-only';
   const cap = document.createElement('caption');
-  cap.textContent = 'Cost by month';
+  cap.textContent = 'Cost by week';
   const thead = document.createElement('thead');
   const hr = document.createElement('tr');
-  for (const text of ['Month', 'Expected', 'Actual']) {
+  for (const text of ['Week of', 'Expected', 'Actual']) {
     const th = document.createElement('th');
     th.setAttribute('scope', 'col');
     th.textContent = text;
@@ -164,12 +164,12 @@ export function monthTable(months) {
   }
   thead.append(hr);
   const tbody = document.createElement('tbody');
-  for (const m of months) {
+  for (const w of weeks) {
     const tr = document.createElement('tr');
     for (const text of [
-      formatMonth(m.month),
-      formatCents(m.expectedCents),
-      formatCents(m.actualCents),
+      formatDate(w.week),
+      formatCents(w.expectedCents),
+      formatCents(w.actualCents),
     ]) {
       const td = document.createElement('td');
       td.textContent = text;

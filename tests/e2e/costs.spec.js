@@ -105,8 +105,9 @@ test('the costs panel sums the project and draws both charts', async ({
   await expect(line.locator('.chart__expected')).toHaveCount(1);
   await expect(line.locator('.chart__actual')).toHaveCount(1);
   await expect(line.locator('.chart__budget')).toHaveCount(1);
-  const bars = page.getByRole('img', { name: 'Cost of Kitchen by month' });
-  await expect(bars.locator('.chart__expected-bar')).toHaveCount(3);
+  const bars = page.getByRole('img', { name: 'Cost of Kitchen by week' });
+  // Sep 3 to Nov 10 covers eleven Sundays, Aug 30 through Nov 8.
+  await expect(bars.locator('.chart__expected-bar')).toHaveCount(11);
   await expect(bars.locator('.chart__actual-bar')).toHaveCount(1);
 
   // Pointing at a mark reads its numbers out; the arrow keys walk them.
@@ -123,9 +124,9 @@ test('the costs panel sums the project and draws both charts', async ({
   await expect(readouts.first()).toHaveText(/^Sep 12, 2026 · Rough plumbing/);
   await page.keyboard.press('End');
   await expect(readouts.first()).toHaveText(/^Nov 10, 2026 · Quartz counter/);
-  await page.getByRole('button', { name: /^October 2026/ }).hover();
+  await page.getByRole('button', { name: /^Week of Oct 25, 2026/ }).hover();
   await expect(readouts.nth(1)).toHaveText(
-    'October 2026 · $18,000.00 expected · $0.00 paid',
+    'Week of Oct 25, 2026 · $18,000.00 expected · $0.00 paid',
   );
   await expect(bars.locator('.chart__expected-bar--active')).toHaveCount(1);
 

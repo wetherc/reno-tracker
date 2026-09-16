@@ -2,18 +2,18 @@
 // of every line item. The tiles are also the legend. Budget, Committed,
 // and Spent each show the mark of the line that draws them, so the
 // chart needs no key of its own. The line items table is the data
-// behind the cumulative chart, and the month chart has a visually
+// behind the cumulative chart, and the week chart has a visually
 // hidden table twin.
 import { barChartModel, renderBarChart } from '../charts/barChart.js';
 import { lineChartModel, renderLineChart } from '../charts/lineChart.js';
 import { costSummary } from '../costs/summary.js';
-import { byMonth, costEvents, cumulative } from '../costs/timeline.js';
-import { formatDate, formatMonth } from '../format/date.js';
+import { byWeek, costEvents, cumulative } from '../costs/timeline.js';
+import { formatDate } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { addDays, todayIso } from '../schedule/dates.js';
 import { emptyState } from '../ui/emptyState.js';
 import { chartPicker } from './chartPicker.js';
-import { lineItemTable, monthTable } from './costTables.js';
+import { lineItemTable, weekTable } from './costTables.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
@@ -121,13 +121,13 @@ export function describeMarker(marker, titles, budgetCents) {
 }
 
 /**
- * The readout for one month on the bar chart.
+ * The readout for one week on the bar chart.
  * @param {Bar} bar
  * @returns {string}
  */
-export function describeMonth(bar) {
+export function describeWeek(bar) {
   return [
-    formatMonth(bar.month),
+    `Week of ${formatDate(bar.week)}`,
     `${formatCents(bar.expectedCents)} expected`,
     `${formatCents(bar.actualCents)} paid`,
   ].join(' · ');
@@ -159,22 +159,22 @@ export function markerTargets(model, events, budgetCents, svg) {
 }
 
 /**
- * One target per month on the bar chart, covering the whole column.
+ * One target per week on the bar chart, covering the whole column.
  * @param {BarChartModel} model
  * @param {SVGElement} svg
  * @returns {PickTarget[]}
  */
-export function monthTargets(model, svg) {
+export function weekTargets(model, svg) {
   const slot = model.bars.length ? model.plot.width / model.bars.length : 0;
   return model.bars.map((bar, i) => ({
-    text: describeMonth(bar),
+    text: describeWeek(bar),
     left: pct(model.plot.x + slot * i, model.width),
     top: pct(model.plot.y, model.height),
     width: pct(slot, model.width),
     height: pct(model.plot.height, model.height),
     highlight: toggler(
       svg,
-      `[data-month="${bar.month}"]`,
+      `[data-week="${bar.week}"]`,
       'chart__expected-bar--active',
     ),
   }));
@@ -218,7 +218,7 @@ export function mountCosts({ ctx, shell }) {
     }
     const today = todayIso();
     const summary = costSummary(events, payload.project.budgetCents);
-    const months = byMonth(events);
+    const weeks = byWeek(events);
     const range = chartRange(payload, events, today);
     const line = lineChartModel({
       expected: cumulative(events, 'expectedCents'),
@@ -227,7 +227,7 @@ export function mountCosts({ ctx, shell }) {
       today,
       ...range,
     });
-    const bars = barChartModel({ months });
+    const bars = barChartModel({ weeks });
 
     const root = document.createElement('div');
     root.className = 'costs';
@@ -244,7 +244,7 @@ export function mountCosts({ ctx, shell }) {
     );
     const barSvg = renderBarChart(
       bars,
-      `Cost of ${payload.project.name} by month`,
+      `Cost of ${payload.project.name} by week`,
     );
     root.append(
       tiles(summary),
@@ -254,10 +254,10 @@ export function mountCosts({ ctx, shell }) {
         markerTargets(line, events, payload.project.budgetCents, lineSvg),
       ),
       chartCard(
-        'Cost by month',
+        'Cost by week',
         barSvg,
-        monthTargets(bars, barSvg),
-        monthTable(months),
+        weekTargets(bars, barSvg),
+        weekTable(weeks),
       ),
       listCard('Line items', items.el),
     );

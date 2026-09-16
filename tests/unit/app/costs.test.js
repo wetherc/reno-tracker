@@ -4,9 +4,9 @@ import { installDom } from '../domShim.js';
 import {
   chartRange,
   describeMarker,
-  describeMonth,
+  describeWeek,
   markerTargets,
-  monthTargets,
+  weekTargets,
   mountCosts,
   summaryTiles,
 } from '../../../src/app/costs.js';
@@ -107,9 +107,9 @@ test('describeMarker and describeMonth read one mark out in words', () => {
     'Oct 3, 2026 · Demo · $1,000.00 expected so far · $1,100.00 paid so far · $100.00 over budget',
   );
   assert.equal(
-    describeMonth({
-      month: '2026-10',
-      label: 'Oct',
+    describeWeek({
+      week: '2026-10-04',
+      label: 'Oct 4',
       x: 0,
       width: 0,
       expectedY: 0,
@@ -119,11 +119,11 @@ test('describeMarker and describeMonth read one mark out in words', () => {
       expectedCents: 250000,
       actualCents: 0,
     }),
-    'October 2026 · $2,500.00 expected · $0.00 paid',
+    'Week of Oct 4, 2026 · $2,500.00 expected · $0.00 paid',
   );
 });
 
-test('markerTargets and monthTargets place a target on each mark, in percent', () => {
+test('markerTargets and weekTargets place a target on each mark, in percent', () => {
   const events = /** @type {any} */ ([
     { date: '2026-10-11', title: 'Demo' },
     { date: '2026-10-11', title: 'Grout' },
@@ -158,14 +158,14 @@ test('markerTargets and monthTargets place a target on each mark, in percent', (
   dots[0].highlight?.(true);
 
   const bars = barChartModel({
-    months: [
-      { month: '2026-11', expectedCents: 40000, actualCents: 10000 },
-      { month: '2026-12', expectedCents: 0, actualCents: 0 },
+    weeks: [
+      { week: '2026-11-01', expectedCents: 40000, actualCents: 10000 },
+      { week: '2026-11-08', expectedCents: 0, actualCents: 0 },
     ],
     width: 372,
     height: 140,
   });
-  const columns = monthTargets(bars, svg);
+  const columns = weekTargets(bars, svg);
   assert.deepEqual(
     columns.map((c) => [c.left, c.top, c.width, c.height]),
     [
@@ -173,8 +173,11 @@ test('markerTargets and monthTargets place a target on each mark, in percent', (
       [55.38, 8.57, 40.32, 71.43],
     ],
   );
-  assert.equal(columns[1].text, 'December 2026 · $0.00 expected · $0.00 paid');
-  assert.deepEqual(monthTargets(barChartModel({ months: [] }), svg), []);
+  assert.equal(
+    columns[1].text,
+    'Week of Nov 8, 2026 · $0.00 expected · $0.00 paid',
+  );
+  assert.deepEqual(weekTargets(barChartModel({ weeks: [] }), svg), []);
 });
 
 test('mountCosts shows an empty state until something has a cost', async () => {
@@ -249,26 +252,27 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
     cards[0].querySelector('.chart__marker').className,
     'chart__marker chart__marker--active',
   );
-  assert.equal(cards[1].querySelector('.chart-picker').children.length, 2);
+  // Oct 3 to Nov 20 covers eight Sundays, Sep 27 through Nov 15.
+  assert.equal(cards[1].querySelector('.chart-picker').children.length, 8);
 
   assert.equal(
     cards[1].querySelector('.card__title').textContent,
-    'Cost by month',
+    'Cost by week',
   );
-  assert.equal(cards[1].querySelectorAll('.chart__expected-bar').length, 2);
+  assert.equal(cards[1].querySelectorAll('.chart__expected-bar').length, 8);
   const twin = cards[1].querySelector('table');
   assert.equal(twin.className, 'sr-only');
-  const monthRows = $(twin.querySelectorAll('td')).map(
+  const weekRows = $(twin.querySelectorAll('td')).map(
     (/** @type {any} */ td) => td.textContent,
   );
-  assert.deepEqual(monthRows, [
-    'October 2026',
+  assert.equal(weekRows.length, 24);
+  assert.deepEqual(weekRows.slice(0, 3), [
+    'Sep 27, 2026',
     '$1,000.00',
     '$1,100.00',
-    'November 2026',
-    '$2,540.00',
-    '$0.00',
   ]);
+  assert.deepEqual(weekRows.slice(15, 18), ['Nov 1, 2026', '$40.00', '$0.00']);
+  assert.deepEqual(weekRows.slice(21), ['Nov 15, 2026', '$2,500.00', '$0.00']);
 
   assert.equal(
     cards[2].querySelector('.card__title').textContent,

@@ -20,9 +20,9 @@ static site on GitHub Pages, where it keeps its data in the browser.
   view
 - Four views of the schedule: table, calendar, gantt, and agenda
 - A costs panel with summary tiles, a cumulative cost line against the
-  budget, a cost-by-month bar chart, and a table of every line item,
+  budget, a cost-by-week bar chart, and a table of every line item,
   labor and materials together. Pointing at or tabbing to a dot on the
-  line or a month bar reads its numbers out under the chart
+  line or a week bar reads its numbers out under the chart
 - Save of a project to a JSON file and load of that file as a new project
 
 ## Running
@@ -302,7 +302,7 @@ is the usual explanation for a panel that overflows its column.
   with Shift.
 - Each chart has a `<title>`, and its numbers are also in a table: the
   line items table under the cumulative chart, and a visually hidden twin
-  of the month chart. The hover targets over a chart are buttons, so the
+  of the week chart. The hover targets over a chart are buttons, so the
   arrow keys walk them and a status line reads each one out.
 - Colour alone never marks state. A complete row also strikes through its
   title and shows a checkmark.

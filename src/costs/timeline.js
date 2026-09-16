@@ -7,7 +7,7 @@
 // allowance instead, so a budget line with no quote yet still counts.
 // "Actual" is the actual price, and only a row marked complete counts
 // toward it.
-import { addMonths, monthOf } from '../schedule/dates.js';
+import { addDays, startOfWeek } from '../schedule/dates.js';
 
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
@@ -25,7 +25,7 @@ import { addMonths, monthOf } from '../schedule/dates.js';
 
 /** @typedef {{ date: string, cents: number }} SeriesPoint */
 
-/** @typedef {{ month: string, expectedCents: number, actualCents: number }} MonthTotal */
+/** @typedef {{ week: string, expectedCents: number, actualCents: number }} WeekTotal */
 
 /**
  * The expected cost of a material: the estimate when one is entered,
@@ -111,25 +111,26 @@ export function cumulative(events, key) {
 }
 
 /**
- * Totals per calendar month from the first month with a cost to the
- * last, with a zero row for every empty month between them, so a bar
- * chart shows the gap instead of hiding it.
+ * Totals per week from the first week with a cost to the last, with a
+ * zero row for every empty week between them, so a bar chart shows the
+ * gap instead of hiding it. A week starts on Sunday and is named by
+ * that Sunday.
  * @param {CostEvent[]} events
- * @returns {MonthTotal[]}
+ * @returns {WeekTotal[]}
  */
-export function byMonth(events) {
+export function byWeek(events) {
   if (events.length === 0) return [];
-  /** @type {Map<string, MonthTotal>} */
-  const months = new Map();
-  const first = monthOf(events[0].date);
-  const last = monthOf(events[events.length - 1].date);
-  for (let m = first; m <= last; m = addMonths(m, 1)) {
-    months.set(m, { month: m, expectedCents: 0, actualCents: 0 });
+  /** @type {Map<string, WeekTotal>} */
+  const weeks = new Map();
+  const first = startOfWeek(events[0].date);
+  const last = startOfWeek(events[events.length - 1].date);
+  for (let w = first; w <= last; w = addDays(w, 7)) {
+    weeks.set(w, { week: w, expectedCents: 0, actualCents: 0 });
   }
   for (const event of events) {
-    const row = /** @type {MonthTotal} */ (months.get(monthOf(event.date)));
+    const row = /** @type {WeekTotal} */ (weeks.get(startOfWeek(event.date)));
     row.expectedCents += event.expectedCents;
     row.actualCents += event.actualCents ?? 0;
   }
-  return [...months.values()];
+  return [...weeks.values()];
 }

@@ -94,7 +94,7 @@
 }
 
 /* Hover and keyboard targets laid over the svg. A dot target sits on
-   its mark; a column target covers one month. */
+   its mark; a column target covers one week. */
 
 .chart-picker {
   position: absolute;

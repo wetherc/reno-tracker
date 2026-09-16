@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  byMonth,
+  byWeek,
   costEvents,
   cumulative,
   landingDate,
@@ -104,12 +104,35 @@ test('cumulative merges two costs on the same day into one point', () => {
   ]);
 });
 
-test('byMonth fills the empty months between the first and the last', () => {
-  assert.deepEqual(byMonth(costEvents(payload)), [
-    { month: '2026-09', expectedCents: 700, actualCents: 0 },
-    { month: '2026-10', expectedCents: 42000, actualCents: 13500 },
-    { month: '2026-11', expectedCents: 0, actualCents: 0 },
-    { month: '2026-12', expectedCents: 5000, actualCents: 0 },
-  ]);
-  assert.deepEqual(byMonth([]), []);
+test('byWeek fills the empty weeks between the first and the last', () => {
+  const weeks = byWeek(costEvents(payload));
+  // Aug 30 through Nov 29 is fourteen Sundays.
+  assert.equal(weeks.length, 14);
+  assert.deepEqual(weeks[0], {
+    week: '2026-08-30',
+    expectedCents: 700,
+    actualCents: 0,
+  });
+  // Oct 1 and Oct 3 fall in the same week.
+  assert.deepEqual(weeks[4], {
+    week: '2026-09-27',
+    expectedCents: 12000,
+    actualCents: 13500,
+  });
+  assert.deepEqual(weeks[7], {
+    week: '2026-10-18',
+    expectedCents: 30000,
+    actualCents: 0,
+  });
+  assert.deepEqual(weeks[8], {
+    week: '2026-10-25',
+    expectedCents: 0,
+    actualCents: 0,
+  });
+  assert.deepEqual(weeks[13], {
+    week: '2026-11-29',
+    expectedCents: 5000,
+    actualCents: 0,
+  });
+  assert.deepEqual(byWeek([]), []);
 });
