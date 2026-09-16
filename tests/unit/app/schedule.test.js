@@ -4,6 +4,7 @@ import { installDom } from '../domShim.js';
 import { mountSchedule } from '../../../src/app/schedule.js';
 import {
   costVariance,
+  scheduleTotals,
   totalCostVariance,
   varianceCell,
 } from '../../../src/app/scheduleTable.js';
@@ -160,6 +161,32 @@ test('the table has one row per item with the planned columns', async () => {
     cabinets.children[9].children[0].getAttribute('aria-label'),
     '2 notes on Cabinets',
   );
+  assert.equal(cabinets.children[9].children[0].className, 'btn-bare u-num');
+  assert.equal(
+    demo.children[9].children[0].className,
+    'btn-bare u-num u-muted',
+  );
+  assert.equal(
+    demo.children[3].className,
+    'data-table__td data-table__td--nowrap',
+  );
+  const total = $(table(shell).children[3]).children[0];
+  assert.deepEqual(
+    total.children.map((/** @type {any} */ td) => td.textContent),
+    ['', 'Total', '', '', '', '10', '$200.00', '$90.00', '−$10.00', ''],
+  );
+});
+
+test('scheduleTotals sums days and prices, skipping blank actuals', () => {
+  assert.deepEqual(
+    scheduleTotals([itemOf('a'), itemOf('b', { actualCents: 500 })]),
+    { days: 6, estimatedCents: 20000, actualCents: 500 },
+  );
+  assert.deepEqual(scheduleTotals([]), {
+    days: 0,
+    estimatedCents: 0,
+    actualCents: 0,
+  });
 });
 
 test('the checkbox writes complete and rolls back on failure', async () => {

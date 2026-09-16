@@ -7,6 +7,7 @@
 
 .material-name {
   display: inline-flex;
+  min-width: 8rem;
   align-items: center;
   gap: var(--space-2);
   font-weight: 600;

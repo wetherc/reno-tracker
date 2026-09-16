@@ -149,6 +149,19 @@
   text-align: right;
 }
 
+/* Money and dates stay on one line so a narrow table wraps the title
+   column, not the numbers. */
+.data-table__td--end,
+.data-table__th--nowrap,
+.data-table__td--nowrap {
+  white-space: nowrap;
+}
+
+/* A muted value in a cell keeps the cell size so the column lines up. */
+.data-table .u-muted {
+  font-size: inherit;
+}
+
 .data-table__th--center,
 .data-table__td--center {
   text-align: center;

@@ -150,6 +150,7 @@ export function mountMaterials({ ctx, shell }) {
         {
           key: 'expected',
           label: 'Expected',
+          nowrap: true,
           compare: (a, b) => byText(lands(a), lands(b)),
           cell: (item) => expectedCell(item, payload),
         },

@@ -63,6 +63,21 @@ export function varianceCell(cents) {
 }
 
 /**
+ * Column totals. Days is the sum of every row's length, so overlapping
+ * rows count twice. Actual sums only the rows that have a price entered.
+ * @param {ScheduleItem[]} items
+ */
+export function scheduleTotals(items) {
+  const totals = { days: 0, estimatedCents: 0, actualCents: 0 };
+  for (const item of items) {
+    totals.days += spanDays(item.startDate, item.endDate);
+    totals.estimatedCents += item.estimatedCents;
+    totals.actualCents += item.actualCents ?? 0;
+  }
+  return totals;
+}
+
+/**
  * @param {string} a
  * @param {string} b
  */
@@ -93,6 +108,7 @@ export function scheduleTable({ ctx }) {
   /** @param {ProjectPayload} payload */
   function buildTable(payload) {
     const counts = noteCounts(payload);
+    const totals = scheduleTotals(payload.schedule);
     return dataTable({
       caption: `Schedule for ${payload.project.name}`,
       rows: payload.schedule,
@@ -100,6 +116,18 @@ export function scheduleTable({ ctx }) {
       rowClass: (item) => (item.complete ? 'schedule-row--complete' : ''),
       sort,
       onSort: (next) => (sort = next),
+      footer: [
+        '',
+        'Total',
+        '',
+        '',
+        '',
+        String(totals.days),
+        formatCents(totals.estimatedCents),
+        formatCents(totals.actualCents),
+        varianceCell(totalCostVariance(payload.schedule)),
+        '',
+      ],
       columns: [
         {
           key: 'complete',
@@ -130,12 +158,14 @@ export function scheduleTable({ ctx }) {
         {
           key: 'start',
           label: 'Start',
+          nowrap: true,
           compare: (a, b) => byText(a.startDate, b.startDate),
           cell: (item) => formatDayMonth(item.startDate),
         },
         {
           key: 'end',
           label: 'End',
+          nowrap: true,
           compare: (a, b) => byText(a.endDate, b.endDate),
           cell: (item) => formatDayMonth(item.endDate),
         },
@@ -185,7 +215,7 @@ export function scheduleTable({ ctx }) {
   /** @param {ScheduleItem} item @param {number} count */
   function notesCell(item, count) {
     return bareButton({
-      className: 'u-num',
+      className: count === 0 ? 'u-num u-muted' : 'u-num',
       label: String(count),
       ariaLabel: `${count} notes on ${item.title}`,
       onClick: () => openScheduleEditor({ ctx, item, tab: 'notes' }),

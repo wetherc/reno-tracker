@@ -87,10 +87,16 @@
 
 /* Chart cards */
 
+/* The chart card scrolls sideways on a narrow screen instead of shrinking
+   the svg text past reading size. */
+.cost-card {
+  overflow-x: auto;
+}
+
 .cost-figure {
   position: relative;
   margin: 0;
-  min-width: 0;
+  min-width: 30rem;
 }
 
 /* Hover and keyboard targets laid over the svg. A dot target sits on
@@ -202,10 +208,6 @@
 }
 
 /* Line items */
-
-.cost-card--list {
-  overflow-x: auto;
-}
 
 .cost-accrued {
   margin-top: var(--space-4);

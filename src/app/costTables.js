@@ -116,6 +116,7 @@ export function lineItemTable({ ctx, payload, events, sort, onSort }) {
       {
         key: 'date',
         label: 'Lands',
+        nowrap: true,
         compare: (a, b) => byText(a.date, b.date),
         cell: (event) => formatDayMonth(event.date),
       },

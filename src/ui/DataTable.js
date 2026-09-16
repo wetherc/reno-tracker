@@ -12,7 +12,9 @@ import { icon } from './icon.js';
  *   compare?: (a: R, b: R) => number,
  *   align?: 'start' | 'end' | 'center',
  *   hideLabel?: boolean,
- * }} Column hideLabel keeps the header text for screen readers only
+ *   nowrap?: boolean,
+ * }} Column hideLabel keeps the header text for screen readers only;
+ * nowrap keeps a short value such as a date on one line
  */
 
 /** @typedef {{ key: string, dir: 'asc' | 'desc' }} SortState */
@@ -160,7 +162,10 @@ export function dataTable({
  */
 function cellClass(base, column) {
   const align = column.align ?? 'start';
-  return align === 'start' ? base : `${base} ${base}--${align}`;
+  const classes = [base];
+  if (align !== 'start') classes.push(`${base}--${align}`);
+  if (column.nowrap) classes.push(`${base}--nowrap`);
+  return classes.join(' ');
 }
 
 /**

@@ -127,3 +127,17 @@ test('a footer draws one totals cell per column under the body', () => {
   assert.equal(row.children[1].className, 'data-table__td data-table__td--end');
   assert.equal(build().el.children.length, 3);
 });
+
+test('a nowrap column marks its header and cells', () => {
+  const table = build({
+    columns: [
+      { key: 'name', label: 'Name', nowrap: true, cell: (r) => r.name },
+    ],
+  });
+  const th = $(table.el.children[1]).children[0].children[0];
+  assert.equal(th.className, 'data-table__th data-table__th--nowrap');
+  assert.equal(
+    table.body.children[0].children[0].className,
+    'data-table__td data-table__td--nowrap',
+  );
+});
