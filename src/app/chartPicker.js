@@ -78,7 +78,11 @@ export function chartPicker({ targets, idle }) {
               : -1;
       if (to < 0 || to >= buttons.length) return;
       event.preventDefault();
-      buttons[to].focus();
+      // A plain focus() scrolls the page to a target that sits at the
+      // viewport edge, the pointer then leaves the target it was on, and
+      // pointerleave clears the pick. The next target is always beside a
+      // visible one, so the focus moves without a scroll.
+      buttons[to].focus({ preventScroll: true });
       pick(targets[to]);
     });
     return el;
