@@ -1,19 +1,34 @@
-/* Costs panel: summary tiles over two chart cards. The tiles are the
+/* Costs panel: six summary tiles over two chart cards. The tiles are the
    legend, so each of Budget, Committed, and Spent shows the mark of the
-   line that draws it. The svg scales with its card through the viewBox,
-   so text in it is sized in svg units. */
+   line that draws it. The tiles sit three, two, or one to a row by the
+   width of the panel, so six never leaves one tile alone on a last row.
+   The svg scales with its card through the viewBox, so text in it is
+   sized in svg units. */
 
 .costs {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  container-type: inline-size;
 }
 
 .cost-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
   margin: 0;
+}
+
+@container (max-width: 44rem) {
+  .cost-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@container (max-width: 22rem) {
+  .cost-tiles {
+    grid-template-columns: 1fr;
+  }
 }
 
 .cost-tile {

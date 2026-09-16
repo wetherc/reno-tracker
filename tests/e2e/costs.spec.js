@@ -76,13 +76,17 @@ test('the costs panel sums the project and draws both charts', async ({
 
   await page.getByRole('button', { name: 'Costs' }).click();
   const tiles = page.locator('.cost-tile');
-  await expect(tiles).toHaveCount(5);
+  await expect(tiles).toHaveCount(6);
   await expect(tiles.nth(0)).toContainText('$50,000.00');
   await expect(tiles.nth(1)).toContainText('$33,200.00');
   await expect(tiles.nth(2)).toContainText('$2,400.00');
-  await expect(tiles.nth(3)).toContainText('Remaining');
+  await expect(tiles.nth(3)).toContainText('Budget headroom');
   await expect(tiles.nth(3)).toContainText('$16,400.00');
-  await expect(tiles.nth(4)).toContainText('20%');
+  // Demo spans 3 of the 20 schedule days; no material is bought.
+  await expect(tiles.nth(4)).toContainText('Work done');
+  await expect(tiles.nth(4)).toContainText('15%');
+  await expect(tiles.nth(5)).toContainText('Materials bought');
+  await expect(tiles.nth(5)).toContainText('0%');
 
   const items = page.getByRole('table', { name: 'Line items in Kitchen' });
   await expect(items.locator('tbody tr')).toHaveCount(5);

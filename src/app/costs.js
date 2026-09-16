@@ -1,4 +1,4 @@
-// The costs section: five summary tiles over two charts and the list
+// The costs section: six summary tiles over two charts and the list
 // of every line item. The tiles are also the legend. Budget, Committed,
 // and Spent each show the mark of the line that draws them, so the
 // chart needs no key of its own. The line items table is the data
@@ -6,6 +6,7 @@
 // hidden table twin.
 import { barChartModel, renderBarChart } from '../charts/barChart.js';
 import { lineChartModel, renderLineChart } from '../charts/lineChart.js';
+import { progress } from '../costs/progress.js';
 import { costSummary } from '../costs/summary.js';
 import { byWeek, costEvents, cumulative } from '../costs/timeline.js';
 import { formatDate } from '../format/date.js';
@@ -21,6 +22,7 @@ import { accruedLine, lineItemTable, weekTable } from './costTables.js';
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /** @typedef {import('../costs/summary.js').CostSummary} CostSummary */
+/** @typedef {import('../costs/progress.js').Progress} Progress */
 /** @typedef {import('../costs/timeline.js').CostEvent} CostEvent */
 /** @typedef {import('../charts/lineChart.js').LineChartModel} LineChartModel */
 /** @typedef {import('../charts/lineChart.js').Marker} Marker */
@@ -59,10 +61,11 @@ export function chartRange(payload, events) {
 
 /**
  * @param {CostSummary} summary
+ * @param {Progress} progress
  * @returns {Tile[]}
  */
-export function summaryTiles(summary) {
-  const over = summary.remainingCents < 0;
+export function summaryTiles(summary, progress) {
+  const over = summary.headroomCents < 0;
   return [
     {
       label: 'Budget',
@@ -82,15 +85,20 @@ export function summaryTiles(summary) {
       mark: 'actual',
     },
     {
-      label: over ? 'Over budget' : 'Remaining',
-      value: formatCents(Math.abs(summary.remainingCents)),
-      note: `${formatCents(summary.projectedCents)} projected`,
+      label: over ? 'Over budget' : 'Budget headroom',
+      value: formatCents(Math.abs(summary.headroomCents)),
+      note: `budget minus ${formatCents(summary.projectedCents)} projected`,
       over,
     },
     {
-      label: 'Complete',
-      value: `${summary.percentComplete}%`,
-      note: 'of schedule and materials',
+      label: 'Work done',
+      value: `${progress.percentWork}%`,
+      note: 'of schedule days',
+    },
+    {
+      label: 'Materials bought',
+      value: `${progress.percentMaterials}%`,
+      note: 'of material rows',
     },
   ];
 }
@@ -256,7 +264,7 @@ export function mountCosts({ ctx, shell }) {
       `Cost of ${payload.project.name} by week`,
     );
     root.append(
-      tiles(summary),
+      tiles(summary, progress(payload)),
       chartCard(
         'Cost over time',
         lineSvg,
@@ -277,11 +285,14 @@ export function mountCosts({ ctx, shell }) {
   return { show };
 }
 
-/** @param {CostSummary} summary */
-function tiles(summary) {
+/**
+ * @param {CostSummary} summary
+ * @param {Progress} progress
+ */
+function tiles(summary, progress) {
   const list = document.createElement('dl');
   list.className = 'cost-tiles';
-  for (const tile of summaryTiles(summary)) {
+  for (const tile of summaryTiles(summary, progress)) {
     const el = document.createElement('div');
     el.className = tile.over ? 'cost-tile cost-tile--over' : 'cost-tile';
     const label = document.createElement('dt');

@@ -64,7 +64,8 @@ test('chartRange does not stretch the axis to today when the last cost is in the
   });
 });
 
-test('summaryTiles names the five numbers and flips the remaining tile when over', () => {
+test('summaryTiles names the six numbers and flips the headroom tile when over', () => {
+  const done = { percentWork: 40, percentMaterials: 100 };
   const under = summaryTiles(
     costSummary(
       [
@@ -80,6 +81,7 @@ test('summaryTiles names the five numbers and flips the remaining tile when over
       ],
       50000,
     ),
+    done,
   );
   assert.deepEqual(
     under.map((t) => [t.label, t.value, t.mark ?? null, t.over ?? false]),
@@ -87,12 +89,13 @@ test('summaryTiles names the five numbers and flips the remaining tile when over
       ['Budget', '$500.00', 'budget', false],
       ['Committed', '$100.00', 'expected', false],
       ['Spent', '$120.00', 'actual', false],
-      ['Remaining', '$380.00', null, false],
-      ['Complete', '100%', null, false],
+      ['Budget headroom', '$380.00', null, false],
+      ['Work done', '40%', null, false],
+      ['Materials bought', '100%', null, false],
     ],
   );
-  assert.equal(under[3].note, '$120.00 projected');
-  const over = summaryTiles(costSummary([], -5000));
+  assert.equal(under[3].note, 'budget minus $120.00 projected');
+  const over = summaryTiles(costSummary([], -5000), done);
   assert.equal(over[3].label, 'Over budget');
   assert.equal(over[3].value, '$50.00');
   assert.equal(over[3].over, true);
@@ -221,7 +224,7 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   const root = shell.body.children[0];
   assert.equal(root.className, 'costs');
   const tiles = $(root.querySelectorAll('.cost-tile'));
-  assert.equal(tiles.length, 5);
+  assert.equal(tiles.length, 6);
   assert.equal(tiles[0].textContent, 'Budget$50,000.00');
   assert.equal(
     tiles[1].querySelector('.cost-tile__mark').className,
@@ -231,7 +234,9 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
     tiles[3].querySelector('.cost-tile__value').textContent,
     '$46,360.00',
   );
-  assert.equal(tiles[4].querySelector('.cost-tile__value').textContent, '33%');
+  // Demo runs 3 of the 54 schedule days; Grout is not bought.
+  assert.equal(tiles[4].querySelector('.cost-tile__value').textContent, '6%');
+  assert.equal(tiles[5].querySelector('.cost-tile__value').textContent, '0%');
 
   const cards = $(root.querySelectorAll('.cost-card'));
   assert.equal(cards.length, 3);

@@ -17,7 +17,7 @@ const event = (extra) => ({
   ...extra,
 });
 
-test('costSummary adds up committed, spent, projected, and remaining', () => {
+test('costSummary adds up committed, spent, projected, and headroom', () => {
   const summary = costSummary(
     [
       event({ expectedCents: 10000, actualCents: 12000, complete: true }),
@@ -31,8 +31,7 @@ test('costSummary adds up committed, spent, projected, and remaining', () => {
     committedCents: 40700,
     spentCents: 12000,
     projectedCents: 42700,
-    remainingCents: 7300,
-    percentComplete: 67,
+    headroomCents: 7300,
     accruedCents: 700,
     accruedCount: 1,
   });
@@ -40,8 +39,7 @@ test('costSummary adds up committed, spent, projected, and remaining', () => {
 
 test('costSummary goes negative when the project runs over', () => {
   const summary = costSummary([event({ expectedCents: 60000 })], 50000);
-  assert.equal(summary.remainingCents, -10000);
-  assert.equal(summary.percentComplete, 0);
+  assert.equal(summary.headroomCents, -10000);
 });
 
 test('costSummary on an empty project is all zero but the budget', () => {
@@ -50,8 +48,7 @@ test('costSummary on an empty project is all zero but the budget', () => {
     committedCents: 0,
     spentCents: 0,
     projectedCents: 0,
-    remainingCents: 50000,
-    percentComplete: 0,
+    headroomCents: 50000,
     accruedCents: 0,
     accruedCount: 0,
   });
