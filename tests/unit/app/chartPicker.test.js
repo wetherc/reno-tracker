@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import { chartPicker } from '../../../src/app/chartPicker.js';
+import { chartPicker, tipPlacement } from '../../../src/app/chartPicker.js';
 
 const dom = installDom();
 
@@ -27,6 +27,12 @@ function setup() {
         width: 20,
         height: 80,
         highlight: highlight('c'),
+        anchor: { left: 90, top: 40 },
+        detail: () => {
+          const el = document.createElement('p');
+          el.textContent = 'Third in full';
+          return el;
+        },
       },
     ],
   });
@@ -64,7 +70,7 @@ test('pointing at a target reads it out and lights its mark', () => {
   const [dot, second] = layer.children;
   dot.dispatchEvent({ type: 'pointerenter' });
   assert.equal(readout.textContent, 'First');
-  assert.equal(readout.className, 'chart-readout');
+  assert.equal(readout.className, 'chart-readout chart-readout--picked');
   assert.deepEqual(lit, ['a on']);
   dot.dispatchEvent({ type: 'pointerenter' });
   assert.deepEqual(lit, ['a on']);
@@ -78,6 +84,38 @@ test('pointing at a target reads it out and lights its mark', () => {
   assert.equal(readout.textContent, 'Second');
   second.dispatchEvent({ type: 'blur' });
   assert.equal(readout.textContent, 'Point at a mark');
+  assert.equal(readout.className, 'chart-readout u-muted');
+});
+
+test('a target with a detail opens the callout at its anchor', () => {
+  const { layer } = setup();
+  const [dot, , column] = layer.children;
+  const tip = layer.children[3];
+  assert.equal(tip.hidden, true);
+  assert.equal(tip.getAttribute('aria-hidden'), 'true');
+  column.dispatchEvent({ type: 'pointerenter' });
+  assert.equal(tip.hidden, false);
+  assert.equal(tip.textContent, 'Third in full');
+  assert.deepEqual([tip.style.left, tip.style.top], ['90%', '40%']);
+  assert.equal(tip.className, 'chart-tip chart-tip--above chart-tip--end');
+  // A target with no detail closes it.
+  dot.dispatchEvent({ type: 'pointerenter' });
+  assert.equal(tip.hidden, true);
+});
+
+test('tipPlacement hangs the box from the side it is near', () => {
+  assert.equal(
+    tipPlacement({ left: 10 }, 'above'),
+    'chart-tip chart-tip--above chart-tip--start',
+  );
+  assert.equal(
+    tipPlacement({ left: 50 }, 'below'),
+    'chart-tip chart-tip--below chart-tip--center',
+  );
+  assert.equal(
+    tipPlacement({ left: 85 }, 'above'),
+    'chart-tip chart-tip--above chart-tip--end',
+  );
 });
 
 test('the arrow keys move between targets and Home and End jump', () => {

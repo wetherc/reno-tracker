@@ -13,6 +13,7 @@ import { formatCents } from '../format/money.js';
 import { addDays, todayIso } from '../schedule/dates.js';
 import { emptyState } from '../ui/emptyState.js';
 import { chartPicker } from './chartPicker.js';
+import { markerTip, weekTip } from './chartTips.js';
 import { tableScroll } from '../ui/DataTable.js';
 import { accruedLine, lineItemTable, weekTable } from './costTables.js';
 
@@ -143,20 +144,24 @@ export function describeWeek(bar) {
  * @returns {PickTarget[]}
  */
 export function markerTargets(model, events, budgetCents, svg) {
-  return model.markers.map((marker) => ({
-    text: describeMarker(
-      marker,
-      events.filter((e) => e.date === marker.date).map((e) => e.title),
-      budgetCents,
-    ),
-    left: pct(marker.x, model.width),
-    top: pct(marker.y, model.height),
-    highlight: toggler(
-      svg,
-      `[data-date="${marker.date}"]`,
-      'chart__marker--active',
-    ),
-  }));
+  return model.markers.map((marker) => {
+    const landing = events.filter((e) => e.date === marker.date);
+    return {
+      text: describeMarker(
+        marker,
+        landing.map((e) => e.title),
+        budgetCents,
+      ),
+      left: pct(marker.x, model.width),
+      top: pct(marker.y, model.height),
+      highlight: toggler(
+        svg,
+        `[data-date="${marker.date}"]`,
+        'chart__mark--active',
+      ),
+      detail: () => markerTip(marker, landing, budgetCents),
+    };
+  });
 }
 
 /**
@@ -173,11 +178,16 @@ export function weekTargets(model, svg) {
     top: pct(model.plot.y, model.height),
     width: pct(slot, model.width),
     height: pct(model.plot.height, model.height),
+    anchor: {
+      left: pct(bar.x + bar.width / 2, model.width),
+      top: pct(bar.expectedY, model.height),
+    },
     highlight: toggler(
       svg,
       `[data-week="${bar.week}"]`,
       'chart__expected-bar--active',
     ),
+    detail: () => weekTip(bar),
   }));
 }
 

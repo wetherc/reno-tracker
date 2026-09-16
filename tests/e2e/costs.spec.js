@@ -118,7 +118,24 @@ test('the costs panel sums the project and draws both charts', async ({
   await expect(readouts.first()).toHaveText(
     'Sep 3, 2026 · Demo · $3,500.00 expected so far · $2,400.00 paid so far · $46,500.00 of budget left',
   );
-  await expect(line.locator('.chart__marker--active')).toHaveCount(1);
+  await expect(line.locator('.chart__mark--active')).toHaveCount(1);
+  // The callout lists the row and the running totals.
+  const tip = page.locator('.chart-tip').first();
+  await expect(tip).toBeVisible();
+  await expect(tip.locator('.chart-tip__date')).toHaveText('Thu, Sep 3, 2026');
+  await expect(tip.locator('.chart-tip__row')).toHaveText(['Demo$2,000.00']);
+  await expect(tip.locator('dd')).toHaveText([
+    '$3,500.00',
+    '$2,400.00',
+    '$46,500.00',
+  ]);
+  // The axis names every Sunday by its day and each month once.
+  await expect(line.locator('.chart__tick--month')).toHaveText([
+    'Sep 2026',
+    'Oct',
+    'Nov',
+  ]);
+  await expect(line.locator('.chart__tick--week').first()).toHaveText('6');
   await demoDot.focus();
   await page.keyboard.press('ArrowRight');
   await expect(readouts.first()).toHaveText(/^Sep 12, 2026 · Rough plumbing/);

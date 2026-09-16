@@ -32,4 +32,14 @@
   .app__main {
     padding: var(--space-4);
   }
+
+  /* A narrow figure is too short for the callout, so the readout line
+     under the chart shows the numbers instead. */
+  .chart-tip {
+    display: none;
+  }
+
+  .chart-readout--picked {
+    opacity: 1;
+  }
 }

@@ -3,6 +3,10 @@
 // scales with the figure. Pointing at or focusing a target puts its text
 // in the readout line under the chart and turns the matching mark on.
 // The arrow keys move between targets, Home and End jump to the ends.
+// A target with a detail also opens a callout box beside its anchor. The
+// box sits above the anchor and flips below it near the top of the
+// figure, and it hangs from its left or right edge near the sides so
+// it never leaves the figure.
 import { bareButton } from '../ui/buttons.js';
 
 /**
@@ -13,7 +17,37 @@ import { bareButton } from '../ui/buttons.js';
  * @property {number} [width] percent; a target with a width is a column
  * @property {number} [height] percent
  * @property {(on: boolean) => void} [highlight] turns the chart mark on or off
+ * @property {() => HTMLElement} [detail] builds the callout contents
+ * @property {{ left: number, top: number }} [anchor] where the callout
+ * points, in percent; the target's own left and top when absent
  */
+
+/** Anchors inside this percent of a side hang the callout from that side. */
+const SIDE = 18;
+
+/**
+ * The classes that place a callout for an anchor.
+ * @param {{ left: number }} anchor percent
+ * @param {'above' | 'below'} vertical
+ * @returns {string}
+ */
+export function tipPlacement({ left }, vertical) {
+  const side = left < SIDE ? 'start' : left > 100 - SIDE ? 'end' : 'center';
+  return `chart-tip chart-tip--${vertical} chart-tip--${side}`;
+}
+
+/**
+ * Whether the element sits inside the frame top to bottom. True when
+ * the DOM cannot measure, so a test without layout keeps the default.
+ * @param {HTMLElement} el
+ * @param {HTMLElement} frame
+ */
+function fitsIn(el, frame) {
+  if (typeof el.getBoundingClientRect !== 'function') return true;
+  const box = el.getBoundingClientRect();
+  const bound = frame.getBoundingClientRect();
+  return box.top >= bound.top && box.bottom <= bound.bottom;
+}
 
 const STEP = { ArrowLeft: -1, ArrowRight: 1 };
 
@@ -33,6 +67,12 @@ export function chartPicker({ targets, idle }) {
   layer.setAttribute('role', 'group');
   layer.setAttribute('aria-label', 'Points on the chart');
 
+  // The button's aria-label already says everything the box shows.
+  const tip = document.createElement('div');
+  tip.className = 'chart-tip';
+  tip.setAttribute('aria-hidden', 'true');
+  tip.hidden = true;
+
   /** @type {PickTarget | null} */
   let picked = null;
 
@@ -44,6 +84,19 @@ export function chartPicker({ targets, idle }) {
     picked?.highlight?.(true);
     readout.textContent = target ? target.text : idle;
     readout.classList.toggle('u-muted', target === null);
+    readout.classList.toggle('chart-readout--picked', target !== null);
+    tip.hidden = !target?.detail;
+    if (!target?.detail) return;
+    const anchor = target.anchor ?? { left: target.left, top: target.top };
+    tip.style.left = `${anchor.left}%`;
+    tip.style.top = `${anchor.top}%`;
+    tip.replaceChildren(target.detail());
+    // Above the anchor, unless only below fits inside the figure. The
+    // scroll box around the figure clips whatever hangs past it.
+    tip.className = tipPlacement(anchor, 'above');
+    if (fitsIn(tip, layer)) return;
+    tip.className = tipPlacement(anchor, 'below');
+    if (!fitsIn(tip, layer)) tip.className = tipPlacement(anchor, 'above');
   }
 
   const buttons = targets.map((target, i) => {
@@ -87,6 +140,6 @@ export function chartPicker({ targets, idle }) {
     });
     return el;
   });
-  layer.append(...buttons);
+  layer.append(...buttons, tip);
   return { layer, readout };
 }

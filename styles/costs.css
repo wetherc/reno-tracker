@@ -127,11 +127,156 @@
   border-radius: var(--radius-sm);
 }
 
+/* The readout stays in the page for a screen reader while the callout
+   shows the same numbers, so it fades out rather than leaving. */
 .chart-readout {
   margin: var(--space-3) 0 0;
   min-height: calc(var(--text-label) * var(--line-body));
   font-size: var(--text-label);
   font-variant-numeric: tabular-nums;
+  transition: opacity var(--transition-fast);
+}
+
+.chart-readout--picked {
+  opacity: 0;
+}
+
+/* The callout over a picked mark. It is a drawing note: a hairline
+   leader runs from the anchor to the box. The box is pinned dark in
+   both themes, and color-scheme: dark makes the line marks inside it
+   resolve to their dark-theme colours so they read on that ground. */
+.chart-tip {
+  position: absolute;
+  z-index: 1;
+  width: max-content;
+  min-width: 13rem;
+  max-width: 18rem;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-radius: var(--radius);
+  background: var(--overlay-bg);
+  color: var(--overlay-text);
+  color-scheme: dark;
+  box-shadow: var(--shadow-2);
+  font-size: var(--text-label);
+  line-height: 1.4;
+  pointer-events: none;
+  --tip-gap: 0.875rem;
+}
+
+.chart-tip::before {
+  content: '';
+  position: absolute;
+  left: var(--tip-x);
+  width: 0;
+  height: var(--tip-gap);
+  border-left: 1px solid var(--overlay-text);
+  opacity: 0.6;
+}
+
+.chart-tip::after {
+  content: '';
+  position: absolute;
+  left: var(--tip-x);
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--overlay-text);
+  transform: translateX(-2.5px);
+}
+
+.chart-tip--above {
+  transform: translate(var(--tip-shift), calc(-100% - var(--tip-gap)));
+}
+
+.chart-tip--above::before {
+  top: 100%;
+}
+
+.chart-tip--above::after {
+  top: calc(100% - 2px);
+}
+
+.chart-tip--below {
+  transform: translate(var(--tip-shift), var(--tip-gap));
+}
+
+.chart-tip--below::before {
+  bottom: 100%;
+}
+
+.chart-tip--below::after {
+  bottom: calc(100% - 2px);
+}
+
+.chart-tip--center {
+  --tip-shift: -50%;
+  --tip-x: 50%;
+}
+
+.chart-tip--start {
+  --tip-shift: calc(-1 * var(--space-4));
+  --tip-x: var(--space-4);
+}
+
+.chart-tip--end {
+  --tip-shift: calc(-100% + var(--space-4));
+  --tip-x: calc(100% - var(--space-4));
+}
+
+.chart-tip__date {
+  margin: 0 0 var(--space-2);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.chart-tip__rows {
+  margin: 0 0 var(--space-2);
+  padding: 0 0 var(--space-2);
+  list-style: none;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--overlay-text) 25%, transparent);
+}
+
+.chart-tip__row,
+.chart-tip__totals {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px var(--space-4);
+  margin: 0;
+}
+
+.chart-tip__row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.chart-tip__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart-tip__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  opacity: 0.8;
+}
+
+.chart-tip__amount {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.chart-tip__label--over,
+.chart-tip__amount--over {
+  color: var(--danger);
+  opacity: 1;
 }
 
 .chart {
@@ -153,6 +298,29 @@
 .chart__tick {
   fill: var(--text-muted);
   font-size: 12px;
+}
+
+/* The x axis reads like a calendar header: a day number on every
+   Sunday, the month named under the first day it starts on. */
+.chart__tick--week {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__tick--month {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  fill: var(--text);
+  font-size: 11px;
+}
+
+.chart__tick-mark {
+  stroke: var(--border-strong);
+}
+
+.chart__grid--month {
+  stroke-dasharray: 2 3;
 }
 
 .chart__budget {
@@ -191,9 +359,22 @@
   transition: r var(--transition-fast);
 }
 
-.chart__marker--active {
+.chart__mark--active .chart__marker {
   r: 6;
   fill: var(--accent);
+}
+
+/* The plumb line drops from a picked dot to the axis so the day reads
+   against the week ticks. */
+.chart__plumb {
+  stroke: var(--accent);
+  stroke-dasharray: 2 3;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.chart__mark--active .chart__plumb {
+  opacity: 1;
 }
 
 .chart__expected-bar {

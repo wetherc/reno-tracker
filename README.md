@@ -23,8 +23,11 @@ static site on GitHub Pages, where it keeps its data in the browser.
   budget, a cost-by-week bar chart, and a table of every line item,
   labor and materials together. A line under the table totals the cost
   incurred but not invoiced: the estimate on every complete row with no
-  actual price entered yet. Pointing at or tabbing to a dot on the line
-  or a week bar reads its numbers out under the chart
+  actual price entered yet. The time axis marks every Sunday with its
+  day number and names each month once. Pointing at or tabbing to a dot
+  on the line or a week bar opens a callout with the rows that land
+  that day and the running totals, drops a line from the dot to the
+  axis, and reads the same numbers out for a screen reader
 - Save of a project to a JSON file and load of that file as a new project
 
 ## Running

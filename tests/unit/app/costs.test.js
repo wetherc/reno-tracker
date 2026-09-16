@@ -157,10 +157,10 @@ test('markerTargets and weekTargets place a target on each mark, in percent', ()
   const dots = markerTargets(line, events, 80000, svg);
   assert.equal(dots.length, 2);
   assert.match(dots[0].text, /^Oct 11, 2026 · Demo, Grout · /);
-  assert.deepEqual([dots[0].left, dots[0].top], [31.69, 62.14]);
+  assert.deepEqual([dots[0].left, dots[0].top], [31.69, 55.71]);
   assert.equal(dots[0].width, undefined);
   dots[1].highlight?.(true);
-  assert.equal(dot.className, 'chart__marker--active');
+  assert.equal(dot.className, 'chart__mark--active');
   dots[1].highlight?.(false);
   assert.equal(dot.className, '');
   dots[0].highlight?.(true);
@@ -246,8 +246,9 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   assert.ok(cards[0].querySelector('.chart__expected'));
   assert.ok(cards[0].querySelector('.chart__actual'));
   assert.equal(cards[0].querySelector('table'), null);
+  // Three targets and the callout box.
   const picker = cards[0].querySelector('.chart-picker');
-  assert.equal(picker.children.length, 3);
+  assert.equal(picker.children.length, 4);
   assert.match(
     picker.children[0].getAttribute('aria-label'),
     /^Oct 3, 2026 · Demo/,
@@ -257,11 +258,18 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   picker.children[0].dispatchEvent({ type: 'pointerenter' });
   assert.match(readout.textContent, /\$1,100\.00 paid so far/);
   assert.equal(
-    cards[0].querySelector('.chart__marker').className,
-    'chart__marker chart__marker--active',
+    cards[0].querySelector('.chart__mark').className,
+    'chart__mark chart__mark--active',
   );
-  // Oct 3 to Nov 20 covers eight Sundays, Sep 27 through Nov 15.
-  assert.equal(cards[1].querySelector('.chart-picker').children.length, 8);
+  const tip = cards[0].querySelector('.chart-tip');
+  assert.equal(tip.hidden, false);
+  assert.equal(
+    tip.querySelector('.chart-tip__date').textContent,
+    'Sat, Oct 3, 2026',
+  );
+  // Oct 3 to Nov 20 covers eight Sundays, Sep 27 through Nov 15, plus
+  // the callout box.
+  assert.equal(cards[1].querySelector('.chart-picker').children.length, 9);
 
   assert.equal(
     cards[1].querySelector('.card__title').textContent,
