@@ -1,7 +1,8 @@
 // The tables of the costs section. The line items table lists every
 // cost in the project, labor and materials together, and is the data
-// behind the cumulative chart. The week table is the visually hidden
-// twin of the week chart.
+// behind the cumulative chart, with a line under it for the cost that
+// is incurred but not yet invoiced. The week table is the visually
+// hidden twin of the week chart.
 import { formatDate, formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { bareButton } from '../ui/buttons.js';
@@ -20,6 +21,7 @@ import {
 /** @typedef {import('../costs/timeline.js').CostEvent} CostEvent */
 /** @typedef {import('../costs/timeline.js').WeekTotal} WeekTotal */
 /** @typedef {import('../ui/DataTable.js').SortState} SortState */
+/** @typedef {import('../costs/summary.js').CostSummary} CostSummary */
 
 const KIND = { schedule: 'Labor', material: 'Material' };
 
@@ -142,6 +144,33 @@ export function lineItemTable({ ctx, payload, events, sort, onSort }) {
       },
     ],
   });
+}
+
+/**
+ * The cost that is incurred but not invoiced: the estimate on every
+ * complete row with no actual price entered yet. Reads "1 finished row
+ * with no actual yet" under the label so the rule is on the page.
+ * @param {CostSummary} summary
+ * @returns {HTMLElement}
+ */
+export function accruedLine(summary) {
+  const el = document.createElement('div');
+  el.className = 'fact-line fact-line--row cost-accrued';
+  const text = document.createElement('div');
+  text.className = 'fact-line';
+  const label = document.createElement('span');
+  label.className = 'fact-line__label';
+  label.textContent = 'Incurred, not invoiced';
+  const note = document.createElement('span');
+  note.className = 'cost-accrued__note u-muted';
+  const rows = summary.accruedCount === 1 ? 'row' : 'rows';
+  note.textContent = `${summary.accruedCount} finished ${rows} with no actual yet`;
+  text.append(label, note);
+  const value = document.createElement('span');
+  value.className = 'fact-line__value';
+  value.textContent = formatCents(summary.accruedCents);
+  el.append(text, value);
+  return el;
 }
 
 /**

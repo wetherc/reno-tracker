@@ -13,7 +13,7 @@ import { formatCents } from '../format/money.js';
 import { addDays, todayIso } from '../schedule/dates.js';
 import { emptyState } from '../ui/emptyState.js';
 import { chartPicker } from './chartPicker.js';
-import { lineItemTable, weekTable } from './costTables.js';
+import { accruedLine, lineItemTable, weekTable } from './costTables.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
@@ -259,7 +259,7 @@ export function mountCosts({ ctx, shell }) {
         weekTargets(bars, barSvg),
         weekTable(weeks),
       ),
-      listCard('Line items', items.el),
+      listCard('Line items', items.el, accruedLine(summary)),
     );
     shell.setBody(root);
   }
@@ -322,13 +322,14 @@ function chartCard(heading, svg, targets, twin) {
 /**
  * @param {string} heading
  * @param {HTMLTableElement} table
+ * @param {HTMLElement} summary a line under the table
  */
-function listCard(heading, table) {
+function listCard(heading, table, summary) {
   const card = document.createElement('section');
   card.className = 'card cost-card cost-card--list';
   const title = document.createElement('h2');
   title.className = 'card__title';
   title.textContent = heading;
-  card.append(title, table);
+  card.append(title, table, summary);
   return card;
 }

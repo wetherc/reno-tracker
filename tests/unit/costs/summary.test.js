@@ -33,6 +33,8 @@ test('costSummary adds up committed, spent, projected, and remaining', () => {
     projectedCents: 42700,
     remainingCents: 7300,
     percentComplete: 67,
+    accruedCents: 700,
+    accruedCount: 1,
   });
 });
 
@@ -50,5 +52,7 @@ test('costSummary on an empty project is all zero but the budget', () => {
     projectedCents: 0,
     remainingCents: 50000,
     percentComplete: 0,
+    accruedCents: 0,
+    accruedCount: 0,
   });
 });

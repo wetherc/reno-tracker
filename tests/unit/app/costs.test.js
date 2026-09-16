@@ -298,6 +298,11 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   assert.equal(rows[2].children[0].textContent, '');
   const total = $(items.querySelector('tfoot')).children[0];
   assert.equal(total.textContent, 'Total$3,540.00$1,100.00+$100.00');
+  const accrued = cards[2].querySelector('.cost-accrued');
+  assert.equal(
+    accrued.textContent,
+    'Incurred, not invoiced' + '0 finished rows with no actual yet' + '$0.00',
+  );
 });
 
 test('a line item opens the editor of the row behind it', async () => {
@@ -328,4 +333,20 @@ test('mountCosts marks today when it is inside the range', async () => {
     schedule: [itemOf('a', { startDate: today, endDate: today })],
   });
   assert.ok(shell.body.querySelector('.chart__today'));
+});
+
+test('mountCosts sums the finished rows that have no actual price yet', async () => {
+  const { shell } = await setup({
+    schedule: [
+      itemOf('a', { title: 'Demo', estimatedCents: 352500, complete: true }),
+      itemOf('b', { title: 'Tile', estimatedCents: 100000 }),
+    ],
+  });
+  const accrued = $(shell.body.querySelector('.cost-accrued'));
+  assert.equal(
+    accrued.textContent,
+    'Incurred, not invoiced' +
+      '1 finished row with no actual yet' +
+      '$3,525.00',
+  );
 });

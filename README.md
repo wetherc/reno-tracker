@@ -21,8 +21,10 @@ static site on GitHub Pages, where it keeps its data in the browser.
 - Four views of the schedule: table, calendar, gantt, and agenda
 - A costs panel with summary tiles, a cumulative cost line against the
   budget, a cost-by-week bar chart, and a table of every line item,
-  labor and materials together. Pointing at or tabbing to a dot on the
-  line or a week bar reads its numbers out under the chart
+  labor and materials together. A line under the table totals the cost
+  incurred but not invoiced: the estimate on every complete row with no
+  actual price entered yet. Pointing at or tabbing to a dot on the line
+  or a week bar reads its numbers out under the chart
 - Save of a project to a JSON file and load of that file as a new project
 
 ## Running

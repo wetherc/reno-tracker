@@ -3,7 +3,9 @@
 // Projected is the total the project is heading for: the actual price
 // where one is known, the estimate everywhere else. Remaining is the
 // budget less the projected total, so it goes negative when the project
-// is set to run over.
+// is set to run over. Accrued is the estimate on every complete row that
+// has no actual price yet: work done or goods received, but no invoice
+// entered, so the money is owed but not counted in Spent.
 
 /** @typedef {import('./timeline.js').CostEvent} CostEvent */
 
@@ -15,6 +17,8 @@
  * @property {number} projectedCents actual where known, else estimate
  * @property {number} remainingCents budget less projected, negative when over
  * @property {number} percentComplete whole number, complete rows over all rows
+ * @property {number} accruedCents estimates on complete rows with no actual price
+ * @property {number} accruedCount how many rows make up accruedCents
  */
 
 /**
@@ -27,11 +31,17 @@ export function costSummary(events, budgetCents) {
   let spentCents = 0;
   let projectedCents = 0;
   let done = 0;
+  let accruedCents = 0;
+  let accruedCount = 0;
   for (const event of events) {
     committedCents += event.expectedCents;
     if (event.actualCents !== null) spentCents += event.actualCents;
     projectedCents += event.actualCents ?? event.expectedCents;
     if (event.complete) done += 1;
+    if (event.complete && event.actualCents === null) {
+      accruedCents += event.expectedCents;
+      accruedCount += 1;
+    }
   }
   return {
     budgetCents,
@@ -41,5 +51,7 @@ export function costSummary(events, budgetCents) {
     remainingCents: budgetCents - projectedCents,
     percentComplete:
       events.length === 0 ? 0 : Math.round((done / events.length) * 100),
+    accruedCents,
+    accruedCount,
   };
 }
