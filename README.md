@@ -14,7 +14,8 @@ static site on GitHub Pages, where it keeps its data in the browser.
   tracked field that a save changes, with an optional reason
 - User-authored notes on each schedule item
 - A bill of materials for non-labor costs (allowance, estimated cost, actual
-  cost, expected day)
+  cost, expected day). A material with no estimate counts its allowance
+  as its expected cost
 - A complete checkbox on every schedule and material row, shared by every
   view
 - Four views of the schedule: table, calendar, gantt, and agenda

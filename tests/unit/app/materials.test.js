@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
 import {
   allowanceVariance,
+  estimateVariance,
   landingDate,
   materialTotals,
   mountMaterials,
@@ -48,6 +49,7 @@ test('allowanceVariance counts the actual once it is entered', () => {
     allowanceVariance(materialOf('x', { actualCents: 9000 })),
     -1000,
   );
+  assert.equal(allowanceVariance(materialOf('x', { estimatedCents: 0 })), 0);
 });
 
 test('landingDate follows the expected date, then the item, then the project', () => {
@@ -74,10 +76,24 @@ test('landingDate follows the expected date, then the item, then the project', (
   );
 });
 
+test('estimateVariance reads the actual against the expected cost', () => {
+  assert.equal(estimateVariance(materialOf('x')), null);
+  assert.equal(estimateVariance(materialOf('x', { actualCents: 12500 })), 500);
+  assert.equal(
+    estimateVariance(materialOf('x', { estimatedCents: 0, actualCents: 9000 })),
+    -1000,
+  );
+});
+
 test('materialTotals sums the three prices, skipping blank actuals', () => {
   assert.deepEqual(
     materialTotals([materialOf('x'), materialOf('y', { actualCents: 500 })]),
     { allowanceCents: 20000, estimatedCents: 24000, actualCents: 500 },
+  );
+  // A row with no estimate adds its allowance to the estimate total.
+  assert.deepEqual(
+    materialTotals([materialOf('x', { estimatedCents: 0 })]).estimatedCents,
+    10000,
   );
   assert.deepEqual(materialTotals([]), {
     allowanceCents: 0,
@@ -196,6 +212,19 @@ test('an unlinked material without a date lands on the project start', async () 
   const [row] = rows(shell);
   assert.equal(row.children[3].textContent, 'Sep 1');
   assert.match(row.children[3].children[0].title, /project start/);
+  assert.equal(row.children[5].children[0].className, '');
+});
+
+test('a material with no estimate shows its allowance as the estimate, muted', async () => {
+  const { shell } = await setup({
+    materials: [materialOf('m1', { estimatedCents: 0 })],
+  });
+  const [row] = rows(shell);
+  const estimate = row.children[5].children[0];
+  assert.equal(estimate.textContent, '$100.00');
+  assert.equal(estimate.className, 'u-muted');
+  assert.match(estimate.title, /allowance stands in/);
+  assert.equal(row.children[8].textContent, '$0.00');
 });
 
 test('the checkbox writes complete and rolls back on failure', async () => {

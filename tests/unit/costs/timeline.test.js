@@ -5,6 +5,7 @@ import {
   costEvents,
   cumulative,
   landingDate,
+  materialExpected,
 } from '../../../src/costs/timeline.js';
 import { itemOf, materialOf } from '../app/scheduleFixtures.js';
 
@@ -30,6 +31,15 @@ const payload = /** @type {any} */ ({
     }),
     materialOf('m3', { estimatedCents: 700, complete: true }),
   ],
+});
+
+test('materialExpected falls back to the allowance when no estimate is entered', () => {
+  assert.equal(materialExpected(materialOf('x')), 12000);
+  assert.equal(materialExpected(materialOf('x', { estimatedCents: 0 })), 10000);
+  assert.equal(
+    materialExpected(materialOf('x', { estimatedCents: 0, allowanceCents: 0 })),
+    0,
+  );
 });
 
 test('landingDate follows the expected date, then the item, then the project', () => {

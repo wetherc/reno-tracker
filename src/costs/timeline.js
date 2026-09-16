@@ -3,8 +3,10 @@
 //   a schedule item lands on its end date;
 //   a material lands on its expected date, else on the start of the
 //   schedule item it is for, else on the project start.
-// "Expected" is the estimate. "Actual" is the actual price, and only a
-// row marked complete counts toward it.
+// "Expected" is the estimate. A material with no estimate uses its
+// allowance instead, so a budget line with no quote yet still counts.
+// "Actual" is the actual price, and only a row marked complete counts
+// toward it.
 import { addMonths, monthOf } from '../schedule/dates.js';
 
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
@@ -24,6 +26,16 @@ import { addMonths, monthOf } from '../schedule/dates.js';
 /** @typedef {{ date: string, cents: number }} SeriesPoint */
 
 /** @typedef {{ month: string, expectedCents: number, actualCents: number }} MonthTotal */
+
+/**
+ * The expected cost of a material: the estimate when one is entered,
+ * else the allowance. A zero estimate means none was entered.
+ * @param {MaterialItem} item
+ * @returns {number}
+ */
+export function materialExpected(item) {
+  return item.estimatedCents > 0 ? item.estimatedCents : item.allowanceCents;
+}
 
 /**
  * The day a material's cost lands. An expected date wins, then the
@@ -68,7 +80,7 @@ export function costEvents(payload) {
       title: item.name,
       date: landingDate(item, payload).date,
       complete: item.complete,
-      expectedCents: item.estimatedCents,
+      expectedCents: materialExpected(item),
       actualCents: item.complete ? item.actualCents : null,
     });
   }

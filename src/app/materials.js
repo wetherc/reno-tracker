@@ -2,7 +2,7 @@
 // table with a totals row, an Add button in the panel header, and a
 // checkbox per row that marks the material bought. The name opens the
 // editor.
-import { landingDate } from '../costs/timeline.js';
+import { landingDate, materialExpected } from '../costs/timeline.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { bareButton, button } from '../ui/buttons.js';
@@ -27,27 +27,46 @@ export { landingDate };
 
 /**
  * How far the material runs over its allowance. The actual price counts
- * once it is entered, the estimate before that.
+ * once it is entered, the expected cost before that.
  * @param {MaterialItem} item
  * @returns {number}
  */
 export function allowanceVariance(item) {
-  return (item.actualCents ?? item.estimatedCents) - item.allowanceCents;
+  return (item.actualCents ?? materialExpected(item)) - item.allowanceCents;
 }
 
 /**
- * Column totals. Actual sums only the rows that have a price entered.
+ * Actual minus expected, or null until an actual is entered.
+ * @param {MaterialItem} item
+ */
+export function estimateVariance(item) {
+  return costVariance({
+    estimatedCents: materialExpected(item),
+    actualCents: item.actualCents,
+  });
+}
+
+/**
+ * Column totals. Estimate sums the expected cost of each row, so a row
+ * with no estimate adds its allowance. Actual sums only the rows that
+ * have a price entered.
  * @param {MaterialItem[]} materials
  */
 export function materialTotals(materials) {
   const totals = { allowanceCents: 0, estimatedCents: 0, actualCents: 0 };
   for (const item of materials) {
     totals.allowanceCents += item.allowanceCents;
-    totals.estimatedCents += item.estimatedCents;
+    totals.estimatedCents += materialExpected(item);
     totals.actualCents += item.actualCents ?? 0;
   }
   return totals;
 }
+
+/** @param {MaterialItem} item */
+const expectedRow = (item) => ({
+  estimatedCents: materialExpected(item),
+  actualCents: item.actualCents,
+});
 
 /**
  * @param {string} a
@@ -98,7 +117,7 @@ export function mountMaterials({ ctx, shell }) {
         formatCents(totals.allowanceCents),
         formatCents(totals.estimatedCents),
         formatCents(totals.actualCents),
-        varianceCell(totalCostVariance(payload.materials)),
+        varianceCell(totalCostVariance(payload.materials.map(expectedRow))),
         varianceCell(overall),
       ],
       columns: [
@@ -145,8 +164,8 @@ export function mountMaterials({ ctx, shell }) {
           key: 'estimate',
           label: 'Estimate',
           align: 'end',
-          compare: (a, b) => a.estimatedCents - b.estimatedCents,
-          cell: (item) => formatCents(item.estimatedCents),
+          compare: (a, b) => materialExpected(a) - materialExpected(b),
+          cell: (item) => estimateCell(item),
         },
         {
           key: 'actual',
@@ -160,8 +179,9 @@ export function mountMaterials({ ctx, shell }) {
           label: 'Vs estimate',
           align: 'end',
           compare: (a, b) =>
-            (costVariance(a) ?? -Infinity) - (costVariance(b) ?? -Infinity),
-          cell: (item) => varianceCell(costVariance(item)),
+            (estimateVariance(a) ?? -Infinity) -
+            (estimateVariance(b) ?? -Infinity),
+          cell: (item) => varianceCell(estimateVariance(item)),
         },
         {
           key: 'variance',
@@ -172,6 +192,17 @@ export function mountMaterials({ ctx, shell }) {
         },
       ],
     });
+  }
+
+  /** @param {MaterialItem} item */
+  function estimateCell(item) {
+    const el = document.createElement('span');
+    el.append(formatCents(materialExpected(item)));
+    if (item.estimatedCents === 0) {
+      el.className = 'u-muted';
+      el.title = 'No estimate yet, so the allowance stands in';
+    }
+    return el;
   }
 
   /** @param {MaterialItem} item @param {ProjectPayload} payload */
