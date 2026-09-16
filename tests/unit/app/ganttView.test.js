@@ -309,3 +309,20 @@ test('moveMessage names only the dates that changed', () => {
     'Tile now runs Oct 2 to Oct 4',
   );
 });
+
+test('a bar under three days wide carries its title beside it', async () => {
+  const { el } = await setup({
+    schedule: [
+      itemOf('inspect', {
+        title: 'Inspection',
+        startDate: '2026-10-01',
+        endDate: '2026-10-02',
+      }),
+      items[0],
+    ],
+    dependencies: [],
+  });
+  const bars = el.querySelectorAll('.gantt-bar');
+  assert.ok(bars[0].classList.contains('gantt-bar--narrow'));
+  assert.ok(!bars[1].classList.contains('gantt-bar--narrow'));
+});

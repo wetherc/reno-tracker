@@ -249,6 +249,23 @@
   white-space: nowrap;
 }
 
+/* A bar under three days wide puts its title beside itself in the page
+   colour, so a one-day inspection still reads by name. */
+.gantt-bar--narrow .gantt-bar__title {
+  position: absolute;
+  left: 100%;
+  margin-left: var(--space-1);
+  max-width: 12rem;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  color: var(--text);
+}
+
+.gantt-bar--narrow .gantt-bar__body .icon {
+  margin: 0 auto;
+}
+
 .gantt-bar__handle {
   flex: none;
   width: 8px;

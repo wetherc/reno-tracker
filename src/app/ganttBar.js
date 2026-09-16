@@ -25,6 +25,10 @@ import { icon } from '../ui/icon.js';
 
 const ARROWS = { ArrowLeft: -1, ArrowRight: 1 };
 
+// A bar shorter than this many days cannot hold its title, so the title
+// sits to the right of it instead.
+export const NARROW_DAYS = 3;
+
 /**
  * The sentence a toast shows after a move. It names only the dates that
  * changed.
@@ -53,6 +57,7 @@ export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
   el.style.left = `${row.x}px`;
   el.style.top = `${row.y}px`;
   el.style.width = `${row.width}px`;
+  if (row.width < dayWidth * NARROW_DAYS) el.classList.add('gantt-bar--narrow');
 
   const range = formatRange(item.startDate, item.endDate);
   const body = bareButton({
