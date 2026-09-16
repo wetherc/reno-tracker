@@ -1,22 +1,23 @@
-// The costs section: five summary tiles over two charts. The tiles are
-// also the legend. Budget, Committed, and Spent each carry the mark of
-// the line that draws them, so the chart needs no key of its own. Each
-// chart has a visually hidden table twin with the same numbers.
+// The costs section: five summary tiles over two charts and the list
+// of every line item. The tiles are also the legend. Budget, Committed,
+// and Spent each show the mark of the line that draws them, so the
+// chart needs no key of its own. The line items table is the data
+// behind the cumulative chart, and the month chart has a visually
+// hidden table twin.
 import { barChartModel, renderBarChart } from '../charts/barChart.js';
 import { lineChartModel, renderLineChart } from '../charts/lineChart.js';
 import { costSummary } from '../costs/summary.js';
 import { byMonth, costEvents, cumulative } from '../costs/timeline.js';
-import { formatDate, formatMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { addDays, todayIso } from '../schedule/dates.js';
 import { emptyState } from '../ui/emptyState.js';
+import { lineItemTable, monthTable } from './costTables.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /** @typedef {import('../costs/summary.js').CostSummary} CostSummary */
 /** @typedef {import('../costs/timeline.js').CostEvent} CostEvent */
-/** @typedef {import('../costs/timeline.js').MonthTotal} MonthTotal */
 
 /**
  * The days the cumulative chart spans: from the project start or the
@@ -90,6 +91,10 @@ export function summaryTiles(summary) {
  * @returns {{ show(): void }} show fills the panel with the tiles and charts
  */
 export function mountCosts({ ctx, shell }) {
+  // The sort a person picked outlives the rebuild after each write.
+  /** @type {import('../ui/DataTable.js').SortState | null} */
+  let sort = null;
+
   function show() {
     const payload = ctx.payload;
     if (!payload) return;
@@ -118,18 +123,25 @@ export function mountCosts({ ctx, shell }) {
 
     const root = document.createElement('div');
     root.className = 'costs';
+    const items = lineItemTable({
+      ctx,
+      payload,
+      events,
+      sort,
+      onSort: (next) => (sort = next),
+    });
     root.append(
       tiles(summary),
       chartCard(
         'Cost over time',
         renderLineChart(line, `Cumulative cost of ${payload.project.name}`),
-        eventTable(events),
       ),
       chartCard(
         'Cost by month',
         renderBarChart(bars, `Cost of ${payload.project.name} by month`),
         monthTable(months),
       ),
+      listCard('Line items', items.el),
     );
     shell.setBody(root);
   }
@@ -171,9 +183,9 @@ function tiles(summary) {
 /**
  * @param {string} heading
  * @param {SVGElement} svg
- * @param {HTMLTableElement} table the hidden twin
+ * @param {HTMLTableElement} [twin] a visually hidden table with the numbers
  */
-function chartCard(heading, svg, table) {
+function chartCard(heading, svg, twin) {
   const card = document.createElement('section');
   card.className = 'card cost-card';
   const title = document.createElement('h2');
@@ -182,74 +194,21 @@ function chartCard(heading, svg, table) {
   const figure = document.createElement('figure');
   figure.className = 'cost-figure';
   figure.append(svg);
-  table.className = 'sr-only';
-  card.append(title, figure, table);
+  card.append(title, figure);
+  if (twin) card.append(twin);
   return card;
 }
 
 /**
- * @param {string} caption
- * @param {string[]} head
- * @param {(string | number)[][]} rows
+ * @param {string} heading
+ * @param {HTMLTableElement} table
  */
-function table(caption, head, rows) {
-  const el = document.createElement('table');
-  const cap = document.createElement('caption');
-  cap.textContent = caption;
-  const thead = document.createElement('thead');
-  const hr = document.createElement('tr');
-  for (const text of head) {
-    const th = document.createElement('th');
-    th.setAttribute('scope', 'col');
-    th.textContent = text;
-    hr.append(th);
-  }
-  thead.append(hr);
-  const tbody = document.createElement('tbody');
-  for (const row of rows) {
-    const tr = document.createElement('tr');
-    for (const cell of row) {
-      const td = document.createElement('td');
-      td.textContent = String(cell);
-      tr.append(td);
-    }
-    tbody.append(tr);
-  }
-  el.append(cap, thead, tbody);
-  return el;
-}
-
-/** @param {CostEvent[]} events */
-function eventTable(events) {
-  let expected = 0;
-  let actual = 0;
-  return table(
-    'Each cost by the day it lands, with running totals',
-    ['Day', 'Cost', 'Expected', 'Actual', 'Expected so far', 'Actual so far'],
-    events.map((e) => {
-      expected += e.expectedCents;
-      actual += e.actualCents ?? 0;
-      return [
-        formatDate(e.date),
-        e.title,
-        formatCents(e.expectedCents),
-        formatCents(e.actualCents),
-        formatCents(expected),
-        formatCents(actual),
-      ];
-    }),
-  );
-}
-
-/** @param {MonthTotal[]} months */
-function monthTable(months) {
-  return table(
-    'Cost by month',
-    ['Month', 'Expected', 'Actual'],
-    months.map((m) => [
-      formatMonth(m.month),
-      formatCents(m.expectedCents),
-      formatCents(m.actualCents),
-    ]),
-  );
+function listCard(heading, table) {
+  const card = document.createElement('section');
+  card.className = 'card cost-card cost-card--list';
+  const title = document.createElement('h2');
+  title.className = 'card__title';
+  title.textContent = heading;
+  card.append(title, table);
+  return card;
 }

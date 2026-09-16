@@ -12,7 +12,7 @@ import { todayIso } from '../../../src/schedule/dates.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 import { itemOf, materialOf, setupSchedule } from './scheduleFixtures.js';
 
-installDom();
+const dom = installDom();
 
 /** @param {unknown} el */
 const $ = (el) => /** @type {any} */ (el);
@@ -90,7 +90,7 @@ test('mountCosts shows an empty state until something has a cost', async () => {
   assert.equal(shell.tools.children.length, 0);
 });
 
-test('mountCosts draws the tiles, both charts, and their table twins', async () => {
+test('mountCosts draws the tiles, both charts, and the line items', async () => {
   const { shell } = await setup({
     schedule: [
       itemOf('a', {
@@ -130,7 +130,7 @@ test('mountCosts draws the tiles, both charts, and their table twins', async () 
   assert.equal(tiles[4].querySelector('.cost-tile__value').textContent, '33%');
 
   const cards = $(root.querySelectorAll('.cost-card'));
-  assert.equal(cards.length, 2);
+  assert.equal(cards.length, 3);
   assert.equal(
     cards[0].querySelector('.card__title').textContent,
     'Cost over time',
@@ -141,26 +141,16 @@ test('mountCosts draws the tiles, both charts, and their table twins', async () 
   );
   assert.ok(cards[0].querySelector('.chart__expected'));
   assert.ok(cards[0].querySelector('.chart__actual'));
-  const twin = cards[0].querySelector('table');
-  assert.equal(twin.className, 'sr-only');
-  assert.equal(twin.querySelectorAll('th').length, 6);
-  const rows = $(twin.querySelector('tbody')).children;
-  assert.equal(rows.length, 3);
-  assert.equal(
-    rows[0].textContent,
-    'Oct 3, 2026Demo$1,000.00$1,100.00$1,000.00$1,100.00',
-  );
-  assert.equal(
-    rows[2].textContent,
-    'Nov 20, 2026Tile$2,500.00—$3,540.00$1,100.00',
-  );
+  assert.equal(cards[0].querySelector('table'), null);
 
   assert.equal(
     cards[1].querySelector('.card__title').textContent,
     'Cost by month',
   );
   assert.equal(cards[1].querySelectorAll('.chart__expected-bar').length, 2);
-  const monthRows = $(cards[1].querySelectorAll('td')).map(
+  const twin = cards[1].querySelector('table');
+  assert.equal(twin.className, 'sr-only');
+  const monthRows = $(twin.querySelectorAll('td')).map(
     (/** @type {any} */ td) => td.textContent,
   );
   assert.deepEqual(monthRows, [
@@ -171,6 +161,53 @@ test('mountCosts draws the tiles, both charts, and their table twins', async () 
     '$2,540.00',
     '$0.00',
   ]);
+
+  assert.equal(
+    cards[2].querySelector('.card__title').textContent,
+    'Line items',
+  );
+  const items = cards[2].querySelector('table');
+  assert.equal(items.className, 'data-table');
+  const rows = $(items.querySelector('tbody')).children;
+  assert.equal(rows.length, 3);
+  assert.equal(
+    rows[0].textContent,
+    'Demo' + 'Labor' + 'Oct 3' + '$1,000.00' + '$1,100.00' + '+$100.00',
+  );
+  assert.ok(rows[0].classList.contains('cost-row--complete'));
+  assert.equal(
+    rows[0].children[0].children[0].getAttribute('aria-label'),
+    'Done',
+  );
+  assert.equal(
+    rows[1].textContent,
+    'Grout' + 'Material' + 'Nov 2' + '$40.00' + '—' + '—',
+  );
+  assert.equal(rows[2].children[0].textContent, '');
+  const total = $(items.querySelector('tfoot')).children[0];
+  assert.equal(total.textContent, 'Total$3,540.00$1,100.00+$100.00');
+});
+
+test('a line item opens the editor of the row behind it', async () => {
+  const { shell } = await setup({
+    schedule: [itemOf('a', { title: 'Demo', estimatedCents: 100 })],
+    materials: [materialOf('m', { name: 'Grout' })],
+  });
+  const names = $(shell.body.querySelectorAll('.cost-item'));
+  assert.equal(names.length, 2);
+  /** @param {string} text */
+  const named = (text) =>
+    names.find((/** @type {any} */ n) => n.textContent === text);
+  const lastDialog = () => $(dom.body.children[dom.body.children.length - 1]);
+  named('Demo').click();
+  let dialog = lastDialog();
+  assert.equal(dialog.tagName, 'DIALOG');
+  assert.equal(dialog.children[0].children[0].textContent, 'Demo');
+  dialog.close();
+  named('Grout').click();
+  dialog = lastDialog();
+  assert.equal(dialog.children[0].children[0].textContent, 'Grout');
+  dialog.close();
 });
 
 test('mountCosts marks today when it is inside the range', async () => {

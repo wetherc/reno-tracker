@@ -67,16 +67,39 @@ test('the costs panel sums the project and draws both charts', async ({
   await dialog.getByLabel('Estimate').fill('5,200');
   await dialog.getByRole('button', { name: 'Add to materials' }).click();
   await expect(dialog).toBeHidden();
+  // An allowance with no estimate counts as the expected cost.
+  await page.getByRole('button', { name: 'Add material' }).click();
+  await dialog.getByLabel('Material', { exact: true }).fill('Sink');
+  await dialog.getByLabel('Allowance').fill('1,500');
+  await dialog.getByRole('button', { name: 'Add to materials' }).click();
+  await expect(dialog).toBeHidden();
 
   await page.getByRole('button', { name: 'Costs' }).click();
   const tiles = page.locator('.cost-tile');
   await expect(tiles).toHaveCount(5);
   await expect(tiles.nth(0)).toContainText('$50,000.00');
-  await expect(tiles.nth(1)).toContainText('$31,700.00');
+  await expect(tiles.nth(1)).toContainText('$33,200.00');
   await expect(tiles.nth(2)).toContainText('$2,400.00');
   await expect(tiles.nth(3)).toContainText('Remaining');
-  await expect(tiles.nth(3)).toContainText('$17,900.00');
-  await expect(tiles.nth(4)).toContainText('25%');
+  await expect(tiles.nth(3)).toContainText('$16,400.00');
+  await expect(tiles.nth(4)).toContainText('20%');
+
+  const items = page.getByRole('table', { name: 'Line items in Kitchen' });
+  await expect(items.locator('tbody tr')).toHaveCount(5);
+  const demo = items.locator('tbody tr', { hasText: 'Demo' });
+  await expect(demo).toContainText('Labor');
+  await expect(demo.locator('.variance--over')).toHaveText('+$400.00');
+  const sink = items.locator('tbody tr', { hasText: 'Sink' });
+  await expect(sink).toContainText('Material');
+  await expect(sink).toContainText('$1,500.00');
+  const itemTotals = items.locator('tfoot tr');
+  await expect(itemTotals).toContainText('$33,200.00');
+  await expect(itemTotals).toContainText('$2,400.00');
+  // The name opens the editor for the row behind it.
+  await items.getByRole('button', { name: 'Quartz counter' }).click();
+  await expect(dialog.getByLabel('Allowance')).toHaveValue('4000.00');
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
 
   const line = page.getByRole('img', { name: 'Cumulative cost of Kitchen' });
   await expect(line.locator('.chart__expected')).toHaveCount(1);
@@ -111,7 +134,7 @@ test('the costs panel sums the project and draws both charts', async ({
   });
   await page.getByRole('button', { name: 'Costs' }).click();
   await expect(tiles.nth(3)).toContainText('Over budget');
-  await expect(tiles.nth(3)).toContainText('$2,100.00');
+  await expect(tiles.nth(3)).toContainText('$3,600.00');
   await expect(tiles.nth(3)).toHaveClass(/cost-tile--over/);
 
   await page.getByRole('button', { name: 'Delete project' }).click();

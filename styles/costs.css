@@ -151,3 +151,27 @@
 .chart__actual-bar {
   fill: var(--success);
 }
+
+/* Line items */
+
+.cost-card--list {
+  overflow-x: auto;
+}
+
+.cost-item {
+  font-weight: 600;
+  text-align: left;
+}
+
+.cost-item:hover {
+  color: var(--accent);
+}
+
+.cost-row--complete .cost-item {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.cost-row--complete .icon {
+  color: var(--success);
+}
