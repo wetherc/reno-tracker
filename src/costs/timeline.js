@@ -6,7 +6,8 @@
 // "Expected" is the estimate. A material with no estimate uses its
 // allowance instead, so a budget line with no quote yet still counts.
 // "Actual" is the actual price, and only a row marked complete counts
-// toward it.
+// toward it. "Billed" is the actual price on any row, complete or not,
+// and the projected total uses it.
 import { addDays, startOfWeek } from '../schedule/dates.js';
 
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
@@ -21,6 +22,7 @@ import { addDays, startOfWeek } from '../schedule/dates.js';
  * @property {boolean} complete
  * @property {number} expectedCents the estimate
  * @property {number | null} actualCents the price paid, once the row is complete
+ * @property {number | null} billedCents the price entered, complete or not
  */
 
 /** @typedef {{ date: string, cents: number }} SeriesPoint */
@@ -71,6 +73,7 @@ export function costEvents(payload) {
       complete: item.complete,
       expectedCents: item.estimatedCents,
       actualCents: item.complete ? item.actualCents : null,
+      billedCents: item.actualCents,
     });
   }
   for (const item of payload.materials) {
@@ -82,6 +85,7 @@ export function costEvents(payload) {
       complete: item.complete,
       expectedCents: materialExpected(item),
       actualCents: item.complete ? item.actualCents : null,
+      billedCents: item.actualCents,
     });
   }
   return events.sort((a, b) => a.date.localeCompare(b.date));

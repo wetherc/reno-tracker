@@ -14,13 +14,19 @@ const event = (extra) => ({
   complete: false,
   expectedCents: 1000,
   actualCents: null,
+  billedCents: null,
   ...extra,
 });
 
 test('costSummary adds up committed, spent, projected, and headroom', () => {
   const summary = costSummary(
     [
-      event({ expectedCents: 10000, actualCents: 12000, complete: true }),
+      event({
+        expectedCents: 10000,
+        actualCents: 12000,
+        billedCents: 12000,
+        complete: true,
+      }),
       event({ expectedCents: 30000 }),
       event({ expectedCents: 700, complete: true }),
     ],
@@ -52,4 +58,14 @@ test('costSummary on an empty project is all zero but the budget', () => {
     accruedCents: 0,
     accruedCount: 0,
   });
+});
+
+test('costSummary projects an entered price on a row not marked complete', () => {
+  const summary = costSummary(
+    [event({ expectedCents: 300000, billedCents: 500000 })],
+    1000000,
+  );
+  assert.equal(summary.spentCents, 0);
+  assert.equal(summary.projectedCents, 500000);
+  assert.equal(summary.headroomCents, 500000);
 });

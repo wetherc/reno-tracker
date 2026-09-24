@@ -1,7 +1,9 @@
 // The money numbers at the top of the costs panel. Committed is every
 // estimate added up. Spent is every actual price on a complete row.
 // Projected is the total the project is heading for: the actual price
-// where one is known, the estimate everywhere else. Headroom is the
+// where one is entered, on a complete row or not, and the estimate
+// everywhere else. An invoice entered before the box is ticked already
+// fixes that cost. Headroom is the
 // budget less the projected total, so it goes negative when the project
 // is set to run over. Accrued is the estimate on every complete row that
 // has no actual price yet: work done or goods received, but no invoice
@@ -14,7 +16,7 @@
  * @property {number} budgetCents
  * @property {number} committedCents every estimate added up
  * @property {number} spentCents every actual price on a complete row
- * @property {number} projectedCents actual where known, else estimate
+ * @property {number} projectedCents billed price where entered, else estimate
  * @property {number} headroomCents budget less projected, negative when over
  * @property {number} accruedCents estimates on complete rows with no actual price
  * @property {number} accruedCount how many rows make up accruedCents
@@ -34,7 +36,7 @@ export function costSummary(events, budgetCents) {
   for (const event of events) {
     committedCents += event.expectedCents;
     if (event.actualCents !== null) spentCents += event.actualCents;
-    projectedCents += event.actualCents ?? event.expectedCents;
+    projectedCents += event.billedCents ?? event.expectedCents;
     if (event.complete && event.actualCents === null) {
       accruedCents += event.expectedCents;
       accruedCount += 1;

@@ -12,7 +12,11 @@ import { itemOf, materialOf } from '../app/scheduleFixtures.js';
 const payload = /** @type {any} */ ({
   project: { startDate: '2026-09-01', budgetCents: 100000 },
   schedule: [
-    itemOf('b', { endDate: '2026-10-20', estimatedCents: 30000 }),
+    itemOf('b', {
+      endDate: '2026-10-20',
+      estimatedCents: 30000,
+      actualCents: 4000,
+    }),
     itemOf('a', {
       startDate: '2026-10-01',
       endDate: '2026-10-03',
@@ -22,7 +26,11 @@ const payload = /** @type {any} */ ({
     }),
   ],
   materials: [
-    materialOf('m1', { expectedDate: '2026-12-02', estimatedCents: 5000 }),
+    materialOf('m1', {
+      expectedDate: '2026-12-02',
+      estimatedCents: 5000,
+      actualCents: 800,
+    }),
     materialOf('m2', {
       scheduleItemId: 'a',
       estimatedCents: 2000,
@@ -60,13 +68,20 @@ test('landingDate follows the expected date, then the item, then the project', (
 test('costEvents lands each row on one day in date order', () => {
   const events = costEvents(payload);
   assert.deepEqual(
-    events.map((e) => [e.id, e.source, e.date, e.expectedCents, e.actualCents]),
+    events.map((e) => [
+      e.id,
+      e.source,
+      e.date,
+      e.expectedCents,
+      e.actualCents,
+      e.billedCents,
+    ]),
     [
-      ['m3', 'material', '2026-09-01', 700, null],
-      ['m2', 'material', '2026-10-01', 2000, 1500],
-      ['a', 'schedule', '2026-10-03', 10000, 12000],
-      ['b', 'schedule', '2026-10-20', 30000, null],
-      ['m1', 'material', '2026-12-02', 5000, null],
+      ['m3', 'material', '2026-09-01', 700, null, null],
+      ['m2', 'material', '2026-10-01', 2000, 1500, 1500],
+      ['a', 'schedule', '2026-10-03', 10000, 12000, 12000],
+      ['b', 'schedule', '2026-10-20', 30000, null, 4000],
+      ['m1', 'material', '2026-12-02', 5000, null, 800],
     ],
   );
   assert.equal(events[0].title, 'Material m3');
