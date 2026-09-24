@@ -166,7 +166,7 @@ test('the table has one row per material, a totals row, and the planned columns'
   const cells = tile.children.map((/** @type {any} */ td) => td.textContent);
   assert.deepEqual(cells.slice(2), [
     'Cabinets',
-    'Oct 13',
+    'Oct 13 (from the item start)',
     '$100.00',
     '$120.00',
     '$90.00',
@@ -174,8 +174,13 @@ test('the table has one row per material, a totals row, and the planned columns'
     '−$10.00',
   ]);
   const expected = tile.children[3].children[0];
-  assert.equal(expected.className, 'u-muted');
-  assert.match(expected.title, /start of the schedule item/);
+  assert.equal(expected.className, 'material-standin u-muted');
+  assert.equal(expected.children[0].className, 'sr-only');
+  // The note under the table explains the italic day, and only the day.
+  const note = $(shell.body.children[1]);
+  assert.equal(note.className, 'material-note u-muted');
+  assert.equal(note.getAttribute('aria-hidden'), 'true');
+  assert.match(note.textContent, /^A day in italics follows the start/);
   const box = tile.children[0].children[0];
   assert.equal(box.checked, true);
   assert.equal(box.getAttribute('aria-label'), 'Unmark Tile');
@@ -213,8 +218,7 @@ test('the table has one row per material, a totals row, and the planned columns'
 test('an unlinked material without a date lands on the project start', async () => {
   const { shell } = await setup({ materials: [materialOf('m1')] });
   const [row] = rows(shell);
-  assert.equal(row.children[3].textContent, 'Sep 1');
-  assert.match(row.children[3].children[0].title, /project start/);
+  assert.equal(row.children[3].textContent, 'Sep 1 (from the project start)');
   assert.equal(row.children[5].children[0].className, '');
 });
 
@@ -224,9 +228,15 @@ test('a material with no estimate shows its allowance as the estimate, muted', a
   });
   const [row] = rows(shell);
   const estimate = row.children[5].children[0];
-  assert.equal(estimate.textContent, '$100.00');
-  assert.equal(estimate.className, 'u-muted');
-  assert.match(estimate.title, /allowance stands in/);
+  assert.equal(
+    estimate.textContent,
+    '$100.00 (the allowance, no estimate yet)',
+  );
+  assert.equal(estimate.className, 'material-standin u-muted');
+  assert.match(
+    $(shell.body.children[1]).textContent,
+    /^An estimate in italics is the allowance, because no estimate is entered yet\. A day/,
+  );
   assert.equal(row.children[8].textContent, '$0.00');
 });
 
@@ -297,4 +307,11 @@ test('a saved sort opens the materials in that order', async () => {
     rows(shell).map((/** @type {any} */ r) => r.children[1].textContent),
     ['Zinc strip', 'Adhesive'],
   );
+});
+
+test('a table with no stand-in values has no note under it', async () => {
+  const { shell } = await setup({
+    materials: [materialOf('m1', { expectedDate: '2026-10-01' })],
+  });
+  assert.equal(shell.body.children.length, 1);
 });

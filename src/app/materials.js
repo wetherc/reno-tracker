@@ -209,10 +209,8 @@ export function mountMaterials({ ctx, shell }) {
   function estimateCell(item) {
     const el = document.createElement('span');
     el.append(formatCents(materialExpected(item)));
-    if (item.estimatedCents === 0) {
-      el.className = 'u-muted';
-      el.title = 'No estimate yet, so the allowance stands in';
-    }
+    if (item.estimatedCents === 0)
+      standIn(el, 'the allowance, no estimate yet');
     return el;
   }
 
@@ -222,12 +220,52 @@ export function mountMaterials({ ctx, shell }) {
     const el = document.createElement('span');
     el.append(formatDayMonth(date));
     if (inferred) {
-      el.className = 'u-muted';
-      el.title = item.scheduleItemId
-        ? 'Follows the start of the schedule item it is for'
-        : 'Follows the project start';
+      standIn(
+        el,
+        item.scheduleItemId ? 'from the item start' : 'from the project start',
+      );
     }
     return el;
+  }
+
+  /**
+   * Marks a value that stands in for one not entered yet. It shows in
+   * muted italics, a screen reader hears the reason after the value, and
+   * the note under the table explains the italics.
+   * @param {HTMLSpanElement} el
+   * @param {string} reason
+   */
+  function standIn(el, reason) {
+    el.className = 'material-standin u-muted';
+    const said = document.createElement('span');
+    said.className = 'sr-only';
+    said.textContent = ` (${reason})`;
+    el.append(said);
+  }
+
+  /**
+   * The sentences under the table for the stand-in values it shows.
+   * @param {ProjectPayload} payload
+   * @returns {HTMLParagraphElement[]} one note, or nothing with no stand-ins
+   */
+  function standInNote(payload) {
+    const lines = [];
+    if (payload.materials.some((m) => m.estimatedCents === 0)) {
+      lines.push(
+        'An estimate in italics is the allowance, because no estimate is entered yet.',
+      );
+    }
+    if (payload.materials.some((m) => landingDate(m, payload).inferred)) {
+      lines.push(
+        'A day in italics follows the start of its schedule item, or the project start when the material has no item.',
+      );
+    }
+    if (lines.length === 0) return [];
+    const note = document.createElement('p');
+    note.className = 'material-note u-muted';
+    note.setAttribute('aria-hidden', 'true');
+    note.textContent = lines.join(' ');
+    return [note];
   }
 
   /** @param {MaterialItem} item */
@@ -273,7 +311,7 @@ export function mountMaterials({ ctx, shell }) {
       );
       return;
     }
-    shell.setBody(tableScroll(buildTable(payload).el));
+    shell.setBody(tableScroll(buildTable(payload).el), ...standInNote(payload));
   }
 
   return { show };

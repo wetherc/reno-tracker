@@ -21,3 +21,12 @@
 .material-name .icon {
   color: var(--success);
 }
+
+.material-standin {
+  font-style: italic;
+}
+
+.material-note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-label);
+}
