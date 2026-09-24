@@ -151,6 +151,19 @@ test('the costs panel sums the project and draws both charts', async ({
     page.getByRole('button', { name: /^Nov 10, 2026 · Quartz counter/ }),
   ).toBeFocused();
   await expect(tip.locator('.chart-tip__date')).toHaveText('Tue, Nov 10, 2026');
+  // The chart is one tab stop, and Shift+Tab comes back to the last point.
+  const lastDot = page.getByRole('button', {
+    name: /^Nov 10, 2026 · Quartz counter/,
+  });
+  const linePoints = page
+    .getByRole('group', { name: /^Points on the chart/ })
+    .first();
+  await expect(linePoints.locator('[tabindex="0"]')).toHaveCount(1);
+  await page.keyboard.press('Tab');
+  await expect(lastDot).not.toBeFocused();
+  await expect(linePoints.locator(':focus')).toHaveCount(0);
+  await page.keyboard.press('Shift+Tab');
+  await expect(lastDot).toBeFocused();
   // The week axis names the Sundays by day and the months once. August
   // has one bar, so September takes its name slot and the year.
   await expect(bars.locator('.chart__tick--month')).toHaveText([

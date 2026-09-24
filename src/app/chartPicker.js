@@ -3,7 +3,9 @@
 // scales with the figure. Each button's label is the full text for its
 // point, so a screen reader hears the numbers as focus lands on it.
 // Pointing at or focusing a target turns the matching mark on. The
-// arrow keys move between targets, Home and End jump to the ends.
+// arrow keys move between targets, Home and End jump to the ends. The
+// chart is one tab stop: only the last focused target, or the first one,
+// is in the tab order, so Tab moves past a chart of many points at once.
 // A target with a detail also opens a callout box beside its anchor. The
 // box sits above the anchor and flips below it near the top of the
 // figure, and it hangs from its left or right edge near the sides so
@@ -60,7 +62,10 @@ export function chartPicker({ targets }) {
   const layer = document.createElement('div');
   layer.className = 'chart-picker';
   layer.setAttribute('role', 'group');
-  layer.setAttribute('aria-label', 'Points on the chart');
+  layer.setAttribute(
+    'aria-label',
+    'Points on the chart. The arrow keys move between them.',
+  );
 
   // The button's aria-label already says everything the box shows.
   const tip = document.createElement('div');
@@ -109,7 +114,11 @@ export function chartPicker({ targets }) {
     el.addEventListener('pointerleave', () => {
       if (document.activeElement !== el) pick(null);
     });
-    el.addEventListener('focus', () => pick(target));
+    el.tabIndex = i === 0 ? 0 : -1;
+    el.addEventListener('focus', () => {
+      for (const other of buttons) other.tabIndex = other === el ? 0 : -1;
+      pick(target);
+    });
     el.addEventListener('blur', () => pick(null));
     el.addEventListener('keydown', (event) => {
       const step = STEP[/** @type {keyof typeof STEP} */ (event.key)];

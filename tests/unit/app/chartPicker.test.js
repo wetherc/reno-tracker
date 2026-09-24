@@ -42,6 +42,10 @@ test('chartPicker lays one button per target', () => {
   const { layer } = setup();
   assert.equal(layer.getAttribute('role'), 'group');
   const [dot, , column] = layer.children;
+  assert.equal(
+    layer.getAttribute('aria-label'),
+    'Points on the chart. The arrow keys move between them.',
+  );
   assert.equal(dot.className, 'btn-bare chart-picker__target');
   assert.equal(dot.getAttribute('aria-label'), 'First');
   assert.deepEqual([dot.style.left, dot.style.top], ['10%', '20%']);
@@ -113,6 +117,9 @@ test('tipPlacement hangs the box from the side it is near', () => {
 test('the arrow keys move between targets and Home and End jump', () => {
   const { layer, lit } = setup();
   const [first, second, third] = layer.children;
+  /** @returns {number[]} */
+  const stops = () => [first, second, third].map((b) => b.tabIndex);
+  assert.deepEqual(stops(), [0, -1, -1]);
   first.focus();
   first.dispatchEvent({ type: 'focus' });
   /** @param {any} el @param {string} key */
@@ -121,6 +128,9 @@ test('the arrow keys move between targets and Home and End jump', () => {
   assert.equal(dom.activeElement, second);
   assert.equal(press(second, 'End'), false);
   assert.equal(dom.activeElement, third);
+  third.dispatchEvent({ type: 'focus' });
+  // The last focused target is the one Tab returns to.
+  assert.deepEqual(stops(), [-1, -1, 0]);
   assert.equal(press(third, 'ArrowRight'), true);
   assert.equal(dom.activeElement, third);
   assert.equal(press(third, 'Home'), false);
