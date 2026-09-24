@@ -19,6 +19,15 @@ test('no section or view scrolls sideways on a 390px phone', async ({
       },
     ],
   );
+  await request.post(`/api/projects/${seeded.id}/invoices`, {
+    data: {
+      number: '2207',
+      party: 'Pacific Plumbing and Heating',
+      issuedDate: '2026-10-12',
+      dueDate: '2026-11-11',
+      lines: [{ scheduleItemId: seeded.items[0].id, amountCents: 480_000 }],
+    },
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await openProject(page, 'Narrow check');
   const width = () => page.evaluate(() => document.documentElement.scrollWidth);
@@ -27,11 +36,22 @@ test('no section or view scrolls sideways on a 390px phone', async ({
     await page.getByRole('radio', { name: view }).click();
     expect(await width(), view).toBe(390);
   }
-  for (const section of ['Notes', 'Materials', 'Costs']) {
+  for (const section of ['Notes', 'Materials', 'Invoices', 'Costs']) {
     await nav.getByRole('button', { name: section }).click();
     await expect(page.locator('.panel__title')).toHaveText(section);
     expect(await width(), section).toBe(390);
   }
+  await nav.getByRole('button', { name: 'Invoices' }).click();
+  await page
+    .getByRole('button', { name: 'Pacific Plumbing and Heating' })
+    .click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  expect(await width(), 'invoice editor').toBe(390);
+  await page.screenshot({
+    path: 'test-results/invoice-editor-narrow.png',
+    animations: 'disabled',
+  });
+  await page.keyboard.press('Escape');
   await nav.getByRole('button', { name: 'Schedule' }).click();
   await page.getByRole('radio', { name: 'Calendar' }).click();
   await page.getByRole('button', { name: /^Wednesday, October 7, 2026/ }).tap();

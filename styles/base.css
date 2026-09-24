@@ -254,6 +254,13 @@ a {
   border-color: var(--danger);
 }
 
+/* A value the app works out, such as a billed Actual, reads as fixed. */
+.field[readonly] {
+  border-style: dashed;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+}
+
 select.field {
   appearance: none;
   padding-right: var(--space-6);

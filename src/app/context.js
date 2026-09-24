@@ -2,6 +2,7 @@
 // and the open project payload, tells listeners when either changes, and
 // runs every write through one path that refetches and reports.
 import { describeFailure } from '../api/errors.js';
+import { withInvoiceActuals } from '../costs/invoiced.js';
 
 /** @typedef {import('../api/client.js').Api} Api */
 /** @typedef {import('../storage/prefs.js').Prefs} Prefs */
@@ -78,14 +79,15 @@ export function createContext({ api, prefs, toaster }) {
     /**
      * Fetches and shows one project. When a newer open or a close starts
      * before this fetch returns, the result is dropped and the current
-     * payload comes back instead.
+     * payload comes back instead. Each billed row reads its invoice
+     * lines' sum as its actual price.
      * @param {string} id
      */
     async openProject(id) {
       const turn = ++latest.payload;
       const next = await api.getProject(id);
       if (turn !== latest.payload) return payload;
-      payload = next;
+      payload = withInvoiceActuals(next);
       prefs.write('lastProject', id);
       emit('payload', payload);
       return payload;

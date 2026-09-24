@@ -12,6 +12,7 @@ import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 /** @typedef {import('../../../src/types.ts').Variance} Variance */
 /** @typedef {import('../../../src/types.ts').Dependency} Dependency */
 /** @typedef {import('../../../src/types.ts').MaterialItem} MaterialItem */
+/** @typedef {import('../../../src/types.ts').Invoice} Invoice */
 
 /**
  * @param {string} id
@@ -57,7 +58,25 @@ export function materialOf(id, extra = {}) {
 }
 
 /**
- * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[], materials?: MaterialItem[] }} [seed]
+ * @param {string} id
+ * @param {Partial<Invoice>} [extra]
+ * @returns {Invoice}
+ */
+export function invoiceOf(id, extra = {}) {
+  return {
+    id,
+    projectId: 'p1',
+    number: '',
+    party: `Party ${id}`,
+    issuedDate: '2026-10-05',
+    dueDate: null,
+    lines: [],
+    ...extra,
+  };
+}
+
+/**
+ * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[], materials?: MaterialItem[], invoices?: Invoice[] }} [seed]
  */
 export function setupSchedule({
   schedule = [],
@@ -65,7 +84,9 @@ export function setupSchedule({
   variances = [],
   dependencies = [],
   materials = [],
+  invoices = [],
 } = {}) {
+  let bills = invoices;
   let items = schedule;
   let bom = materials;
   let allNotes = notes;
@@ -88,6 +109,7 @@ export function setupSchedule({
       dependencies: links,
       notes: allNotes,
       materials: bom,
+      invoices: bills,
     }),
     createScheduleItem: async (
       /** @type {string} */ projectId,
@@ -214,6 +236,36 @@ export function setupSchedule({
       bom = bom.filter((m) => m.id !== id);
       log.push(`delete material ${id}`);
     },
+    createInvoice: async (
+      /** @type {string} */ projectId,
+      /** @type {any} */ input,
+    ) => {
+      if (input.party === 'boom') {
+        throw new ApiError(400, {
+          error: 'line 1 bills a material that is not in this project',
+          field: 'lines.0.item',
+        });
+      }
+      const created = invoiceOf(`i${bills.length + 1}`, {
+        ...input,
+        projectId,
+      });
+      bills = [...bills, created];
+      log.push(`create invoice ${input.party}`);
+      return created;
+    },
+    patchInvoice: async (
+      /** @type {string} */ id,
+      /** @type {any} */ patch,
+    ) => {
+      bills = bills.map((i) => (i.id === id ? { ...i, ...patch } : i));
+      log.push(`patch invoice ${id}`);
+      return bills.find((i) => i.id === id);
+    },
+    deleteInvoice: async (/** @type {string} */ id) => {
+      bills = bills.filter((i) => i.id !== id);
+      log.push(`delete invoice ${id}`);
+    },
     setMaterialComplete: async (
       /** @type {string} */ id,
       /** @type {boolean} */ complete,
@@ -247,6 +299,7 @@ export function setupSchedule({
     notes: () => allNotes,
     links: () => links,
     materials: () => bom,
+    invoices: () => bills,
   };
 }
 

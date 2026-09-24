@@ -5,7 +5,7 @@ import {
   describeLength,
   openScheduleEditor,
 } from '../../../src/app/scheduleEditor.js';
-import { itemOf, setupSchedule, tick } from './scheduleFixtures.js';
+import { invoiceOf, itemOf, setupSchedule, tick } from './scheduleFixtures.js';
 
 const dom = installDom();
 
@@ -276,4 +276,48 @@ test('a note draft asks before the editor closes', async () => {
   ask.children[2].children[1].click();
   await tick();
   assert.equal(el.open, false);
+});
+
+test('a billed item shows its invoice sum read only and cannot be deleted', async () => {
+  const fx = setupSchedule({
+    schedule: [itemOf('a', { title: 'Demo', actualCents: 3 })],
+    invoices: [
+      invoiceOf('i1', {
+        party: 'Wreckers',
+        lines: [
+          {
+            id: 'l1',
+            scheduleItemId: 'a',
+            materialItemId: null,
+            description: '',
+            amountCents: 40000,
+          },
+        ],
+      }),
+    ],
+  });
+  await fx.ctx.openProject('p1');
+  /** @type {any[]} */
+  const patches = [];
+  const patch = fx.ctx.api.patchScheduleItem;
+  fx.ctx.api.patchScheduleItem = (id, body) => {
+    patches.push(body);
+    return patch(id, body);
+  };
+  const item = /** @type {any} */ (fx.ctx.payload).schedule[0];
+  const dialog = openScheduleEditor({ ctx: fx.ctx, item });
+  const form = $(dialog.el).querySelector('form');
+  const actual = form.querySelectorAll('[inputmode="decimal"]')[1];
+  assert.equal(actual.value, '400.00');
+  assert.equal(actual.hasAttribute('readonly'), true);
+  $(dialog.el).children[2].children[0].click();
+  await tick();
+  assert.equal(
+    fx.toasts.at(-1),
+    'bad An invoice from Wreckers bills Demo. Remove that line first.',
+  );
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal('actualCents' in patches[0], false);
+  assert.deepEqual(fx.log, ['patch a ']);
 });

@@ -17,6 +17,7 @@ const payloadFor = (/** @type {string} */ id) => ({
   variances: [],
   notes: [],
   materials: [],
+  invoices: [],
 });
 
 function setup() {

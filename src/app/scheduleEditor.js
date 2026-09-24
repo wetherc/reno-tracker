@@ -17,6 +17,7 @@ import {
 } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
 import { tabs } from '../ui/Tabs.js';
+import { actualField, refuseBilled } from './billing.js';
 import { completeToggle } from './completeToggle.js';
 import { dependencyLinks } from './dependencies.js';
 import { discardGuard } from './discardGuard.js';
@@ -91,13 +92,15 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     label: FIELD_LABELS.estimatedCents,
     cents: item?.estimatedCents ?? 0,
   });
-  const actualCents = moneyField({
+  const actual = actualField({
+    ctx,
     id: `${prefix}-actual`,
     label: FIELD_LABELS.actualCents,
+    rowId: item?.id,
     cents: item?.actualCents ?? null,
     placeholder: 'Blank until billed',
-    blankIsNull: true,
   });
+  const actualCents = actual.field;
   const description = textArea({
     id: `${prefix}-description`,
     label: FIELD_LABELS.description,
@@ -117,7 +120,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     startDate,
     endDate,
     estimatedCents,
-    actualCents,
+    ...(!actual.billed && { actualCents }),
     description,
     reason,
   };
@@ -257,10 +260,10 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     length.textContent = start && end ? describeLength(start, end) : '';
   }
 
-  /** @returns {Required<ScheduleItemInput> | null} */
+  /** @returns {ScheduleItemInput | null} */
   function readForm() {
     const estimate = estimatedCents.cents();
-    const actual = actualCents.cents();
+    const typed = actualCents.cents();
     /** @type {import('../entities/validate.js').FieldError[]} */
     const problems = [];
     if (estimate === null) {
@@ -269,7 +272,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
         message: 'Estimate must be dollars and cents, like 1,250.00',
       });
     }
-    if (actual === null && actualCents.input.value.trim() !== '') {
+    if (typed === null && actualCents.input.value.trim() !== '') {
       problems.push({
         field: 'actualCents',
         message: 'Actual must be dollars and cents, or blank',
@@ -282,11 +285,15 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
       endDate: endDate.input.value,
       responsibleParty: responsibleParty.input.value.trim(),
       estimatedCents: estimate ?? 0,
-      actualCents: actual,
+      actualCents: typed,
     };
     // A money field that does not parse keeps its own message.
     problems.push(...scheduleItemErrors(input));
-    return showProblems(fields, problems, FIELD_LABELS) ? null : input;
+    if (showProblems(fields, problems, FIELD_LABELS)) return null;
+    /** @type {ScheduleItemInput} */
+    const body = input;
+    if (!actual.sends()) delete body.actualCents;
+    return body;
   }
 
   async function submit() {
@@ -319,7 +326,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
   }
 
   async function deleteItem() {
-    if (!item) return;
+    if (!item || refuseBilled(ctx, item.id, item.title)) return;
     const yes = await confirmDialog({
       title: `Delete ${item.title}?`,
       message:

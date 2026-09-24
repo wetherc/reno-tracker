@@ -13,6 +13,7 @@ import {
   textField,
 } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
+import { actualField, refuseBilled } from './billing.js';
 import { discardGuard } from './discardGuard.js';
 import { showProblems } from './formErrors.js';
 
@@ -79,20 +80,22 @@ export function openMaterialEditor({ ctx, item }) {
     label: MATERIAL_LABELS.estimatedCents,
     cents: item?.estimatedCents ?? 0,
   });
-  const actualCents = moneyField({
+  const actual = actualField({
+    ctx,
     id: `${prefix}-actual`,
     label: MATERIAL_LABELS.actualCents,
+    rowId: item?.id,
     cents: item?.actualCents ?? null,
     placeholder: 'Blank until bought',
-    blankIsNull: true,
   });
+  const actualCents = actual.field;
   const fields = {
     name,
     scheduleItemId,
     expectedDate,
     allowanceCents,
     estimatedCents,
-    actualCents,
+    ...(!actual.billed && { actualCents }),
   };
 
   const formEl = form({
@@ -150,7 +153,7 @@ export function openMaterialEditor({ ctx, item }) {
     }
   });
 
-  /** @returns {Required<MaterialItemInput> | null} */
+  /** @returns {MaterialItemInput | null} */
   function readForm() {
     const money = {
       allowanceCents: allowanceCents.cents(),
@@ -185,7 +188,11 @@ export function openMaterialEditor({ ctx, item }) {
       actualCents: money.actualCents,
     };
     problems.push(...materialItemErrors(input));
-    return showProblems(fields, problems, MATERIAL_LABELS) ? null : input;
+    if (showProblems(fields, problems, MATERIAL_LABELS)) return null;
+    /** @type {MaterialItemInput} */
+    const body = input;
+    if (!actual.sends()) delete body.actualCents;
+    return body;
   }
 
   async function submit() {
@@ -215,7 +222,7 @@ export function openMaterialEditor({ ctx, item }) {
   }
 
   async function deleteItem() {
-    if (!item) return;
+    if (!item || refuseBilled(ctx, item.id, item.name)) return;
     const yes = await confirmDialog({
       title: `Delete ${item.name}?`,
       message: 'The schedule item it is for stays as it is.',

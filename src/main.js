@@ -4,6 +4,7 @@ import { createBackend, readBackend } from './api/backend.js';
 import { describeFailure } from './api/errors.js';
 import { createContext } from './app/context.js';
 import { mountCosts } from './app/costs.js';
+import { mountInvoices } from './app/invoices.js';
 import { mountMaterials } from './app/materials.js';
 import { mountNotes } from './app/notesView.js';
 import { mountProjects } from './app/projects.js';
@@ -40,6 +41,7 @@ const shell = mountShell({
 const schedule = mountSchedule({ ctx, shell });
 const notes = mountNotes({ ctx, shell });
 const materials = mountMaterials({ ctx, shell });
+const invoices = mountInvoices({ ctx, shell });
 const costs = mountCosts({ ctx, shell });
 
 /** @type {import('./app/startView.js').StartState} */
@@ -69,6 +71,10 @@ function render() {
   }
   if (shell.section === 'materials') {
     materials.show();
+    return;
+  }
+  if (shell.section === 'invoices') {
+    invoices.show();
     return;
   }
   costs.show();

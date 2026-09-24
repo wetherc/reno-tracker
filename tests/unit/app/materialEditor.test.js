@@ -2,7 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
 import { openMaterialEditor } from '../../../src/app/materialEditor.js';
-import { itemOf, materialOf, setupSchedule, tick } from './scheduleFixtures.js';
+import {
+  invoiceOf,
+  itemOf,
+  materialOf,
+  setupSchedule,
+  tick,
+} from './scheduleFixtures.js';
 
 const dom = installDom();
 
@@ -146,4 +152,79 @@ test('delete asks first and writes on yes', async () => {
   assert.deepEqual(fx.log, ['delete material m1']);
   assert.deepEqual(fx.toasts, ['ok Deleted Tile']);
   assert.equal(dom.body.children.length, 0);
+});
+
+/** @param {string} materialItemId @param {number} amountCents */
+const billsMaterial = (materialItemId, amountCents) => ({
+  id: `l${amountCents}`,
+  scheduleItemId: null,
+  materialItemId,
+  description: '',
+  amountCents,
+});
+
+test('a billed material shows its invoice sum read only and saves without it', async () => {
+  const fx = setupSchedule({
+    materials: [materialOf('m1', { name: 'Tile', actualCents: 1 })],
+    invoices: [
+      invoiceOf('i1', {
+        number: '7',
+        party: 'Stone Co',
+        lines: [billsMaterial('m1', 5000), billsMaterial('m1', 2500)],
+      }),
+    ],
+  });
+  await fx.ctx.openProject('p1');
+  /** @type {any[]} */
+  const patches = [];
+  const patch = fx.ctx.api.patchMaterial;
+  fx.ctx.api.patchMaterial = (id, body) => {
+    patches.push(body);
+    return patch(id, body);
+  };
+  const item = /** @type {any} */ (fx.ctx.payload).materials[0];
+  const dialog = openMaterialEditor({ ctx: fx.ctx, item });
+  const form = $(dialog.el).querySelector('form');
+  const actual = form.querySelectorAll('[inputmode="decimal"]')[2];
+  assert.equal(actual.value, '75.00');
+  assert.equal(actual.hasAttribute('readonly'), true);
+  const hint = form.querySelector('.form__hint');
+  assert.equal(hint.textContent, 'The sum of 2 invoice lines');
+  assert.equal(actual.getAttribute('aria-describedby'), hint.id);
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal('actualCents' in patches[0], false);
+  assert.equal(patches[0].name, 'Tile');
+
+  const again = openMaterialEditor({ ctx: fx.ctx, item });
+  $(again.el).children[2].children[0].click();
+  await tick();
+  assert.equal(
+    fx.toasts.at(-1),
+    'bad Invoice 7 from Stone Co bills Tile. Remove that line first.',
+  );
+  assert.equal(dom.body.children.length, 1);
+  again.close();
+});
+
+test('a material billed while its editor is open keeps the invoice sum', async () => {
+  const fx = setupSchedule({ materials: [materialOf('m1', { name: 'Tile' })] });
+  await fx.ctx.openProject('p1');
+  /** @type {any[]} */
+  const patches = [];
+  const patch = fx.ctx.api.patchMaterial;
+  fx.ctx.api.patchMaterial = (id, body) => {
+    patches.push(body);
+    return patch(id, body);
+  };
+  const dialog = openMaterialEditor({ ctx: fx.ctx, item: fx.materials()[0] });
+  const form = $(dialog.el).querySelector('form');
+  form.querySelectorAll('[inputmode="decimal"]')[2].value = '12';
+  await fx.ctx.write((api) =>
+    api.createInvoice('p1', { party: 'P', lines: [billsMaterial('m1', 9)] }),
+  );
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal('actualCents' in patches[0], false);
+  assert.equal(fx.ctx.payload?.materials[0].actualCents, 9);
 });

@@ -19,6 +19,13 @@ static site on GitHub Pages, where it keeps its data in the browser.
 - A bill of materials for non-labor costs. Each material has an allowance,
   an estimated cost, an actual cost, and an expected day. A material with
   no estimate counts its allowance as its expected cost.
+- Invoices. Each invoice has a number, the party that sent it, an issue
+  day, an optional due day, and one or more lines. Each line bills one
+  schedule item or one material. A billed row's actual cost is the sum
+  of its lines, and its editor shows that sum read only. A row that no
+  line bills keeps the actual price typed on it. A billed row cannot be
+  deleted until its lines are gone. An invoice edit writes no row to the
+  change log.
 - A complete checkbox on every schedule and material row. Every view shares
   it.
 - Four views of the schedule: table, calendar, Gantt, and agenda. A tap
@@ -173,6 +180,15 @@ every edit and would make each refetch larger. The Changes tab of the
 item editor fetches the rows of its item from
 `GET /api/schedule/:id/changes` each time it opens, and again after each
 write while it is open. Export still includes the whole log.
+
+`ctx.openProject` passes each fetched payload through
+`withInvoiceActuals` in `src/costs/invoiced.js`, which sets the actual
+price of every billed row to the sum of its invoice lines. Every view,
+chart, and total reads that sum with no code of its own. An editor
+leaves `actualCents` out of the save for a row that is billed when it
+opens or when it saves, so the typed price stays in storage and the
+change log records no false change. Export reads the backend, so a saved
+file keeps the typed prices.
 
 Every write on the client goes through `ctx.write` in
 `src/app/context.js`, which toasts the failure text or the success
