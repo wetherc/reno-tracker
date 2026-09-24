@@ -90,6 +90,41 @@ export function realFile(root, file) {
 }
 
 /**
+ * A weak validator from the size and the modification time. An edit
+ * changes at least one of them, so the browser downloads the new file.
+ * @param {import('node:fs').Stats} stats
+ * @returns {string}
+ */
+export function entityTag(stats) {
+  return `W/"${stats.size.toString(16)}-${Math.trunc(stats.mtimeMs).toString(16)}"`;
+}
+
+/**
+ * True when the browser's copy matches the file, so a 304 can replace
+ * the body. If-None-Match wins over If-Modified-Since when both are
+ * sent, as RFC 9110 requires.
+ * @param {import('node:http').IncomingHttpHeaders} headers
+ * @param {string} tag from entityTag
+ * @param {Date} modified
+ * @returns {boolean}
+ */
+export function isFresh(headers, tag, modified) {
+  const match = headers['if-none-match'];
+  if (match !== undefined) {
+    const weak = (/** @type {string} */ t) => t.trim().replace(/^W\//, '');
+    return match
+      .split(',')
+      .some((t) => t.trim() === '*' || weak(t) === weak(tag));
+  }
+  const since = Date.parse(headers['if-modified-since'] ?? '');
+  // Last-Modified keeps whole seconds only.
+  return (
+    Number.isFinite(since) &&
+    Math.floor(modified.getTime() / 1000) * 1000 <= since
+  );
+}
+
+/**
  * @param {string} root
  * @returns {(req: IncomingMessage, res: ServerResponse) => void}
  */
@@ -104,10 +139,22 @@ export function serveStatic(root) {
       res.end(`Not found: ${path}`);
       return;
     }
+    // no-cache makes the browser ask on every load, and the validators
+    // let the answer be a 304 with no body when the file is unchanged.
+    const tag = entityTag(stats);
+    const validators = {
+      'Cache-Control': 'no-cache',
+      ETag: tag,
+      'Last-Modified': stats.mtime.toUTCString(),
+    };
+    if (isFresh(req.headers, tag, stats.mtime)) {
+      res.writeHead(304, validators).end();
+      return;
+    }
     res.writeHead(200, {
       'Content-Type': MIME[extname(file)],
       'Content-Length': stats.size,
-      'Cache-Control': 'no-cache',
+      ...validators,
     });
     if (req.method === 'HEAD') {
       res.end();

@@ -71,6 +71,11 @@ on disk and checks that path again. This refuses a symlink that points
 outside the allowed files, and a name such as `src/ſerver` that APFS
 folds to `src/server`.
 
+Each file goes out with `Cache-Control: no-cache`, an `ETag` built from
+its size and modification time, and `Last-Modified`. The browser asks
+again on every load, and the server answers 304 with no body when the
+file has not changed.
+
 | Script               | Runs                                                    |
 | -------------------- | ------------------------------------------------------- |
 | `pnpm test`          | the unit and server tests                               |
