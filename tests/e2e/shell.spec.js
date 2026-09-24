@@ -5,6 +5,21 @@ test('the empty shell renders in light and dark', async ({ page }) => {
   await expect(page.locator('.panel__title')).toHaveText('Schedule');
   await expect(page.locator('.empty-state')).toContainText('No project open');
   await expect(page.locator('[aria-current="page"]')).toHaveText('Schedule');
+
+  // The skip link is the first tab stop and moves focus into the panel.
+  const skip = page.getByRole('link', { name: 'Skip to the main panel' });
+  await expect(skip).not.toBeInViewport();
+  await page.keyboard.press('Tab');
+  await expect(skip).toBeFocused();
+  await expect(skip).toBeInViewport();
+  await page.screenshot({
+    path: 'test-results/shell-skip-link.png',
+    animations: 'disabled',
+  });
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#main')).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#main :focus')).toHaveCount(1);
   await page.screenshot({
     path: 'test-results/shell-light.png',
     fullPage: true,

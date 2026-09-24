@@ -10,6 +10,7 @@
   </head>
   <body>
     <script src="./src/boot.js"></script>
+    <a class="skip-link" href="#main">Skip to the main panel</a>
     <div class="app">
       <header class="app__header">
         <a class="brand" href="./">
@@ -22,7 +23,7 @@
         <div id="theme-toggle"></div>
       </header>
       <nav class="app__sidebar" id="sidebar" aria-label="Sections"></nav>
-      <main class="app__main" id="main"></main>
+      <main class="app__main" id="main" tabindex="-1"></main>
     </div>
     <div class="toast-region" id="toasts" aria-live="polite"></div>
     <script type="module" src="./src/main.js"></script>
