@@ -39,7 +39,7 @@ test('a new material lists schedule items by start and saves', async () => {
 
   form.dispatchEvent({ type: 'submit' });
   await tick();
-  assert.deepEqual(shownErrors(form), ['name cannot be blank']);
+  assert.deepEqual(shownErrors(form), ['Material cannot be blank']);
 
   form.querySelector('[type="text"]').value = ' Quartz ';
   select.value = 'b';
@@ -80,7 +80,7 @@ test('a server field error lands under its field', async () => {
   form.querySelector('[type="text"]').value = 'boom';
   form.dispatchEvent({ type: 'submit' });
   await tick();
-  assert.deepEqual(shownErrors(form), ['no such item']);
+  assert.deepEqual(shownErrors(form), ['No such item']);
   assert.equal(fx.toasts[0], 'bad no such item');
   assert.equal($(dialog.el).open, true);
   dialog.close();

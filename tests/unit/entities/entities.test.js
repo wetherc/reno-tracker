@@ -3,15 +3,18 @@ import assert from 'node:assert/strict';
 import { isLate } from '../../../src/entities/scheduleItem.js';
 import {
   projectDefaults,
+  projectErrors,
   validateProject,
 } from '../../../src/entities/project.js';
 import {
   scheduleItemDefaults,
+  scheduleItemErrors,
   validateScheduleItem,
   TRACKED_FIELDS,
 } from '../../../src/entities/scheduleItem.js';
 import {
   materialItemDefaults,
+  materialItemErrors,
   validateMaterialItem,
 } from '../../../src/entities/materialItem.js';
 import { diffTrackedFields, toStored } from '../../../src/entities/variance.js';
@@ -220,4 +223,30 @@ test('isLate is true only for an open item past its end date', () => {
     false,
   );
   assert.equal(isLate({ endDate: '2026-09-14', complete: true }, today), false);
+});
+
+test('the error lists name every bad field at once', () => {
+  assert.deepEqual(
+    projectErrors({ name: ' ', startDate: 'soon' }).map((e) => e.field),
+    ['name', 'startDate'],
+  );
+  assert.deepEqual(
+    materialItemErrors({ name: '', allowanceCents: -1 }).map((e) => e.field),
+    ['name', 'allowanceCents'],
+  );
+  const item = {
+    title: '',
+    startDate: '2026-01-05',
+    endDate: '2026-01-04',
+    estimatedCents: 1.5,
+  };
+  assert.deepEqual(
+    scheduleItemErrors(item).map((e) => e.field),
+    ['title', 'estimatedCents', 'endDate'],
+  );
+  assert.deepEqual(
+    scheduleItemErrors({ ...item, startDate: 'nope' }).map((e) => e.field),
+    ['title', 'startDate', 'estimatedCents'],
+    'the date order rule waits for two good dates',
+  );
 });

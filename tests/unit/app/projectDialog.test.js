@@ -128,6 +128,14 @@ test('field errors block the save and clear on the next try', async () => {
   assert.equal(calls, 0);
   assert.equal(budget.getAttribute('aria-invalid'), 'true');
   assert.match(errorOf(budget).textContent, /dollars and cents/);
+  assert.equal(document.activeElement, budget);
+
+  name.value = '';
+  submit();
+  await Promise.resolve();
+  assert.equal(errorOf(name).textContent, 'Name cannot be blank');
+  assert.match(errorOf(budget).textContent, /dollars and cents/);
+  assert.equal(document.activeElement, name, 'the first bad field in order');
 
   budget.value = '10';
   name.value = '   ';
@@ -135,7 +143,8 @@ test('field errors block the save and clear on the next try', async () => {
   await Promise.resolve();
   assert.equal(calls, 0);
   assert.equal(budget.getAttribute('aria-invalid'), null);
-  assert.equal(errorOf(name).textContent, 'name cannot be blank');
+  assert.equal(errorOf(name).textContent, 'Name cannot be blank');
+  assert.equal(document.activeElement, name);
   assert.equal(name.getAttribute('aria-describedby'), errorOf(name).id);
 
   name.value = 'Kitchen';
@@ -143,7 +152,7 @@ test('field errors block the save and clear on the next try', async () => {
   submit();
   await Promise.resolve();
   assert.equal(calls, 0);
-  assert.match(errorOf(start).textContent, /startDate must be a date/);
+  assert.match(errorOf(start).textContent, /^Start date must be a date/);
   dialog.close();
 });
 
@@ -170,7 +179,7 @@ test('a server field error lands on the field; other errors leave it open', asyn
   assert.equal(dialog.el.open, true);
   assert.equal(
     name.parentNode.querySelector('.form__error').textContent,
-    'name is taken',
+    'Name is taken',
   );
   submit();
   await Promise.resolve();

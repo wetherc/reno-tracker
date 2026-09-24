@@ -2,7 +2,8 @@ import {
   checkCents,
   checkDate,
   checkText,
-  firstError,
+  fieldErrors,
+  first,
   nullable,
 } from './validate.js';
 
@@ -38,7 +39,16 @@ export function materialItemDefaults(input) {
 /**
  * @param {Record<string, unknown>} input
  * @param {{ partial?: boolean }} [options]
+ * @returns {import('./validate.js').FieldError[]} every problem
  */
-export function validateMaterialItem(input, { partial = false } = {}) {
-  return firstError(input, CHECKS, partial ? [] : [...MATERIAL_ITEM_REQUIRED]);
+export function materialItemErrors(input, { partial = false } = {}) {
+  return fieldErrors(input, CHECKS, partial ? [] : [...MATERIAL_ITEM_REQUIRED]);
 }
+
+/**
+ * The first problem materialItemErrors finds, or null.
+ * @param {Record<string, unknown>} input
+ * @param {{ partial?: boolean }} [options]
+ */
+export const validateMaterialItem = (input, options) =>
+  first(materialItemErrors(input, options));

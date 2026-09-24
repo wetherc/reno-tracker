@@ -2,7 +2,8 @@ import {
   checkCents,
   checkDate,
   checkText,
-  firstError,
+  fieldErrors,
+  first,
   nullable,
 } from './validate.js';
 
@@ -60,18 +61,22 @@ export function scheduleItemDefaults(input) {
 
 /**
  * Field checks plus the rule that an item ends on or after it starts.
- * For a patch, pass the current item so a one-sided date change is
- * checked against the date it keeps.
+ * The rule runs only when both dates pass their own checks. For a patch,
+ * pass the current item so a one-sided date change is checked against
+ * the date it keeps.
  * @param {Record<string, unknown>} input
  * @param {{ partial?: boolean, current?: Pick<ScheduleItem, 'startDate' | 'endDate'> }} [options]
+ * @returns {import('./validate.js').FieldError[]} every problem
  */
-export function validateScheduleItem(input, { partial = false, current } = {}) {
-  const error = firstError(
+export function scheduleItemErrors(input, { partial = false, current } = {}) {
+  const errors = fieldErrors(
     input,
     CHECKS,
     partial ? [] : [...SCHEDULE_ITEM_REQUIRED],
   );
-  if (error) return error;
+  if (errors.some((e) => e.field === 'startDate' || e.field === 'endDate')) {
+    return errors;
+  }
   const start = /** @type {string | undefined} */ (
     input.startDate ?? current?.startDate
   );
@@ -79,13 +84,21 @@ export function validateScheduleItem(input, { partial = false, current } = {}) {
     input.endDate ?? current?.endDate
   );
   if (start && end && end < start) {
-    return {
+    errors.push({
       field: 'endDate',
       message: `endDate ${end} is before startDate ${start}`,
-    };
+    });
   }
-  return null;
+  return errors;
 }
+
+/**
+ * The first problem scheduleItemErrors finds, or null.
+ * @param {Record<string, unknown>} input
+ * @param {{ partial?: boolean, current?: Pick<ScheduleItem, 'startDate' | 'endDate'> }} [options]
+ */
+export const validateScheduleItem = (input, options) =>
+  first(scheduleItemErrors(input, options));
 
 /**
  * True when the item is past its end date and not marked complete.

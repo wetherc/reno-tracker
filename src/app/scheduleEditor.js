@@ -3,7 +3,7 @@
 // and its change log. An edit asks for a reason, and the server writes
 // that reason onto every variance row the save produces.
 import { ApiError } from '../api/errors.js';
-import { validateScheduleItem } from '../entities/scheduleItem.js';
+import { scheduleItemErrors } from '../entities/scheduleItem.js';
 import { spanDays, todayIso } from '../schedule/dates.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
@@ -20,6 +20,7 @@ import { tabs } from '../ui/Tabs.js';
 import { completeToggle } from './completeToggle.js';
 import { dependencyLinks } from './dependencies.js';
 import { discardGuard } from './discardGuard.js';
+import { showProblems } from './formErrors.js';
 import { notesList } from './notesList.js';
 import { changesPanel, FIELD_LABELS } from './varianceList.js';
 
@@ -120,7 +121,6 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     description,
     reason,
   };
-  /** @typedef {keyof typeof fields} FieldName */
 
   const formEl = form({
     ariaLabel: editing ? 'Edit schedule item' : 'New schedule item',
@@ -257,46 +257,36 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     length.textContent = start && end ? describeLength(start, end) : '';
   }
 
-  /** @param {FieldName} field @param {string | null} message */
-  function mark(field, message) {
-    fields[field].setError(message);
-  }
-
   /** @returns {Required<ScheduleItemInput> | null} */
   function readForm() {
-    for (const name of /** @type {FieldName[]} */ (Object.keys(fields))) {
-      mark(name, null);
-    }
     const estimate = estimatedCents.cents();
     const actual = actualCents.cents();
-    let bad = false;
+    /** @type {import('../entities/validate.js').FieldError[]} */
+    const problems = [];
     if (estimate === null) {
-      mark(
-        'estimatedCents',
-        'Estimate must be dollars and cents, like 1,250.00',
-      );
-      bad = true;
+      problems.push({
+        field: 'estimatedCents',
+        message: 'Estimate must be dollars and cents, like 1,250.00',
+      });
     }
     if (actual === null && actualCents.input.value.trim() !== '') {
-      mark('actualCents', 'Actual must be dollars and cents, or blank');
-      bad = true;
+      problems.push({
+        field: 'actualCents',
+        message: 'Actual must be dollars and cents, or blank',
+      });
     }
-    if (bad) return null;
     const input = {
       title: title.input.value.trim(),
       description: description.input.value.trim(),
       startDate: startDate.input.value,
       endDate: endDate.input.value,
       responsibleParty: responsibleParty.input.value.trim(),
-      estimatedCents: /** @type {number} */ (estimate),
+      estimatedCents: estimate ?? 0,
       actualCents: actual,
     };
-    const problem = validateScheduleItem(input);
-    if (problem) {
-      mark(/** @type {FieldName} */ (problem.field), problem.message);
-      return null;
-    }
-    return input;
+    // A money field that does not parse keeps its own message.
+    problems.push(...scheduleItemErrors(input));
+    return showProblems(fields, problems, FIELD_LABELS) ? null : input;
   }
 
   async function submit() {
@@ -319,8 +309,12 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
       return;
     }
     const { error } = outcome;
-    if (error instanceof ApiError && error.field && error.field in fields) {
-      mark(/** @type {FieldName} */ (error.field), error.message);
+    if (error instanceof ApiError && error.field) {
+      showProblems(
+        fields,
+        [{ field: error.field, message: error.message }],
+        FIELD_LABELS,
+      );
     }
   }
 

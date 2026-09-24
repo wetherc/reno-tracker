@@ -37,7 +37,7 @@ test('a new item defaults to the project start and saves', async () => {
     .filter((/** @type {any} */ e) => !e.hidden);
   assert.deepEqual(
     errors.map((/** @type {any} */ e) => e.textContent),
-    ['title cannot be blank'],
+    ['Title cannot be blank'],
   );
   const title = form.querySelector('[type="text"]');
   title.value = ' Demo ';
@@ -49,8 +49,21 @@ test('a new item defaults to the project start and saves', async () => {
     form
       .querySelectorAll('.form__error')
       .filter((/** @type {any} */ e) => !e.hidden)[0].textContent,
-    /endDate .* is before startDate/,
+    /^End 2026-08-30 is before Start 2026-09-01$/,
   );
+  assert.equal(document.activeElement, dates[1]);
+  title.value = '';
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(
+    form
+      .querySelectorAll('.form__error')
+      .filter((/** @type {any} */ e) => !e.hidden).length,
+    2,
+    'every problem shows at once',
+  );
+  assert.equal(document.activeElement, title);
+  title.value = ' Demo ';
   dates[1].value = '2026-09-04';
   dates[1].dispatchEvent({ type: 'input' });
   assert.equal(hint.textContent, '4 days');
@@ -104,7 +117,7 @@ test('a failed create keeps the dialog open and reports', async () => {
     .filter((/** @type {any} */ e) => !e.hidden);
   assert.deepEqual(
     shown.map((/** @type {any} */ e) => e.textContent),
-    ['title is taken'],
+    ['Title is taken'],
   );
   el.close();
 });

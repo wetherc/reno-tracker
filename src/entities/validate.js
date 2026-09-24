@@ -1,6 +1,7 @@
 // Field checks shared by every entity. Each check returns an error
 // message naming the field and the offending value, or null when the
-// value is fine. Routes turn the first message into a 400.
+// value is fine. Routes turn the first message into a 400, and the forms
+// show every message at once.
 import { isIsoDate, MAX_DATE, MIN_DATE } from '../schedule/dates.js';
 
 /**
@@ -116,14 +117,22 @@ export function checkBoolean(field, value) {
  * @param {Record<string, unknown>} input
  * @param {Record<F, (field: string, value: unknown) => string | null>} checks
  * @param {F[]} [required]
- * @returns {FieldError | null} the first problem found
+ * @returns {FieldError[]} one problem per bad field, in the order of checks
  */
-export function firstError(input, checks, required = []) {
+export function fieldErrors(input, checks, required = []) {
+  /** @type {FieldError[]} */
+  const errors = [];
   for (const field of /** @type {F[]} */ (Object.keys(checks))) {
     const present = field in input;
     if (!present && !required.includes(field)) continue;
     const message = checks[field](field, input[field]);
-    if (message) return { field, message };
+    if (message) errors.push({ field, message });
   }
-  return null;
+  return errors;
 }
+
+/**
+ * @param {FieldError[]} errors
+ * @returns {FieldError | null}
+ */
+export const first = (errors) => errors[0] ?? null;

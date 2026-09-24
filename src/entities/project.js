@@ -1,4 +1,10 @@
-import { checkCents, checkDate, checkText, firstError } from './validate.js';
+import {
+  checkCents,
+  checkDate,
+  checkText,
+  fieldErrors,
+  first,
+} from './validate.js';
 
 /** @typedef {import('../types.ts').Project} Project */
 /** @typedef {import('../types.ts').ProjectInput} ProjectInput */
@@ -28,7 +34,16 @@ export function projectDefaults(input) {
 /**
  * @param {Record<string, unknown>} input
  * @param {{ partial?: boolean }} [options] partial skips the required list
+ * @returns {import('./validate.js').FieldError[]} every problem
  */
-export function validateProject(input, { partial = false } = {}) {
-  return firstError(input, CHECKS, partial ? [] : [...PROJECT_REQUIRED]);
+export function projectErrors(input, { partial = false } = {}) {
+  return fieldErrors(input, CHECKS, partial ? [] : [...PROJECT_REQUIRED]);
 }
+
+/**
+ * The first problem projectErrors finds, or null.
+ * @param {Record<string, unknown>} input
+ * @param {{ partial?: boolean }} [options]
+ */
+export const validateProject = (input, options) =>
+  first(projectErrors(input, options));

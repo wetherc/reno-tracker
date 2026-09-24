@@ -2,7 +2,7 @@
 // day it is expected, and three prices: the allowance the budget set
 // aside, the estimate, and the actual price once bought.
 import { ApiError } from '../api/errors.js';
-import { validateMaterialItem } from '../entities/materialItem.js';
+import { materialItemErrors } from '../entities/materialItem.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
 import {
@@ -14,6 +14,7 @@ import {
 } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
 import { discardGuard } from './discardGuard.js';
+import { showProblems } from './formErrors.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
@@ -93,7 +94,6 @@ export function openMaterialEditor({ ctx, item }) {
     estimatedCents,
     actualCents,
   };
-  /** @typedef {keyof typeof fields} FieldName */
 
   const formEl = form({
     ariaLabel: editing ? 'Edit material' : 'New material',
@@ -150,53 +150,42 @@ export function openMaterialEditor({ ctx, item }) {
     }
   });
 
-  /** @param {FieldName} field @param {string | null} message */
-  function mark(field, message) {
-    fields[field].setError(message);
-  }
-
   /** @returns {Required<MaterialItemInput> | null} */
   function readForm() {
-    for (const key of /** @type {FieldName[]} */ (Object.keys(fields))) {
-      mark(key, null);
-    }
     const money = {
       allowanceCents: allowanceCents.cents(),
       estimatedCents: estimatedCents.cents(),
       actualCents: actualCents.cents(),
     };
-    let bad = false;
+    /** @type {import('../entities/validate.js').FieldError[]} */
+    const problems = [];
     for (const key of /** @type {const} */ ([
       'allowanceCents',
       'estimatedCents',
     ])) {
       if (money[key] === null) {
-        mark(
-          key,
-          `${MATERIAL_LABELS[key]} must be dollars and cents, like 1,250.00`,
-        );
-        bad = true;
+        problems.push({
+          field: key,
+          message: `${MATERIAL_LABELS[key]} must be dollars and cents, like 1,250.00`,
+        });
       }
     }
     if (money.actualCents === null && actualCents.input.value.trim() !== '') {
-      mark('actualCents', 'Actual must be dollars and cents, or blank');
-      bad = true;
+      problems.push({
+        field: 'actualCents',
+        message: 'Actual must be dollars and cents, or blank',
+      });
     }
-    if (bad) return null;
     const input = {
       name: name.input.value.trim(),
       scheduleItemId: scheduleItemId.input.value || null,
       expectedDate: expectedDate.input.value || null,
-      allowanceCents: /** @type {number} */ (money.allowanceCents),
-      estimatedCents: /** @type {number} */ (money.estimatedCents),
+      allowanceCents: money.allowanceCents ?? 0,
+      estimatedCents: money.estimatedCents ?? 0,
       actualCents: money.actualCents,
     };
-    const problem = validateMaterialItem(input);
-    if (problem) {
-      mark(/** @type {FieldName} */ (problem.field), problem.message);
-      return null;
-    }
-    return input;
+    problems.push(...materialItemErrors(input));
+    return showProblems(fields, problems, MATERIAL_LABELS) ? null : input;
   }
 
   async function submit() {
@@ -216,8 +205,12 @@ export function openMaterialEditor({ ctx, item }) {
       return;
     }
     const { error } = outcome;
-    if (error instanceof ApiError && error.field && error.field in fields) {
-      mark(/** @type {FieldName} */ (error.field), error.message);
+    if (error instanceof ApiError && error.field) {
+      showProblems(
+        fields,
+        [{ field: error.field, message: error.message }],
+        MATERIAL_LABELS,
+      );
     }
   }
 

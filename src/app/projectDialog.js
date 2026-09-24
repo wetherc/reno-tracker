@@ -2,12 +2,13 @@
 // modal for both a new project and edits to an open one. The dialog owns
 // field errors; the caller owns the write.
 import { ApiError } from '../api/errors.js';
-import { validateProject } from '../entities/project.js';
+import { projectErrors } from '../entities/project.js';
 import { todayIso } from '../schedule/dates.js';
 import { button } from '../ui/buttons.js';
 import { dateField, form, moneyField, textField } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
 import { discardGuard } from './discardGuard.js';
+import { showProblems } from './formErrors.js';
 
 /** @typedef {import('../types.ts').Project} Project */
 /** @typedef {import('../types.ts').ProjectInput} ProjectInput */
@@ -72,30 +73,27 @@ export function openProjectDialog({ project, onSave }) {
     onClose: () => dialog.el.remove(),
   });
 
-  /** @param {'name' | 'startDate' | 'budgetCents'} field @param {string | null} message */
-  function mark(field, message) {
-    fields[field].setError(message);
-  }
+  const labels = {
+    name: 'Name',
+    startDate: 'Start date',
+    budgetCents: 'Budget',
+  };
 
   async function submit() {
-    mark('name', null);
-    mark('startDate', null);
-    mark('budgetCents', null);
     const cents = budget.cents();
-    if (cents === null) {
-      mark('budgetCents', 'Budget must be dollars and cents, like 12,500.00');
-      return;
-    }
     const input = {
       name: name.input.value.trim(),
       startDate: startDate.input.value,
-      budgetCents: cents,
+      budgetCents: cents ?? 0,
     };
-    const problem = validateProject(input);
-    if (problem) {
-      mark(/** @type {keyof typeof fields} */ (problem.field), problem.message);
-      return;
+    const problems = projectErrors(input);
+    if (cents === null) {
+      problems.unshift({
+        field: 'budgetCents',
+        message: 'Budget must be dollars and cents, like 12,500.00',
+      });
     }
+    if (showProblems(fields, problems, labels)) return;
     save.disabled = true;
     const outcome = await onSave(input);
     save.disabled = false;
@@ -104,8 +102,12 @@ export function openProjectDialog({ project, onSave }) {
       return;
     }
     const { error } = outcome;
-    if (error instanceof ApiError && error.field && error.field in fields) {
-      mark(/** @type {keyof typeof fields} */ (error.field), error.message);
+    if (error instanceof ApiError && error.field) {
+      showProblems(
+        fields,
+        [{ field: error.field, message: error.message }],
+        labels,
+      );
     }
   }
 

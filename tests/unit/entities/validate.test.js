@@ -6,7 +6,8 @@ import {
   checkDate,
   checkText,
   checkTimestamp,
-  firstError,
+  fieldErrors,
+  first,
   MAX_CENTS,
   nullable,
 } from '../../../src/entities/validate.js';
@@ -84,14 +85,22 @@ test('checkBoolean', () => {
   );
 });
 
-test('firstError skips absent optional fields and demands required ones', () => {
+test('fieldErrors skips absent optional fields and lists every bad one', () => {
   const checks = { a: checkCents, b: checkCents };
-  assert.equal(firstError({ a: 1 }, checks), null);
-  assert.deepEqual(firstError({ a: 1 }, checks, ['b']), {
-    field: 'b',
-    message: 'b must be whole cents, zero or more, got undefined',
-  });
-  assert.deepEqual(firstError({ a: -1, b: -1 }, checks), {
+  assert.deepEqual(fieldErrors({ a: 1 }, checks), []);
+  assert.equal(first(fieldErrors({ a: 1 }, checks)), null);
+  assert.deepEqual(fieldErrors({ a: 1 }, checks, ['b']), [
+    {
+      field: 'b',
+      message: 'b must be whole cents, zero or more, got undefined',
+    },
+  ]);
+  const both = fieldErrors({ a: -1, b: -1 }, checks);
+  assert.deepEqual(
+    both.map((e) => e.field),
+    ['a', 'b'],
+  );
+  assert.deepEqual(first(both), {
     field: 'a',
     message: 'a must be whole cents, zero or more, got -1',
   });

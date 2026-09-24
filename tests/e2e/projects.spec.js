@@ -23,7 +23,7 @@ test('start, edit, and delete a project from the picker', async ({ page }) => {
   await page.getByRole('button', { name: 'New project' }).click();
   await dialog.getByRole('button', { name: 'Start project' }).click();
   await expect(dialog.locator('.form__error:not([hidden])')).toHaveText(
-    'name cannot be blank',
+    'Name cannot be blank',
   );
   await dialog.getByLabel('Name').fill('Deck');
   await dialog.getByRole('button', { name: 'Start project' }).click();
