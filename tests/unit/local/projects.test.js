@@ -11,6 +11,7 @@ const project = (id, name, createdAt) => ({
   id,
   name,
   budgetCents: 0,
+  markupBasisPoints: 0,
   startDate: '2026-01-01',
   createdAt,
 });

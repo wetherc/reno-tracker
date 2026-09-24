@@ -51,6 +51,27 @@ export function checkCents(field, value) {
   return null;
 }
 
+// The largest rate one field takes, in basis points: 10000 is 100%.
+export const MAX_BASIS_POINTS = 10_000;
+
+/**
+ * A rate in whole basis points, from zero to MAX_BASIS_POINTS. One basis
+ * point is a hundredth of a percent, so 1500 is 15%.
+ * @param {string} field
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+export function checkBasisPoints(field, value) {
+  if (
+    !Number.isInteger(value) ||
+    /** @type {number} */ (value) < 0 ||
+    /** @type {number} */ (value) > MAX_BASIS_POINTS
+  ) {
+    return `${field} must be whole basis points from 0 to ${MAX_BASIS_POINTS}, got ${show(value)}`;
+  }
+  return null;
+}
+
 /**
  * @param {string} field
  * @param {unknown} value

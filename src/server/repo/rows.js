@@ -24,6 +24,7 @@ export function toProject(r) {
     id: text(r.id),
     name: text(r.name),
     budgetCents: int(r.budgetCents),
+    markupBasisPoints: int(r.markupBasisPoints),
     startDate: text(r.startDate),
     createdAt: text(r.createdAt),
   };
@@ -153,6 +154,7 @@ export function toInvoice(r, lines, payments) {
     party: text(r.party),
     issuedDate: text(r.issuedDate),
     dueDate: textOrNull(r.dueDate),
+    markupBasisPoints: int(r.markupBasisPoints),
     retainageCents: int(r.retainageCents),
     lines,
     payments,

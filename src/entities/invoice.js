@@ -1,9 +1,11 @@
 // An invoice is one bill from one party. Each of its lines bills one
 // schedule item or one material, so the sum of the lines on a row is
-// what that row cost. An invoice may also list its payments. A line
+// what that row cost before markup. The total adds the invoice's markup
+// rate to the sum of the lines. An invoice may also list its payments. A line
 // error names its field as lines.<index>.<name>, and a payment error as
 // payments.<index>.<name>, so a form can mark the control on that row.
 import {
+  checkBasisPoints,
   checkCents,
   checkDate,
   checkText,
@@ -29,6 +31,7 @@ export const INVOICE_FIELDS = /** @type {const} */ ([
   'party',
   'issuedDate',
   'dueDate',
+  'markupBasisPoints',
   'retainageCents',
   'lines',
   'payments',
@@ -44,6 +47,7 @@ const CHECKS = {
     checkText(f, v, { min: 1, max: 200 }),
   issuedDate: checkDate,
   dueDate: nullable(checkDate),
+  markupBasisPoints: checkBasisPoints,
   retainageCents: checkCents,
 };
 
@@ -238,14 +242,16 @@ export function paymentDefaults(payments) {
 /**
  * Fills a checked create body with defaults.
  * @param {InvoiceInput} input
+ * @param {number} [markupBasisPoints] the rate of a body with none, which is the project's rate on a create
  * @returns {NewInvoice}
  */
-export function invoiceDefaults(input) {
+export function invoiceDefaults(input, markupBasisPoints = 0) {
   return {
     number: input.number ?? '',
     party: input.party ?? '',
     issuedDate: input.issuedDate ?? '',
     dueDate: input.dueDate ?? null,
+    markupBasisPoints: input.markupBasisPoints ?? markupBasisPoints,
     retainageCents: input.retainageCents ?? 0,
     lines: (input.lines ?? []).map(lineDefaults),
     payments: paymentDefaults(input.payments ?? []),
@@ -335,9 +341,56 @@ export function invoicePaid(invoice) {
 }
 
 /**
+ * A rate applied to an amount, rounded to whole cents.
+ * @param {number} cents
+ * @param {number} basisPoints
+ * @returns {number}
+ */
+export function markupOf(cents, basisPoints) {
+  return Math.round((cents * basisPoints) / 10_000);
+}
+
+/**
+ * The markup of each line, in line order. The invoice rounds its markup
+ * once, on the sum of the lines. Each line takes the rounded markup of
+ * the running sum through it less that of the lines before it, so the
+ * shares add up to the invoice markup and each share is within a cent
+ * of the exact rate.
+ * @param {Pick<Invoice, 'lines' | 'markupBasisPoints'>} invoice
+ * @returns {number[]}
+ */
+export function lineMarkups(invoice) {
+  let base = 0;
+  let before = 0;
+  return invoice.lines.map((line) => {
+    base += line.amountCents;
+    const through = markupOf(base, invoice.markupBasisPoints);
+    const share = through - before;
+    before = through;
+    return share;
+  });
+}
+
+/**
  * @param {Pick<Invoice, 'lines'>} invoice
- * @returns {number} the sum of the lines
+ * @returns {number} the sum of the lines, before markup
+ */
+export function invoiceSubtotal(invoice) {
+  return invoice.lines.reduce((sum, line) => sum + line.amountCents, 0);
+}
+
+/**
+ * @param {Pick<Invoice, 'lines' | 'markupBasisPoints'>} invoice
+ * @returns {number} the markup on the sum of the lines
+ */
+export function invoiceMarkup(invoice) {
+  return markupOf(invoiceSubtotal(invoice), invoice.markupBasisPoints);
+}
+
+/**
+ * @param {Pick<Invoice, 'lines' | 'markupBasisPoints'>} invoice
+ * @returns {number} the sum of the lines plus the markup
  */
 export function invoiceTotal(invoice) {
-  return invoice.lines.reduce((sum, line) => sum + line.amountCents, 0);
+  return invoiceSubtotal(invoice) + invoiceMarkup(invoice);
 }

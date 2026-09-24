@@ -21,6 +21,7 @@ const projectOfId = (id, name = id) => ({
   id,
   name,
   budgetCents: 0,
+  markupBasisPoints: 0,
   startDate: '2026-01-05',
   createdAt: '2026-01-01T00:00:00.000Z',
 });
@@ -88,6 +89,7 @@ function twoProjects() {
       party: 'Pinch',
       issuedDate: '2026-01-05',
       dueDate: null,
+      markupBasisPoints: 0,
       retainageCents: 0,
       lines: [],
       payments: [],
@@ -332,7 +334,7 @@ test('a partial combined document reads as far as it can', () => {
   const storage = memoryStorage();
   storage.setItem(DB_KEY, '{"projects":[{"id":"p1"}],"notes":"x"}');
   const db = createStore(storage).read();
-  assert.deepEqual(db.projects, [{ id: 'p1' }]);
+  assert.deepEqual(db.projects, [{ id: 'p1', markupBasisPoints: 0 }]);
   assert.deepEqual(db.notes, []);
   assert.equal(storage.getItem(DAMAGED_KEY), null);
 });
@@ -452,7 +454,7 @@ test('ids and timestamps come from the platform', () => {
   assert.match(now(), /^\d{4}-\d{2}-\d{2}T/);
 });
 
-test('an invoice stored with no retainage or payments reads with none', () => {
+test('an invoice stored with no markup, retainage, or payments reads with none', () => {
   const storage = memoryStorage();
   const invoice = {
     id: 'i',
@@ -468,6 +470,6 @@ test('an invoice stored with no retainage or payments reads with none', () => {
     JSON.stringify({ projects: [projectOfId('a')], invoices: [invoice] }),
   );
   assert.deepEqual(createStore(storage).read().invoices, [
-    { ...invoice, retainageCents: 0, payments: [] },
+    { ...invoice, markupBasisPoints: 0, retainageCents: 0, payments: [] },
   ]);
 });

@@ -35,6 +35,7 @@ test('createMaterialItem appends and links to a schedule item of the same projec
   const other = createProject(db, {
     name: 'Bath',
     budgetCents: 0,
+    markupBasisPoints: 0,
     startDate: '2026-01-01',
   });
   assert.throws(

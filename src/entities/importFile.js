@@ -16,7 +16,7 @@ import {
   validateScheduleItem,
 } from './scheduleItem.js';
 import { materialItemDefaults, validateMaterialItem } from './materialItem.js';
-import { projectDefaults, validateProject } from './project.js';
+import { PROJECT_FIELDS, projectDefaults, validateProject } from './project.js';
 import { checkBoolean, checkText, checkTimestamp, show } from './validate.js';
 import { findCycle } from '../schedule/graph.js';
 import { checkInvoices } from './importInvoices.js';
@@ -305,7 +305,7 @@ function checkProject(raw, fail) {
       message: `project must be an object, got ${show(raw)}`,
     });
   }
-  const fields = pick(raw, ['name', 'budgetCents', 'startDate']);
+  const fields = pick(raw, [...PROJECT_FIELDS]);
   const error = validateProject(fields);
   if (error) fail({ field: 'project', message: `project: ${error.message}` });
   return projectDefaults(fields);

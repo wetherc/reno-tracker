@@ -23,6 +23,7 @@ test('project defaults and validation', () => {
   assert.deepEqual(projectDefaults({ name: 'Kitchen' }), {
     name: 'Kitchen',
     budgetCents: 0,
+    markupBasisPoints: 0,
     startDate: '',
   });
   assert.equal(
@@ -35,6 +36,10 @@ test('project defaults and validation', () => {
   });
   assert.equal(validateProject({ budgetCents: 5 }, { partial: true }), null);
   assert.equal(validateProject({ name: '' }, { partial: true })?.field, 'name');
+  assert.equal(
+    validateProject({ markupBasisPoints: 10_001 }, { partial: true })?.field,
+    'markupBasisPoints',
+  );
 });
 
 test('schedule item defaults fill endDate from startDate', () => {
@@ -159,8 +164,18 @@ test('diffTrackedFields emits one row per changed tracked field, in field order'
 
 test('defaults keep every field the caller gives', () => {
   assert.deepEqual(
-    projectDefaults({ name: 'Bath', budgetCents: 5, startDate: '2026-02-01' }),
-    { name: 'Bath', budgetCents: 5, startDate: '2026-02-01' },
+    projectDefaults({
+      name: 'Bath',
+      budgetCents: 5,
+      markupBasisPoints: 1500,
+      startDate: '2026-02-01',
+    }),
+    {
+      name: 'Bath',
+      budgetCents: 5,
+      markupBasisPoints: 1500,
+      startDate: '2026-02-01',
+    },
   );
   const item = {
     title: 'Tile',
@@ -187,6 +202,7 @@ test('defaults fill an empty body and keep an explicit null', () => {
   assert.deepEqual(projectDefaults({}), {
     name: '',
     budgetCents: 0,
+    markupBasisPoints: 0,
     startDate: '',
   });
   assert.deepEqual(scheduleItemDefaults({}), {

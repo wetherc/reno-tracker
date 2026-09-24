@@ -10,6 +10,7 @@ import {
   getInvoice,
   patchInvoice,
 } from '../repo/invoices.js';
+import { getProject } from '../repo/projects.js';
 import { asObject, pick, rejectInvalid } from './input.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
@@ -23,10 +24,11 @@ export function invoiceRoutes(router, db) {
   router.post('/api/projects/:id/invoices', ({ params, body }) => {
     const input = pick(asObject(body), INVOICE_FIELDS);
     rejectInvalid(validateInvoice(input));
+    const { markupBasisPoints } = getProject(db, params.id);
     return createInvoice(
       db,
       params.id,
-      invoiceDefaults(cleanInvoiceInput(input)),
+      invoiceDefaults(cleanInvoiceInput(input), markupBasisPoints),
     );
   });
   router.patch('/api/invoices/:id', ({ params, body }) => {

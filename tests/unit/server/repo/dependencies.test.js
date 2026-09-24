@@ -65,6 +65,7 @@ test('createDependency keeps edges inside one project', () => {
   const other = createProject(db, {
     name: 'Bath',
     budgetCents: 0,
+    markupBasisPoints: 0,
     startDate: '2026-01-01',
   });
   const a = addItem(db, project.id, 'Demo');

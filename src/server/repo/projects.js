@@ -41,7 +41,7 @@ export function getProject(db, id) {
 
 /**
  * @param {Database} db
- * @param {Pick<Project, 'name' | 'budgetCents' | 'startDate'>} input
+ * @param {import('../../types.ts').NewProject} input
  * @returns {Project}
  */
 export function createProject(db, input) {
@@ -49,9 +49,17 @@ export function createProject(db, input) {
     const id = randomUUID();
     statement(
       db,
-      `INSERT INTO projects (id, name, budgetCents, startDate, createdAt)
-       VALUES (?, ?, ?, ?, ?)`,
-    ).run(id, input.name, input.budgetCents, input.startDate, now());
+      `INSERT INTO projects
+         (id, name, budgetCents, markupBasisPoints, startDate, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      input.name,
+      input.budgetCents,
+      input.markupBasisPoints,
+      input.startDate,
+      now(),
+    );
     return getProject(db, id);
   });
 }

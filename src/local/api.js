@@ -6,7 +6,11 @@
 // change the store's memory copy.
 import { checkText } from '../entities/validate.js';
 import { checkBoolean } from '../entities/validate.js';
-import { projectDefaults, validateProject } from '../entities/project.js';
+import {
+  PROJECT_FIELDS,
+  projectDefaults,
+  validateProject,
+} from '../entities/project.js';
 import {
   scheduleItemDefaults,
   validateScheduleItem,
@@ -19,6 +23,7 @@ import { asObject, badRequest, pick, rejectInvalid } from './errors.js';
 import {
   createProject,
   deleteProject,
+  getProject,
   getProjectPayload,
   listProjects,
   patchProject,
@@ -65,11 +70,6 @@ import { exportProject, importProject, readExportFile } from './transfer.js';
 /** @typedef {import('../types.ts').MaterialItemInput} MaterialItemInput */
 /** @typedef {import('../types.ts').ProjectInput} ProjectInput */
 
-const PROJECT_FIELDS = /** @type {const} */ ([
-  'name',
-  'budgetCents',
-  'startDate',
-]);
 const SCHEDULE_FIELDS = /** @type {const} */ ([
   'title',
   'description',
@@ -275,10 +275,11 @@ export function createLocalApi(storage, events) {
       mutate(owner('project', projectId), (db) => {
         const body = pick(asObject(input), INVOICE_FIELDS);
         rejectInvalid(validateInvoice(body));
+        const { markupBasisPoints } = getProject(db, projectId);
         return createInvoice(
           db,
           projectId,
-          invoiceDefaults(cleanInvoiceInput(body)),
+          invoiceDefaults(cleanInvoiceInput(body), markupBasisPoints),
         );
       }),
     patchInvoice: (id, input) =>

@@ -33,7 +33,7 @@ export function getProject(db, id) {
 
 /**
  * @param {LocalDb} db
- * @param {Pick<Project, 'name' | 'budgetCents' | 'startDate'>} input
+ * @param {import('../types.ts').NewProject} input
  * @returns {Project}
  */
 export function createProject(db, input) {

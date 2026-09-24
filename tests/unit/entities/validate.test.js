@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  checkBasisPoints,
   checkBoolean,
   checkCents,
   checkDate,
@@ -8,9 +9,21 @@ import {
   checkTimestamp,
   fieldErrors,
   first,
+  MAX_BASIS_POINTS,
   MAX_CENTS,
   nullable,
 } from '../../../src/entities/validate.js';
+
+test('checkBasisPoints wants a whole number from zero to 10000', () => {
+  assert.equal(checkBasisPoints('rate', 0), null);
+  assert.equal(checkBasisPoints('rate', MAX_BASIS_POINTS), null);
+  for (const bad of [-1, 10_001, 1.5, '15', null]) {
+    assert.match(
+      /** @type {string} */ (checkBasisPoints('rate', bad)),
+      /^rate must be whole basis points from 0 to 10000, got /,
+    );
+  }
+});
 
 test('checkText reports type, blank, and length', () => {
   assert.equal(checkText('name', 'ok'), null);

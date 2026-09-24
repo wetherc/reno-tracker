@@ -4,11 +4,15 @@
 export type IsoDate = string; // YYYY-MM-DD
 export type IsoTimestamp = string; // full ISO 8601 with time zone
 export type Cents = number; // whole cents, never fractional
+export type BasisPoints = number; // whole hundredths of a percent: 1500 is 15%
 
+// markupBasisPoints is the project manager's margin. Each new invoice
+// copies it.
 export interface Project {
   id: string;
   name: string;
   budgetCents: Cents;
+  markupBasisPoints: BasisPoints;
   startDate: IsoDate;
   createdAt: IsoTimestamp;
 }
@@ -96,9 +100,10 @@ export interface Payment {
   note: string;
 }
 
-// retainageCents is the part of the total that the household keeps back
-// until the work is done. It is owed but not due, and a payment
-// releases it. Payments are listed by paid day.
+// The lines are base cost, and the total adds markupBasisPoints of
+// their sum. retainageCents is the part of the total that the household
+// keeps back until the work is done. It is owed but not due, and a
+// payment releases it. Payments are listed by paid day.
 export interface Invoice {
   id: string;
   projectId: string;
@@ -106,6 +111,7 @@ export interface Invoice {
   party: string;
   issuedDate: IsoDate;
   dueDate: IsoDate | null;
+  markupBasisPoints: BasisPoints;
   retainageCents: Cents;
   lines: InvoiceLine[];
   payments: Payment[];
@@ -127,7 +133,7 @@ export interface ProjectPayload {
 // Inputs. Every field is optional on a patch. Create bodies fill missing
 // fields from entity defaults.
 export type ProjectInput = Partial<
-  Pick<Project, 'name' | 'budgetCents' | 'startDate'>
+  Pick<Project, 'name' | 'budgetCents' | 'markupBasisPoints' | 'startDate'>
 >;
 
 export type ScheduleItemInput = Partial<
@@ -172,7 +178,12 @@ export type PaymentInput = Pick<Payment, 'paidDate' | 'amountCents'> &
 export type InvoiceInput = Partial<
   Pick<
     Invoice,
-    'number' | 'party' | 'issuedDate' | 'dueDate' | 'retainageCents'
+    | 'number'
+    | 'party'
+    | 'issuedDate'
+    | 'dueDate'
+    | 'markupBasisPoints'
+    | 'retainageCents'
   > & {
     lines: InvoiceLineInput[];
     payments: PaymentInput[];
@@ -187,6 +198,12 @@ export type NewInvoice = Omit<
   lines: Omit<InvoiceLine, 'id'>[];
   payments: Omit<Payment, 'id'>[];
 };
+
+// A checked project with every field filled, before it gets its id.
+export type NewProject = Pick<
+  Project,
+  'name' | 'budgetCents' | 'markupBasisPoints' | 'startDate'
+>;
 
 export type NoteInput = Pick<Note, 'body'>;
 
@@ -217,7 +234,7 @@ export interface ExportFile {
 // The rows of an export file after the import check. Ids are the ones
 // the file uses. Each backend swaps them for fresh ids as it inserts.
 export interface ImportRows {
-  project: Pick<Project, 'name' | 'budgetCents' | 'startDate'>;
+  project: NewProject;
   schedule: Omit<ScheduleItem, 'projectId'>[];
   dependencies: Pick<Dependency, 'predecessorId' | 'successorId'>[];
   variances: Omit<Variance, 'id'>[];

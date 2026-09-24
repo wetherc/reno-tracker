@@ -149,8 +149,9 @@ export function createInvoice(db, projectId, input) {
     statement(
       db,
       `INSERT INTO invoices
-         (id, projectId, number, party, issuedDate, dueDate, retainageCents)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (id, projectId, number, party, issuedDate, dueDate,
+          markupBasisPoints, retainageCents)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       projectId,
@@ -158,6 +159,7 @@ export function createInvoice(db, projectId, input) {
       input.party,
       input.issuedDate,
       input.dueDate,
+      input.markupBasisPoints,
       input.retainageCents,
     );
     insertLines(db, id, input.lines);

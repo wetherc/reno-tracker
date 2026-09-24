@@ -10,6 +10,7 @@ export function freshDb() {
   const project = createProject(db, {
     name: 'Kitchen',
     budgetCents: 5_000_000,
+    markupBasisPoints: 0,
     startDate: '2026-01-05',
   });
   return { db, project };

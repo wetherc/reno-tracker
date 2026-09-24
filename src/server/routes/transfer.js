@@ -146,8 +146,9 @@ export function importProject(db, file) {
     const invoice = statement(
       db,
       `INSERT INTO invoices
-         (id, projectId, number, party, issuedDate, dueDate, retainageCents)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (id, projectId, number, party, issuedDate, dueDate,
+          markupBasisPoints, retainageCents)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     const line = statement(
       db,
@@ -164,6 +165,7 @@ export function importProject(db, file) {
         inv.party,
         inv.issuedDate,
         inv.dueDate,
+        inv.markupBasisPoints,
         inv.retainageCents,
       );
       insertPayments(db, id, inv.payments);

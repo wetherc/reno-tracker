@@ -15,6 +15,7 @@ const project = {
   id: 'p1',
   name: 'Kitchen',
   budgetCents: 1250000,
+  markupBasisPoints: 0,
   startDate: '2026-03-02',
   createdAt: '',
 };
@@ -54,7 +55,12 @@ test('a new project dialog defaults to today and a zero budget', () => {
   submit();
   return Promise.resolve().then(() => {
     assert.deepEqual(saved, [
-      { name: 'Bath', startDate: '2026-04-01', budgetCents: 800000 },
+      {
+        name: 'Bath',
+        startDate: '2026-04-01',
+        budgetCents: 800000,
+        markupBasisPoints: 0,
+      },
     ]);
     assert.equal(dialog.el.open, false);
     assert.equal(dom.body.children.length, 0);

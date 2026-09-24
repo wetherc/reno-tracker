@@ -28,7 +28,12 @@ test('listProjects returns newest first', () => {
   db.prepare(
     `UPDATE projects SET createdAt = '2020-01-01T00:00:00.000Z'`,
   ).run();
-  createProject(db, { name: 'Bath', budgetCents: 0, startDate: '2026-02-01' });
+  createProject(db, {
+    name: 'Bath',
+    budgetCents: 0,
+    markupBasisPoints: 0,
+    startDate: '2026-02-01',
+  });
   assert.deepEqual(
     listProjects(db).map((p) => p.name),
     ['Bath', 'Kitchen'],

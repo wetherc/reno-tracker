@@ -155,7 +155,8 @@ function parseObject(text) {
 }
 
 /**
- * Fills in any list the stored document lacks, and the retainage and
+ * Fills in any list the stored document lacks, the markup rate of a
+ * project stored without one, and the markup rate, retainage, and
  * payments of an invoice stored without them.
  * @param {Record<string, unknown>} input
  * @returns {LocalDb}
@@ -167,8 +168,13 @@ function normalize(input) {
       db[key] = /** @type {never} */ (input[key]);
     }
   }
+  db.projects = db.projects.map((p) => ({
+    ...p,
+    markupBasisPoints: p.markupBasisPoints ?? 0,
+  }));
   db.invoices = db.invoices.map((i) => ({
     ...i,
+    markupBasisPoints: i.markupBasisPoints ?? 0,
     retainageCents: i.retainageCents ?? 0,
     payments: i.payments ?? [],
   }));

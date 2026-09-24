@@ -85,6 +85,7 @@ export function openProjectDialog({ project, onSave }) {
       name: name.input.value.trim(),
       startDate: startDate.input.value,
       budgetCents: cents ?? 0,
+      markupBasisPoints: project?.markupBasisPoints ?? 0,
     };
     const problems = projectErrors(input);
     if (cents === null) {

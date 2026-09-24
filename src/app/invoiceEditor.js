@@ -336,6 +336,8 @@ export function openInvoiceEditor({ ctx, invoice }) {
       party: party.input.value.trim(),
       issuedDate: issuedDate.input.value,
       dueDate: dueDate.input.value || null,
+      markupBasisPoints:
+        invoice?.markupBasisPoints ?? payload.project.markupBasisPoints,
       lines: lines.map((line, i) => {
         const cents = line.amount.cents();
         if (cents === null) {

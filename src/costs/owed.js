@@ -10,7 +10,7 @@ import { invoicePaid, invoiceTotal } from '../entities/invoice.js';
 
 /**
  * @typedef {object} Balance
- * @property {number} totalCents the sum of the lines
+ * @property {number} totalCents the sum of the lines plus the markup
  * @property {number} paidCents the sum of the payments
  * @property {number} owedCents the open balance, zero or more
  * @property {number} heldCents the part of owedCents kept back as retainage

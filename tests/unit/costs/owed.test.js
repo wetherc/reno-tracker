@@ -28,6 +28,15 @@ const pay = (amountCents) => ({
  */
 const bill = (id, extra) => invoiceOf(id, { lines: [line(1_000)], ...extra });
 
+test('the balance owes the markup on top of the lines', () => {
+  const b = balance(
+    bill('a', { markupBasisPoints: 1500, payments: [pay(1_000)] }),
+  );
+  assert.equal(b.totalCents, 1_150);
+  assert.equal(b.owedCents, 150);
+  assert.equal(b.dueCents, 150);
+});
+
 test('balance keeps retainage back from what is due', () => {
   assert.deepEqual(balance(bill('a', { retainageCents: 100 })), {
     totalCents: 1_000,

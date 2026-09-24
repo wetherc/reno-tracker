@@ -362,5 +362,68 @@ for (const [name, make] of BACKENDS) {
       const plain = await api.importProject(older);
       assert.deepEqual(plain.invoices, []);
     });
+
+    test('a new invoice copies the project markup and keeps its own', async () => {
+      const api = make();
+      const { project, tile, invoice: before } = await seed(api);
+      assert.equal(project.markupBasisPoints, 0);
+      assert.equal(before.markupBasisPoints, 0);
+      const marked = await api.patchProject(project.id, {
+        markupBasisPoints: 1500,
+      });
+      assert.equal(marked.markupBasisPoints, 1500);
+      const body = {
+        party: 'Pinch',
+        issuedDate: '2026-01-12',
+        lines: [{ scheduleItemId: tile.id, amountCents: 100 }],
+      };
+      const copied = await api.createInvoice(project.id, body);
+      assert.equal(copied.markupBasisPoints, 1500);
+      const direct = await api.createInvoice(project.id, {
+        ...body,
+        markupBasisPoints: 0,
+      });
+      assert.equal(direct.markupBasisPoints, 0);
+      await api.patchProject(project.id, { markupBasisPoints: 2000 });
+      const patched = await api.patchInvoice(copied.id, { number: '7' });
+      assert.equal(patched.markupBasisPoints, 1500);
+      const lower = await api.patchInvoice(copied.id, {
+        markupBasisPoints: 500,
+      });
+      assert.equal(lower.markupBasisPoints, 500);
+      await fails(
+        api.patchInvoice(copied.id, { markupBasisPoints: 10_001 }),
+        400,
+        'markupBasisPoints must be whole basis points from 0 to 10000, got 10001',
+        'markupBasisPoints',
+      );
+      await fails(
+        api.patchProject(project.id, { markupBasisPoints: -1 }),
+        400,
+        'markupBasisPoints must be whole basis points from 0 to 10000, got -1',
+        'markupBasisPoints',
+      );
+
+      const copy = await api.importProject(await api.exportProject(project.id));
+      assert.equal(copy.project.markupBasisPoints, 2000);
+      assert.deepEqual(
+        copy.invoices.map((i) => i.markupBasisPoints),
+        [0, 500, 0],
+      );
+    });
+
+    test('an import file with no markup reads as none', async () => {
+      const api = make();
+      const { project } = await seed(api);
+      await api.patchProject(project.id, { markupBasisPoints: 1500 });
+      const file = await api.exportProject(project.id);
+      /** @type {any} */
+      const older = structuredClone(file);
+      delete older.project.markupBasisPoints;
+      for (const invoice of older.invoices) delete invoice.markupBasisPoints;
+      const copy = await api.importProject(older);
+      assert.equal(copy.project.markupBasisPoints, 0);
+      assert.equal(copy.invoices[0].markupBasisPoints, 0);
+    });
   });
 }

@@ -256,6 +256,7 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
         party: 'Pinch',
         issuedDate: '2026-01-10',
         dueDate: null,
+        markupBasisPoints: 0,
         lines: [
           {
             scheduleItemId: 'item:Tile',

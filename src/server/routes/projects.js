@@ -1,4 +1,8 @@
-import { projectDefaults, validateProject } from '../../entities/project.js';
+import {
+  PROJECT_FIELDS as FIELDS,
+  projectDefaults,
+  validateProject,
+} from '../../entities/project.js';
 import {
   createProject,
   deleteProject,
@@ -13,8 +17,6 @@ import { asObject, pick, rejectInvalid } from './input.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../router.js').Router} Router */
-
-const FIELDS = /** @type {const} */ (['name', 'budgetCents', 'startDate']);
 
 /**
  * @param {Router} router

@@ -6,7 +6,11 @@ import {
   invoiceErrors,
   invoiceName,
   invoicePaid,
+  invoiceMarkup,
+  invoiceSubtotal,
   invoiceTotal,
+  lineMarkups,
+  markupOf,
   MAX_LINES,
   MAX_PAYMENTS,
   paymentDefaults,
@@ -105,6 +109,7 @@ test('defaults fill every field of the invoice and its lines', () => {
     party: 'Pinch Plumbing',
     issuedDate: '2026-01-05',
     dueDate: null,
+    markupBasisPoints: 0,
     lines: [
       {
         scheduleItemId: 'a',
@@ -118,6 +123,28 @@ test('defaults fill every field of the invoice and its lines', () => {
   });
   assert.deepEqual(invoiceDefaults({}).lines, []);
   assert.deepEqual(invoiceDefaults({}).party, '');
+});
+
+test('a body with no markup rate takes the given default', () => {
+  assert.equal(invoiceDefaults(ok, 1500).markupBasisPoints, 1500);
+  assert.equal(
+    invoiceDefaults({ ...ok, markupBasisPoints: 0 }, 1500).markupBasisPoints,
+    0,
+  );
+});
+
+test('markup is whole basis points from 0 to 10000', () => {
+  assert.equal(validateInvoice({ ...ok, markupBasisPoints: 10_000 }), null);
+  assert.deepEqual(
+    invoiceErrors({ markupBasisPoints: 12.5 }, { partial: true }),
+    [
+      {
+        field: 'markupBasisPoints',
+        message:
+          'markupBasisPoints must be whole basis points from 0 to 10000, got 12.5',
+      },
+    ],
+  );
 });
 
 test('pickLines drops unknown keys', () => {
@@ -145,9 +172,41 @@ test('names and totals', () => {
           amountCents: 250,
         },
       ],
+      markupBasisPoints: 0,
     }),
     750,
   );
+});
+
+/** @param {number[]} amounts @param {number} markupBasisPoints */
+const billOf = (amounts, markupBasisPoints) => ({
+  markupBasisPoints,
+  lines: amounts.map((amountCents, i) => ({
+    id: String(i),
+    scheduleItemId: 'a',
+    materialItemId: null,
+    description: '',
+    amountCents,
+  })),
+});
+
+test('the total adds the markup on the sum of the lines', () => {
+  const bill = billOf([10_000, 2_500], 1500);
+  assert.equal(invoiceSubtotal(bill), 12_500);
+  assert.equal(invoiceMarkup(bill), 1875);
+  assert.equal(invoiceTotal(bill), 14_375);
+  assert.equal(markupOf(333, 1000), 33);
+  assert.equal(markupOf(335, 1000), 34);
+});
+
+test('line markups add up to the invoice markup', () => {
+  // Each line alone rounds 3.33 cents down to 3, which would lose one
+  // cent of the 10-cent markup on 100 cents.
+  const bill = billOf([33, 33, 34], 1000);
+  assert.deepEqual(lineMarkups(bill), [3, 4, 3]);
+  assert.equal(invoiceMarkup(bill), 10);
+  assert.deepEqual(lineMarkups(billOf([500], 0)), [0]);
+  assert.deepEqual(lineMarkups(billOf([], 1500)), []);
 });
 
 test('payments are optional and each needs a day and more than zero cents', () => {

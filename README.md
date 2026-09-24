@@ -257,6 +257,14 @@ strings. One money field takes at most one billion dollars, because
 many fields has to stay exact. Date math runs on UTC midnight, so daylight saving cannot shift a
 day. The server makes every id as a UUID.
 
+A markup rate is an integer count of basis points, where 1500 is 15%.
+It runs from 0 to 10000. Integer basis points keep the money math exact,
+because a decimal percent such as 0.29 has no exact binary value. The
+project and each invoice have a rate of their own. A new invoice with no
+rate in its body copies the project rate. A change to the project rate
+does not change an invoice that is already entered. A project or
+invoice stored with no rate, and an import file with none, reads as 0.
+
 `GET /api/projects/:id/export` returns the project as one JSON document:
 
 ```json
