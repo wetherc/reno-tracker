@@ -11,10 +11,12 @@ import { isJsonType } from './guard.js';
 /**
  * @typedef {{ params: Record<string, string>, body: unknown, req: IncomingMessage }} RouteContext
  * @typedef {(ctx: RouteContext) => unknown} Handler
- * @typedef {{ method: string, pattern: string, keys: string[], regex: RegExp, handler: Handler }} Route
+ * @typedef {{ maxBytes?: number }} RouteOptions
+ * @typedef {{ method: string, pattern: string, keys: string[], regex: RegExp, handler: Handler, maxBytes: number }} Route
  */
 
-const MAX_BODY_BYTES = 1_000_000;
+/** The body limit for a route that sets none. */
+export const MAX_BODY_BYTES = 1_000_000;
 
 /**
  * The method and path of a request. Node fills both on a real request;
@@ -57,9 +59,10 @@ export function compilePattern(pattern) {
  * Reads the whole request body and parses it as JSON. An empty body is
  * an empty object so a POST with no fields still reaches the handler.
  * @param {IncomingMessage} req
+ * @param {number} [maxBytes] a longer body gets 413
  * @returns {Promise<unknown>}
  */
-export function readJsonBody(req) {
+export function readJsonBody(req, maxBytes = MAX_BODY_BYTES) {
   return new Promise((resolve, reject) => {
     /** @type {Buffer[]} */
     const chunks = [];
@@ -68,7 +71,7 @@ export function readJsonBody(req) {
     req.on('data', (chunk) => {
       size += chunk.length;
       // Keep reading so the client gets the response instead of a reset.
-      if (size > MAX_BODY_BYTES) {
+      if (size > maxBytes) {
         tooLarge = true;
         chunks.length = 0;
         return;
@@ -77,7 +80,10 @@ export function readJsonBody(req) {
     });
     req.on('error', reject);
     req.on('end', () => {
-      if (tooLarge) return reject(new HttpError(413, 'Body is over 1 MB'));
+      if (tooLarge) {
+        const mb = maxBytes / 1_000_000;
+        return reject(new HttpError(413, `Body is over ${mb} MB`));
+      }
       const text = Buffer.concat(chunks).toString('utf8').trim();
       if (text === '') return resolve({});
       try {
@@ -144,9 +150,16 @@ export class Router {
    * @param {string} method
    * @param {string} pattern
    * @param {Handler} handler
+   * @param {RouteOptions} [options]
    */
-  add(method, pattern, handler) {
-    this.routes.push({ method, pattern, handler, ...compilePattern(pattern) });
+  add(method, pattern, handler, { maxBytes = MAX_BODY_BYTES } = {}) {
+    this.routes.push({
+      method,
+      pattern,
+      handler,
+      maxBytes,
+      ...compilePattern(pattern),
+    });
     return this;
   }
 
@@ -154,9 +167,13 @@ export class Router {
   get(pattern, handler) {
     return this.add('GET', pattern, handler);
   }
-  /** @param {string} pattern @param {Handler} handler */
-  post(pattern, handler) {
-    return this.add('POST', pattern, handler);
+  /**
+   * @param {string} pattern
+   * @param {Handler} handler
+   * @param {RouteOptions} [options]
+   */
+  post(pattern, handler, options) {
+    return this.add('POST', pattern, handler, options);
   }
   /** @param {string} pattern @param {Handler} handler */
   patch(pattern, handler) {
@@ -215,7 +232,7 @@ export class Router {
       if (hasBody && !isJsonType(req.headers['content-type'])) {
         throw new HttpError(415, 'The body must be sent as application/json');
       }
-      const body = hasBody ? await readJsonBody(req) : {};
+      const body = hasBody ? await readJsonBody(req, found.route.maxBytes) : {};
       const result = await found.route.handler({
         params: found.params,
         body,

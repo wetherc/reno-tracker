@@ -123,6 +123,7 @@ test('handle maps errors to 400, 404, 405, 413, 415, and 500', async () => {
       body: 'x'.repeat(1_000_001),
     });
     assert.equal(res.status, 413);
+    assert.deepEqual(await res.json(), { error: 'Body is over 1 MB' });
 
     res = await call('/ok', { method: 'POST', body: '{}' });
     assert.equal(res.status, 415);
@@ -175,4 +176,22 @@ test('handle answers 400 to a target that is not a URL', async () => {
     status: 400,
     body: { error: 'The request path is not a URL' },
   });
+});
+
+test('a route can set its own body limit', async () => {
+  const router = new Router().post('/big', ({ body }) => body, {
+    maxBytes: 2_500_000,
+  });
+  const { call, close } = await serve(router);
+  try {
+    const post = (/** @type {string} */ body) =>
+      call('/big', { method: 'POST', headers: JSON_TYPE, body });
+    let res = await post(JSON.stringify({ a: 'x'.repeat(2_000_000) }));
+    assert.equal(res.status, 201);
+    res = await post('x'.repeat(2_500_001));
+    assert.equal(res.status, 413);
+    assert.deepEqual(await res.json(), { error: 'Body is over 2.5 MB' });
+  } finally {
+    await close();
+  }
 });

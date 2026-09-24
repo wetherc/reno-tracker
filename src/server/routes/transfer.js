@@ -124,6 +124,13 @@ export function importProject(db, file) {
   });
 }
 
+/**
+ * The body limit for import. Export has no limit and the change log
+ * grows with every edit, so a saved file can pass the 1 MB default that
+ * other routes keep.
+ */
+export const IMPORT_MAX_BYTES = 25_000_000;
+
 /** @type {import('../../entities/importFile.js').Fail} */
 function fail(error) {
   throw badRequest(error.message, error.field || undefined);
@@ -137,7 +144,9 @@ export function transferRoutes(router, db) {
   router.get('/api/projects/:id/export', ({ params }) =>
     exportProject(db, params.id),
   );
-  router.post('/api/projects/import', ({ body }) =>
-    importProject(db, checkImport(body, fail)),
+  router.post(
+    '/api/projects/import',
+    ({ body }) => importProject(db, checkImport(body, fail)),
+    { maxBytes: IMPORT_MAX_BYTES },
   );
 }

@@ -186,7 +186,9 @@ day. The server makes every id as a UUID.
 
 `POST /api/projects/import` takes the same document and creates a new
 project with fresh ids, so a file can be loaded twice without colliding
-with the project it came from. Both backends check the document through
+with the project it came from. Import takes a body of up to 25 MB, and
+every other route takes up to 1 MB. Export has no limit, and the change
+log grows with every edit, so a saved file can pass 1 MB. Both backends check the document through
 `src/entities/importFile.js` first. A bad value answers 400 with the list
 and row number, for example `schedule row 3: endDate 2026-01-05 is before
 startDate 2026-01-09`. A dependency on itself or a loop of dependencies

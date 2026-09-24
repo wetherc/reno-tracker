@@ -67,3 +67,26 @@ test('export then import creates a matching project with new ids', async () => {
     await app.close();
   }
 });
+
+test('import takes a file over the 1 MB default limit', async () => {
+  const app = await startApp();
+  try {
+    const project = await app.project();
+    const item = await app.item(project.id, 'Demo');
+    const file = (await app.api('GET', `/api/projects/${project.id}/export`))
+      .body;
+    const at = '2026-01-05T00:00:00.000Z';
+    file.notes = Array.from({ length: 800 }, () => ({
+      scheduleItemId: item.id,
+      body: 'x'.repeat(1900),
+      createdAt: at,
+      updatedAt: at,
+    }));
+    assert.ok(JSON.stringify(file).length > 1_500_000);
+    const res = await app.api('POST', '/api/projects/import', file);
+    assert.equal(res.status, 201);
+    assert.equal(res.body.notes.length, 800);
+  } finally {
+    await app.close();
+  }
+});
