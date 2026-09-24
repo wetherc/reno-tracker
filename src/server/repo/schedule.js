@@ -3,7 +3,7 @@ import { withTransaction } from '../db/open.js';
 import { badRequest, notFound } from '../errors.js';
 import { diffTrackedFields } from '../../entities/variance.js';
 import { getProject } from './projects.js';
-import { now, setClause, toScheduleItem } from './rows.js';
+import { now, setClause, toScheduleItem, toVariance } from './rows.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../../types.ts').ScheduleItem} ScheduleItem */
@@ -18,6 +18,22 @@ export function getScheduleItem(db, id) {
   const row = db.prepare('SELECT * FROM schedule_items WHERE id = ?').get(id);
   if (!row) throw notFound('schedule item', id);
   return toScheduleItem(row);
+}
+
+/**
+ * The change rows of one item, oldest first.
+ * @param {Database} db
+ * @param {string} id
+ * @returns {import('../../types.ts').Variance[]}
+ */
+export function listChanges(db, id) {
+  getScheduleItem(db, id);
+  return db
+    .prepare(
+      'SELECT * FROM variances WHERE scheduleItemId = ? ORDER BY loggedAt, rowid',
+    )
+    .all(id)
+    .map(toVariance);
 }
 
 /**

@@ -84,9 +84,6 @@ export function getProjectPayload(db, id) {
     project,
     schedule,
     dependencies: db.dependencies.filter((d) => d.projectId === id),
-    variances: db.variances
-      .filter((v) => items.has(v.scheduleItemId))
-      .sort((a, b) => a.loggedAt.localeCompare(b.loggedAt)),
     notes: db.notes
       .filter((n) => items.has(n.scheduleItemId))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
@@ -96,6 +93,21 @@ export function getProjectPayload(db, id) {
         (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
       ),
   };
+}
+
+/**
+ * Every change row of a project, oldest first.
+ * @param {LocalDb} db
+ * @param {string} id
+ * @returns {import('../types.ts').Variance[]}
+ */
+export function getProjectVariances(db, id) {
+  const items = new Set(
+    db.schedule.filter((s) => s.projectId === id).map((s) => s.id),
+  );
+  return db.variances
+    .filter((v) => items.has(v.scheduleItemId))
+    .sort((a, b) => a.loggedAt.localeCompare(b.loggedAt));
 }
 
 /**

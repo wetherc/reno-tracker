@@ -104,6 +104,19 @@ export function patchScheduleItem(db, id, patch, reason) {
 }
 
 /**
+ * The change rows of one item, oldest first.
+ * @param {LocalDb} db
+ * @param {string} id
+ * @returns {import('../types.ts').Variance[]}
+ */
+export function listChanges(db, id) {
+  getScheduleItem(db, id);
+  return db.variances
+    .filter((v) => v.scheduleItemId === id)
+    .sort((a, b) => a.loggedAt.localeCompare(b.loggedAt));
+}
+
+/**
  * @param {LocalDb} db
  * @param {string} id
  * @param {boolean} complete

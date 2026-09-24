@@ -77,13 +77,14 @@ export interface MaterialItem {
   sortOrder: number;
 }
 
-// One project and every row that belongs to it. GET /api/projects/:id
-// returns this, and the client keeps one of these in memory.
+// One project and its rows. GET /api/projects/:id returns this, and the
+// client keeps one of these in memory. The change log is left out,
+// because it grows with every edit. GET /api/schedule/:id/changes
+// returns the rows of one item.
 export interface ProjectPayload {
   project: Project;
   schedule: ScheduleItem[];
   dependencies: Dependency[];
-  variances: Variance[];
   notes: Note[];
   materials: MaterialItem[];
 }

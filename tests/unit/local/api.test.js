@@ -70,7 +70,6 @@ test('projects: list, create, read payload, patch, delete, reorder', async () =>
     'project',
     'schedule',
     'dependencies',
-    'variances',
     'notes',
     'materials',
   ]);
@@ -165,9 +164,9 @@ test('schedule items: create, patch with variances, complete, delete', async () 
     reason: 'Dumpster fee',
   });
   assert.equal(patched.title, 'Demolition');
-  let payload = await api.getProject(p.id);
+  await fails(api.listChanges('nope'), 404, /No schedule item/);
   assert.deepEqual(
-    payload.variances.map((v) => [
+    (await api.listChanges(a.id)).map((v) => [
       v.kind,
       v.field,
       v.oldValue,
@@ -196,9 +195,8 @@ test('schedule items: create, patch with variances, complete, delete', async () 
     400,
     /JSON object/,
   );
-  payload = await api.getProject(p.id);
   assert.equal(
-    payload.variances.length,
+    (await api.listChanges(a.id)).length,
     2,
     'a rejected patch writes no variance',
   );
@@ -221,13 +219,17 @@ test('schedule items: create, patch with variances, complete, delete', async () 
   });
   await api.deleteScheduleItem(a.id);
   await fails(api.deleteScheduleItem(a.id), 404, /No schedule item/);
-  payload = await api.getProject(p.id);
+  const payload = await api.getProject(p.id);
+  assert.equal('variances' in payload, false);
   assert.deepEqual(
     payload.schedule.map((s) => s.title),
     ['Framing'],
   );
   assert.deepEqual(payload.dependencies, []);
-  assert.deepEqual(payload.variances, []);
+  assert.deepEqual(
+    (await api.exportProject(p.id)).variances.map((v) => v.scheduleItemId),
+    [],
+  );
   assert.deepEqual(payload.notes, []);
   assert.equal(payload.materials[0].id, m.id);
   assert.equal(payload.materials[0].scheduleItemId, null);
@@ -381,7 +383,10 @@ test('export and import round-trip a project with fresh ids', async () => {
   );
   assert.equal(copy.dependencies[0].predecessorId, copy.schedule[0].id);
   assert.equal(copy.dependencies[0].successorId, copy.schedule[1].id);
-  assert.equal(copy.variances[0].scheduleItemId, copy.schedule[0].id);
+  assert.equal(
+    (await api.listChanges(copy.schedule[0].id))[0].scheduleItemId,
+    copy.schedule[0].id,
+  );
   assert.equal(copy.notes[0].scheduleItemId, copy.schedule[0].id);
   assert.equal(copy.materials[0].scheduleItemId, copy.schedule[0].id);
   assert.equal((await api.listProjects()).length, 2);
@@ -441,7 +446,7 @@ test('the browser keeps the newest change rows of each item', async () => {
   for (let i = 0; i <= MAX_CHANGES_PER_ITEM; i += 1) {
     await api.patchScheduleItem(a.id, { title: `Demo ${i}` });
   }
-  const { variances } = await api.getProject(p.id);
+  const variances = await api.listChanges(a.id);
   assert.equal(variances.length, MAX_CHANGES_PER_ITEM);
   assert.equal(variances[0].newValue, 'Demo 1');
   assert.equal(variances.at(-1)?.newValue, `Demo ${MAX_CHANGES_PER_ITEM}`);

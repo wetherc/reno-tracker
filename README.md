@@ -152,6 +152,11 @@ The client fetches one project payload, keeps it in memory as the single
 source of truth, and refetches the whole project after every write. A
 household project stays under a few hundred rows, so the refetch is
 cheaper than patching the client copy and removes a class of drift bugs.
+The payload leaves out the change log, because the log gains rows with
+every edit and would make each refetch larger. The Changes tab of the
+item editor fetches the rows of its item from
+`GET /api/schedule/:id/changes` each time it opens, and again after each
+write while it is open. Export still includes the whole log.
 
 Every write on the client goes through `ctx.write` in
 `src/app/context.js`, which toasts the failure text or the success

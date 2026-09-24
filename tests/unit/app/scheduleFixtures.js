@@ -80,11 +80,12 @@ export function setupSchedule({
 
   const api = /** @type {any} */ ({
     listProjects: async () => [project],
+    listChanges: async (/** @type {string} */ id) =>
+      allVariances.filter((v) => v.scheduleItemId === id),
     getProject: async () => ({
       project,
       schedule: items,
       dependencies: links,
-      variances: allVariances,
       notes: allNotes,
       materials: bom,
     }),

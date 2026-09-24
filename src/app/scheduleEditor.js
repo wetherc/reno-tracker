@@ -20,7 +20,7 @@ import { completeToggle } from './completeToggle.js';
 import { dependencyLinks } from './dependencies.js';
 import { discardGuard } from './discardGuard.js';
 import { notesList } from './notesList.js';
-import { FIELD_LABELS, varianceList } from './varianceList.js';
+import { changesPanel, FIELD_LABELS } from './varianceList.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ScheduleItem} ScheduleItem */
@@ -161,7 +161,10 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
   let notes = null;
   /** @type {ReturnType<typeof dependencyLinks> | null} */
   let links = null;
-  const changes = document.createElement('div');
+  /** @type {ReturnType<typeof changesPanel> | null} */
+  let changes = null;
+  /** @type {ReturnType<typeof tabs> | null} */
+  let tabStrip = null;
   /** @type {(Node | string)[]} */
   let body = [formEl];
 
@@ -182,22 +185,25 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
       itemId: item.id,
       notes: ctx.payload?.notes ?? [],
     });
-    renderChanges();
+    changes = changesPanel({ ctx, itemId: item.id });
+    if (tab === 'changes') changes.load();
     const details = document.createElement('div');
     details.append(completeBox, formEl);
-    body = [
-      tabs({
-        id: prefix,
-        selected: tab,
-        onChange: showFormActions,
-        items: [
-          { id: 'details', label: 'Details', panel: details },
-          { id: 'links', label: 'Waits on', panel: links.el },
-          { id: 'notes', label: 'Notes', panel: notes.el },
-          { id: 'changes', label: 'Changes', panel: changes },
-        ],
-      }).el,
-    ];
+    tabStrip = tabs({
+      id: prefix,
+      selected: tab,
+      onChange: (id) => {
+        showFormActions(id);
+        if (id === 'changes') changes?.load();
+      },
+      items: [
+        { id: 'details', label: 'Details', panel: details },
+        { id: 'links', label: 'Waits on', panel: links.el },
+        { id: 'notes', label: 'Notes', panel: notes.el },
+        { id: 'changes', label: 'Changes', panel: changes.el },
+      ],
+    });
+    body = [tabStrip.el];
     const remove = button({
       label: 'Delete',
       variant: 'danger',
@@ -221,8 +227,8 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
   });
 
   // While the editor is open, every write refetches the project. The
-  // notes and changes tabs follow the new payload. If the item is gone,
-  // the editor closes.
+  // notes tab follows the new payload, and the changes tab loads again
+  // when it is open. If the item is gone, the editor closes.
   const unsubscribe = ctx.on('payload', (payload) => {
     if (!editing) return;
     if (!payload || !payload.schedule.some((s) => s.id === item.id)) {
@@ -231,18 +237,11 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     }
     notes?.update(payload.notes);
     links?.update(payload);
-    renderChanges();
+    if (tabStrip?.current === 'changes') changes?.load();
     const fresh = payload.schedule.find((s) => s.id === item.id);
     if (fresh)
       completeBox.firstChild?.replaceWith(completeToggle({ ctx, item: fresh }));
   });
-
-  function renderChanges() {
-    const all = ctx.payload?.variances ?? [];
-    changes.replaceChildren(
-      varianceList(all.filter((v) => v.scheduleItemId === item?.id)),
-    );
-  }
 
   // The length under the end date follows both dates as they are typed.
   function showLength() {

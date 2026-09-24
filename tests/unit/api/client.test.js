@@ -93,6 +93,7 @@ test('every route builds the path from the plan', async () => {
   await api.reorder('p', 'schedule', ['a', 'b']);
   await api.importProject(/** @type {any} */ ({ format: 'reno-tracker/1' }));
   await api.exportProject('p');
+  await api.listChanges('s');
   assert.deepEqual(
     calls.map((c) => `${c.init.method} ${c.url}`),
     [
@@ -113,6 +114,7 @@ test('every route builds the path from the plan', async () => {
       'POST /api/projects/p/reorder',
       'POST /api/projects/import',
       'GET /api/projects/p/export',
+      'GET /api/schedule/s/changes',
     ],
   );
   assert.equal(calls[4].init.body, '{"complete":true}');

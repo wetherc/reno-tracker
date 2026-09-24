@@ -126,7 +126,9 @@ test('editing shows tabs, logs a reason, and follows the payload', async () => {
   );
   assert.equal(tabButtons[3].getAttribute('aria-selected'), 'true');
   const changes = el.querySelectorAll('[role="tabpanel"]')[3];
-  assert.equal(changes.querySelector('.empty-state') !== null, true);
+  assert.equal(changes.textContent, 'Loading changes');
+  await tick();
+  assert.match(changes.textContent, /^No changes logged/);
   const actions = el.children[2].children;
   assert.equal(actions[0].textContent, 'Delete');
   assert.equal(actions[0].classList.contains('editor__delete'), true);
@@ -155,8 +157,11 @@ test('editing shows tabs, logs a reason, and follows the payload', async () => {
 
   // Reopen: the change log now has the row.
   const again = $(
-    openScheduleEditor({ ctx: fx.ctx, item: fx.items()[0], tab: 'changes' }).el,
+    openScheduleEditor({ ctx: fx.ctx, item: fx.items()[0], tab: 'details' }).el,
   );
+  assert.equal(again.querySelector('.variance-entry'), null);
+  again.querySelectorAll('[role="tab"]')[3].click();
+  await tick();
   const entry = again.querySelector('.variance-entry');
   assert.equal(entry.children[1].children[0].textContent, 'Estimate');
   assert.equal(entry.children[1].children[1].textContent, '$500.00');

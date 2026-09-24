@@ -50,8 +50,10 @@ test('export then import creates a matching project with new ids', async () => {
       [copy.dependencies[0].predecessorId, copy.dependencies[0].successorId],
       [demo.id, framing.id],
     );
-    assert.equal(copy.variances[0].scheduleItemId, demo.id);
-    assert.equal(copy.variances[0].reason, 'quote');
+    const changes = (await app.api('GET', `/api/schedule/${demo.id}/changes`))
+      .body;
+    assert.equal(changes[0].scheduleItemId, demo.id);
+    assert.equal(changes[0].reason, 'quote');
     assert.equal(copy.notes[0].scheduleItemId, demo.id);
     assert.deepEqual(
       copy.materials.map((/** @type {any} */ m) => [m.name, m.scheduleItemId]),

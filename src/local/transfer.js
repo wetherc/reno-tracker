@@ -4,7 +4,11 @@
 // loaded twice without colliding with the project it came from.
 import { checkImport, EXPORT_FORMAT } from '../entities/importFile.js';
 import { badRequest } from './errors.js';
-import { createProject, getProjectPayload } from './projects.js';
+import {
+  createProject,
+  getProjectPayload,
+  getProjectVariances,
+} from './projects.js';
 import { newId, now } from './store.js';
 
 /** @typedef {import('./store.js').LocalDb} LocalDb */
@@ -18,10 +22,17 @@ import { newId, now } from './store.js';
  * @returns {ExportFile}
  */
 export function exportProject(db, id) {
+  const { project, schedule, dependencies, notes, materials } =
+    getProjectPayload(db, id);
   return {
     format: EXPORT_FORMAT,
     exportedAt: now(),
-    ...getProjectPayload(db, id),
+    project,
+    schedule,
+    dependencies,
+    variances: getProjectVariances(db, id),
+    notes,
+    materials,
   };
 }
 

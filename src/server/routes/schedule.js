@@ -6,6 +6,7 @@ import {
   createScheduleItem,
   deleteScheduleItem,
   getScheduleItem,
+  listChanges,
   patchScheduleItem,
   setScheduleItemComplete,
 } from '../repo/schedule.js';
@@ -65,5 +66,9 @@ export function scheduleRoutes(router, db) {
 
   router.post('/api/schedule/:id/complete', ({ params, body }) =>
     setScheduleItemComplete(db, params.id, readComplete(body)),
+  );
+
+  router.get('/api/schedule/:id/changes', ({ params }) =>
+    listChanges(db, params.id),
   );
 }

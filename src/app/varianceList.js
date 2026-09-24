@@ -1,13 +1,16 @@
 // The change log of one schedule item, newest first. Each entry shows
 // the field, the old value struck through, the new value, and the
 // reason the person gave. Values are stored as text, so money and dates
-// are formatted here by field.
+// are formatted here by field. The project payload leaves the log out,
+// so changesPanel fetches the rows of one item each time it loads.
+import { describeFailure } from '../api/errors.js';
 import { formatDate, formatMoment } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { emptyState } from '../ui/emptyState.js';
 
 /** @typedef {import('../types.ts').Variance} Variance */
 /** @typedef {import('../types.ts').TrackedField} TrackedField */
+/** @typedef {import('./context.js').AppContext} AppContext */
 
 /** @type {Record<TrackedField, string>} */
 export const FIELD_LABELS = {
@@ -32,6 +35,33 @@ export function showValue(field, value) {
   }
   if (field === 'startDate' || field === 'endDate') return formatDate(value);
   return value;
+}
+
+/**
+ * A panel that fetches and shows the change log of one item. A load that
+ * a newer load overtakes is dropped.
+ * @param {{ ctx: Pick<AppContext, 'api'>, itemId: string }} deps
+ * @returns {{ el: HTMLDivElement, load(): Promise<void> }}
+ */
+export function changesPanel({ ctx, itemId }) {
+  const el = document.createElement('div');
+  let turn = 0;
+  return {
+    el,
+    async load() {
+      const mine = ++turn;
+      if (!el.firstChild) el.replaceChildren(emptyState('Loading changes'));
+      let shown;
+      try {
+        shown = varianceList(await ctx.api.listChanges(itemId));
+      } catch (error) {
+        shown = emptyState(
+          `The changes could not be loaded. ${describeFailure(error)}`,
+        );
+      }
+      if (mine === turn) el.replaceChildren(shown);
+    },
+  };
 }
 
 /**

@@ -86,9 +86,12 @@ test('schedule routes: create, patch with variances, complete, delete', async ()
       field: 'complete',
     });
 
-    res = await app.api('GET', `/api/projects/${project.id}`);
+    res = await app.api('GET', `/api/schedule/nope/changes`);
+    assert.equal(res.status, 404);
+    res = await app.api('GET', `/api/schedule/${item.id}/changes`);
+    assert.equal(res.status, 200);
     assert.deepEqual(
-      res.body.variances.map((/** @type {any} */ v) => [v.field, v.reason]),
+      res.body.map((/** @type {any} */ v) => [v.field, v.reason]),
       [
         ['title', ''],
         ['estimatedCents', 'quote'],

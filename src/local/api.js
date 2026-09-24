@@ -32,6 +32,7 @@ import {
   deleteNote,
   deleteScheduleItem,
   getScheduleItem,
+  listChanges,
   patchNote,
   patchScheduleItem,
   setScheduleItemComplete,
@@ -202,6 +203,7 @@ export function createLocalApi(storage, events) {
       mutate(owner('schedule', id), (db) =>
         setScheduleItemComplete(db, id, boolean(complete)),
       ),
+    listChanges: (id) => query((db) => listChanges(db, id)),
 
     addNote: (itemId, body) =>
       mutate(owner('schedule', itemId), (db) =>

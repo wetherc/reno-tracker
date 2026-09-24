@@ -31,7 +31,6 @@ test('project routes: list, create, read payload, patch, delete, reorder', async
       'project',
       'schedule',
       'dependencies',
-      'variances',
       'notes',
       'materials',
     ]);

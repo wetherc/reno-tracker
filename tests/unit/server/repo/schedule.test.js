@@ -4,12 +4,16 @@ import {
   createScheduleItem,
   deleteScheduleItem,
   getScheduleItem,
+  listChanges,
   patchScheduleItem,
   reorderSchedule,
   setScheduleItemComplete,
 } from '../../../../src/server/repo/schedule.js';
 import { scheduleItemDefaults } from '../../../../src/entities/scheduleItem.js';
-import { getProjectPayload } from '../../../../src/server/repo/projects.js';
+import {
+  getProjectPayload,
+  getProjectVariances,
+} from '../../../../src/server/repo/projects.js';
 import { addItem, freshDb, ISO_TIMESTAMP } from './fixtures.js';
 
 test('createScheduleItem appends to the end of the sort order', () => {
@@ -42,7 +46,7 @@ test('patchScheduleItem logs one variance per changed tracked field with the rea
   );
   assert.equal(after.endDate, '2026-01-12');
   assert.equal(after.estimatedCents, 1500);
-  const variances = getProjectPayload(db, project.id).variances;
+  const variances = getProjectVariances(db, project.id);
   assert.deepEqual(
     variances.map((v) => [v.kind, v.field, v.oldValue, v.newValue, v.reason]),
     [
@@ -59,7 +63,7 @@ test('patchScheduleItem with no change writes nothing', () => {
   const item = addItem(db, project.id, 'Demo');
   assert.deepEqual(patchScheduleItem(db, item.id, { title: 'Demo' }), item);
   assert.deepEqual(patchScheduleItem(db, item.id, {}), item);
-  assert.equal(getProjectPayload(db, project.id).variances.length, 0);
+  assert.equal(getProjectVariances(db, project.id).length, 0);
   assert.throws(() => patchScheduleItem(db, 'nope', { title: 'x' }), {
     status: 404,
   });
@@ -76,7 +80,7 @@ test('a failed patch rolls back its variance rows', () => {
     ),
   );
   assert.equal(getScheduleItem(db, item.id).title, 'Demo');
-  assert.equal(getProjectPayload(db, project.id).variances.length, 0);
+  assert.equal(getProjectVariances(db, project.id).length, 0);
 });
 
 test('setScheduleItemComplete toggles without a variance', () => {
@@ -84,7 +88,7 @@ test('setScheduleItemComplete toggles without a variance', () => {
   const item = addItem(db, project.id, 'Demo');
   assert.equal(setScheduleItemComplete(db, item.id, true).complete, true);
   assert.equal(setScheduleItemComplete(db, item.id, false).complete, false);
-  assert.equal(getProjectPayload(db, project.id).variances.length, 0);
+  assert.equal(getProjectVariances(db, project.id).length, 0);
   assert.throws(() => setScheduleItemComplete(db, 'nope', true), {
     status: 404,
   });
@@ -127,4 +131,18 @@ test('reorderSchedule writes positions and rejects partial lists', () => {
     { status: 400 },
   );
   assert.throws(() => reorderSchedule(db, 'nope', []), { status: 404 });
+});
+
+test('listChanges returns the rows of one item, oldest first', () => {
+  const { db, project } = freshDb();
+  const a = addItem(db, project.id, 'Demo');
+  const b = addItem(db, project.id, 'Framing');
+  patchScheduleItem(db, a.id, { title: 'Demo 1' });
+  patchScheduleItem(db, b.id, { title: 'Framing 1' });
+  patchScheduleItem(db, a.id, { title: 'Demo 2' });
+  assert.deepEqual(
+    listChanges(db, a.id).map((v) => v.newValue),
+    ['Demo 1', 'Demo 2'],
+  );
+  assert.throws(() => listChanges(db, 'nope'), { status: 404 });
 });

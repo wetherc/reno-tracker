@@ -5,6 +5,7 @@ import {
   deleteProject,
   getProject,
   getProjectPayload,
+  getProjectVariances,
   listProjects,
   patchProject,
 } from '../../../../src/server/repo/projects.js';
@@ -106,7 +107,9 @@ test('getProjectPayload gathers every child row in display order', () => {
   assert.deepEqual(payload.dependencies, [dep]);
   assert.deepEqual(payload.notes, [note]);
   assert.deepEqual(payload.materials, [tile]);
-  assert.equal(payload.variances.length, 1);
-  assert.equal(payload.variances[0].reason, 'quote came in');
+  assert.equal('variances' in payload, false);
+  const variances = getProjectVariances(db, project.id);
+  assert.equal(variances.length, 1);
+  assert.equal(variances[0].reason, 'quote came in');
   assert.throws(() => getProjectPayload(db, 'nope'), { status: 404 });
 });

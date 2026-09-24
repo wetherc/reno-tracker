@@ -85,6 +85,23 @@ export function deleteProject(db, id) {
 }
 
 /**
+ * Every change row of a project, oldest first.
+ * @param {Database} db
+ * @param {string} id
+ * @returns {import('../../types.ts').Variance[]}
+ */
+export function getProjectVariances(db, id) {
+  return db
+    .prepare(
+      `SELECT v.* FROM variances v
+       JOIN schedule_items s ON s.id = v.scheduleItemId
+       WHERE s.projectId = ? ORDER BY v.loggedAt, v.rowid`,
+    )
+    .all(id)
+    .map(toVariance);
+}
+
+/**
  * @param {Database} db
  * @param {string} id
  * @returns {ProjectPayload}
@@ -101,11 +118,6 @@ export function getProjectPayload(db, id) {
     dependencies: rows(
       'SELECT * FROM dependencies WHERE projectId = ? ORDER BY rowid',
     ).map(toDependency),
-    variances: rows(
-      `SELECT v.* FROM variances v
-       JOIN schedule_items s ON s.id = v.scheduleItemId
-       WHERE s.projectId = ? ORDER BY v.loggedAt, v.rowid`,
-    ).map(toVariance),
     notes: rows(
       `SELECT n.* FROM notes n
        JOIN schedule_items s ON s.id = n.scheduleItemId

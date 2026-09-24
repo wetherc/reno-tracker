@@ -11,7 +11,7 @@ import { AT, file, REFUSED } from './importCases.js';
 
 /**
  * Swaps every fresh id for a stable label, so two imports compare equal.
- * @param {any} payload
+ * @param {any} payload an export of the imported project
  */
 function normalize(payload) {
   /** @type {Map<string, string>} */
@@ -57,15 +57,26 @@ async function importBoth(app, body) {
   const res = await app.api('POST', '/api/projects/import', body);
   const server = {
     status: res.status,
-    body: res.status === 201 ? normalize(res.body) : res.body,
+    body:
+      res.status === 201
+        ? normalize(
+            (
+              await app.api(
+                'GET',
+                `/api/projects/${res.body.project.id}/export`,
+              )
+            ).body,
+          )
+        : res.body,
   };
   const api = createLocalApi(memoryStorage());
   /** @type {Answer} */
   let local;
   try {
+    const copy = await api.importProject(/** @type {any} */ (body));
     local = {
       status: 201,
-      body: normalize(await api.importProject(/** @type {any} */ (body))),
+      body: normalize(await api.exportProject(copy.project.id)),
     };
   } catch (/** @type {any} */ error) {
     local = {

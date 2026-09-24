@@ -9,6 +9,7 @@ import { ApiError } from './errors.js';
 /** @typedef {import('../types.ts').ScheduleItemInput} ScheduleItemInput */
 /** @typedef {import('../types.ts').ScheduleItemPatch} ScheduleItemPatch */
 /** @typedef {import('../types.ts').Note} Note */
+/** @typedef {import('../types.ts').Variance} Variance */
 /** @typedef {import('../types.ts').Dependency} Dependency */
 /** @typedef {import('../types.ts').DependencyInput} DependencyInput */
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
@@ -79,6 +80,8 @@ export function createApi({
     /** @param {string} id @param {boolean} complete @returns {Promise<ScheduleItem>} */
     setScheduleComplete: (id, complete) =>
       request('POST', `/api/schedule/${id}/complete`, { complete }),
+    /** @param {string} id @returns {Promise<Variance[]>} oldest first */
+    listChanges: (id) => request('GET', `/api/schedule/${id}/changes`),
 
     /** @param {string} itemId @param {string} body @returns {Promise<Note>} */
     addNote: (itemId, body) =>
