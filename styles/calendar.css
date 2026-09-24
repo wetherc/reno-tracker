@@ -57,9 +57,29 @@
 
 .cal__day {
   grid-row: 1 / -1;
+  /* A button centers its content on its own. Flex puts the number back
+     at the top of the cell, above the bar lanes. */
+  display: flex;
+  align-items: flex-start;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
+  border-radius: 0;
   padding: var(--space-1) var(--space-2);
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.cal__day:hover {
+  background: var(--surface-sunken);
+}
+
+.cal__day:focus-visible {
+  outline-offset: -2px;
+}
+
+.cal__day--picked,
+.cal__day--picked:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .cal__day:first-child {
@@ -83,9 +103,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+.cal__num-month {
+  margin-right: 0.25em;
+}
+
 .cal__day--outside .cal__num {
   color: var(--text-muted);
   font-weight: 400;
+}
+
+.cal__day--picked .cal__num {
+  color: var(--accent);
 }
 
 .cal__day--today .cal__num {
@@ -163,19 +191,90 @@
   color: var(--accent);
 }
 
-/* Narrow: bars keep their color and name but the text goes, so seven
-   columns still fit. */
+/* The picked day's list under the grid */
+
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.cal-day__title {
+  font-size: var(--text-heading);
+  font-weight: 700;
+}
+
+.cal-day__hint {
+  font-style: italic;
+}
+
+.cal-day__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cal-day__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-height: 2rem;
+}
+
+.cal-day__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-weight: 600;
+}
+
+.cal-day__item:hover {
+  color: var(--accent);
+}
+
+.cal-day__item .icon {
+  color: var(--success);
+}
+
+.cal-day__row--complete .cal-day__item {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.cal-day__range {
+  font-size: var(--text-label);
+}
+
+/* Narrow: bars keep their color but the text goes, so seven columns
+   still fit. A bar is too thin to tap, so a tap lands on the day cell
+   under it and the list under the grid names the day's work. */
 @container (max-width: 40rem) {
   .cal__week {
     grid-template-rows: 1.75rem repeat(3, 0.5rem) minmax(1.25rem, auto);
+  }
+
+  .cal__day {
+    padding: var(--space-1);
   }
 
   .cal-bar {
     padding: 0;
   }
 
+  .cal-bar,
+  .cal-more {
+    pointer-events: none;
+  }
+
   .cal-bar__title,
-  .cal-bar .icon {
+  .cal-bar .icon,
+  .cal__num-month {
     display: none;
   }
 

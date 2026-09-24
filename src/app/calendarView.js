@@ -1,12 +1,33 @@
 // The calendar view: one month at a time as a stack of weeks. Every item
 // that touches a week draws a bar across the days it covers, and a day
 // with more bars than fit shows a count that opens the agenda there.
-import { formatDayMonth, formatMonth, formatRange } from '../format/date.js';
-import { MAX_LANES, monthGrid, startingMonth } from '../schedule/calendar.js';
-import { addMonths, monthOf, todayIso, weekday } from '../schedule/dates.js';
+// Each day cell is a button that picks the day and lists its work under
+// the grid. The arrow keys move between days, and only one day is in the
+// tab order.
+import {
+  formatDayLong,
+  formatDayMonth,
+  formatMonth,
+  formatMonthShort,
+  formatRange,
+} from '../format/date.js';
+import {
+  itemsOnDay,
+  MAX_LANES,
+  monthGrid,
+  startingMonth,
+} from '../schedule/calendar.js';
+import {
+  addDays,
+  addMonths,
+  monthOf,
+  todayIso,
+  weekday,
+} from '../schedule/dates.js';
 import { bareButton, button, iconButton } from '../ui/buttons.js';
 import { focusKey, keepFocus } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
+import { dayListParts } from './calendarDay.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -16,15 +37,20 @@ import { openScheduleEditor } from './scheduleEditor.js';
 
 export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const DAY_STEP = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+
 /**
  * @param {{ ctx: AppContext, onMore: (date: string) => void }} deps
  *   onMore receives the day whose hidden bars a person asked to see
- * @returns {{ render(payload: ProjectPayload): HTMLElement, month: string | null }}
+ * @returns {{ render(payload: ProjectPayload): HTMLElement, month: string | null, picked: string | null }}
  */
 export function calendarView({ ctx, onMore }) {
-  // The month a person is looking at outlives the rebuild after a write.
+  // The month a person is looking at and the day they picked outlive the
+  // rebuild after a write.
   /** @type {string | null} */
   let month = null;
+  /** @type {string | null} */
+  let picked = null;
 
   /** @param {ProjectPayload} payload */
   function render(payload) {
@@ -37,8 +63,27 @@ export function calendarView({ ctx, onMore }) {
     /** @param {number} step */
     const turn = (step) => {
       month = addMonths(/** @type {string} */ (month), step);
+      picked = null;
       draw();
     };
+    const day = document.createElement('div');
+    day.className = 'cal-day';
+    day.setAttribute('aria-live', 'polite');
+    /** @type {HTMLButtonElement[]} */
+    let cells = [];
+
+    /** @param {string} date */
+    function pick(date) {
+      picked = date;
+      for (const cell of cells) {
+        const on = cell.dataset.date === date;
+        cell.classList.toggle('cal__day--picked', on);
+        cell.setAttribute('aria-pressed', String(on));
+      }
+      day.replaceChildren(
+        ...dayListParts({ ctx, items: payload.schedule, date, today }),
+      );
+    }
 
     /** @param {ProjectPayload} payload @param {string} today */
     function parts(payload, today) {
@@ -84,25 +129,72 @@ export function calendarView({ ctx, onMore }) {
       head.className = 'cal__weekdays';
       head.setAttribute('aria-hidden', 'true');
       head.append(...WEEKDAYS.map((name) => span('cal__weekday', name)));
-      return [nav, head, ...grid.weeks.map((week) => weekRow(week, today))];
+      cells = [];
+      const rows = grid.weeks.map((week) => weekRow(week, today));
+      const dates = cells.map((c) => c.dataset.date);
+      const tabbable =
+        [picked, today].find((d) => d && dates.includes(d)) ?? `${shown}-01`;
+      for (const cell of cells) {
+        cell.tabIndex = cell.dataset.date === tabbable ? 0 : -1;
+      }
+      day.replaceChildren(
+        ...dayListParts({
+          ctx,
+          items: payload.schedule,
+          date: picked,
+          today,
+        }),
+      );
+      return [nav, head, ...rows, day];
+    }
+
+    /**
+     * Moves focus and the tab stop to the day a key asks for, when that
+     * day is on the grid.
+     * @param {HTMLButtonElement} from
+     * @param {KeyboardEvent} event
+     */
+    function stepDay(from, event) {
+      const step = DAY_STEP[/** @type {keyof typeof DAY_STEP} */ (event.key)];
+      if (!step) return;
+      event.preventDefault();
+      const date = addDays(/** @type {string} */ (from.dataset.date), step);
+      const to = cells.find((c) => c.dataset.date === date);
+      if (!to) return;
+      from.tabIndex = -1;
+      to.tabIndex = 0;
+      to.focus();
     }
 
     /** @param {CalendarWeek} week @param {string} today */
     function weekRow(week, today) {
       const row = document.createElement('div');
       row.className = 'cal__week';
-      week.days.forEach((day, col) => {
-        const cell = document.createElement('div');
-        cell.className = 'cal__day';
-        if (!day.inMonth) cell.classList.add('cal__day--outside');
-        if (day.date === today) cell.classList.add('cal__day--today');
-        if (weekday(day.date) % 6 === 0)
-          cell.classList.add('cal__day--weekend');
+      week.days.forEach(({ date, inMonth }, col) => {
+        const count = itemsOnDay(payload.schedule, date).length;
+        const work = count === 1 ? '1 item' : `${count} items`;
+        const cell = bareButton({
+          className: 'cal__day',
+          ariaLabel: `${formatDayLong(date)}, ${count ? work : 'nothing scheduled'}`,
+          onClick: () => pick(date),
+        });
+        cell.dataset.date = date;
+        focusKey(cell, `day:${date}`);
+        cell.setAttribute('aria-pressed', String(date === picked));
+        if (date === picked) cell.classList.add('cal__day--picked');
+        if (!inMonth) cell.classList.add('cal__day--outside');
+        if (date === today) cell.classList.add('cal__day--today');
+        if (weekday(date) % 6 === 0) cell.classList.add('cal__day--weekend');
         cell.style.gridColumn = String(col + 1);
-        const num = day.date.endsWith('-01')
-          ? formatDayMonth(day.date)
-          : String(Number(day.date.slice(8)));
-        cell.append(span('cal__num', num));
+        cell.addEventListener('keydown', (event) => stepDay(cell, event));
+        // The first of a month names the month, except on a phone, where
+        // the cell is too narrow for it.
+        const num = span('cal__num', String(Number(date.slice(8))));
+        if (date.endsWith('-01')) {
+          num.prepend(span('cal__num-month', formatMonthShort(monthOf(date))));
+        }
+        cell.append(num);
+        cells.push(cell);
         row.append(cell);
       });
       for (const bar of week.bars) row.append(barButton(bar));
@@ -150,6 +242,9 @@ export function calendarView({ ctx, onMore }) {
     render,
     get month() {
       return month;
+    },
+    get picked() {
+      return picked;
     },
   };
 }

@@ -21,7 +21,10 @@ static site on GitHub Pages, where it keeps its data in the browser.
   no estimate counts its allowance as its expected cost.
 - A complete checkbox on every schedule and material row. Every view shares
   it.
-- Four views of the schedule: table, calendar, Gantt, and agenda.
+- Four views of the schedule: table, calendar, Gantt, and agenda. A tap
+  or click on a calendar day lists every item at work that day under
+  the grid, which is how a phone reaches items whose bars are too thin
+  to tap.
 - A costs panel with summary tiles, a cumulative cost line against the
   budget, a cost-by-week bar chart, and a table of every line item, labor
   and materials together. A line under the table totals the cost incurred

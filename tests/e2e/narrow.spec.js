@@ -1,6 +1,8 @@
 import { test, expect } from './fixtures.js';
 import { dropProject, openProject, seedProject } from './seed.js';
 
+test.use({ hasTouch: true });
+
 test('no section or view scrolls sideways on a 390px phone', async ({
   page,
   request,
@@ -30,6 +32,19 @@ test('no section or view scrolls sideways on a 390px phone', async ({
     await expect(page.locator('.panel__title')).toHaveText(section);
     expect(await width(), section).toBe(390);
   }
+  await nav.getByRole('button', { name: 'Schedule' }).click();
+  await page.getByRole('radio', { name: 'Calendar' }).click();
+  await page.getByRole('button', { name: /^Wednesday, October 7, 2026/ }).tap();
+  await expect(page.locator('.cal-day__title')).toHaveText(
+    'Wednesday, October 7, 2026',
+  );
+  await page
+    .locator('.cal-day')
+    .getByRole('button', { name: 'Rough plumbing' })
+    .tap();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+
   const costs = await nav.getByRole('button', { name: 'Costs' }).boundingBox();
   expect(costs && costs.x + costs.width).toBeLessThanOrEqual(390);
   await nav.getByRole('button', { name: 'Schedule' }).click();

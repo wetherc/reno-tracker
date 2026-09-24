@@ -116,6 +116,16 @@ export function weekRow(weekStart, yearMonth, items) {
 }
 
 /**
+ * The items at work on one day, in the order given.
+ * @param {ScheduleItem[]} items
+ * @param {string} date
+ * @returns {ScheduleItem[]}
+ */
+export function itemsOnDay(items, date) {
+  return items.filter((i) => i.startDate <= date && date <= i.endDate);
+}
+
+/**
  * The month to open on. The month that contains today when any item
  * touches it, else the month of the earliest item, else the fallback.
  * @param {ScheduleItem[]} items

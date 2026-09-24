@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  itemsOnDay,
   MAX_LANES,
   monthGrid,
   startingMonth,
@@ -97,4 +98,17 @@ test('startingMonth prefers the month with live work', () => {
   assert.equal(startingMonth(items, '2026-12-20', '2026-01-01'), '2026-12');
   assert.equal(startingMonth(items, '2026-11-15', '2026-01-01'), '2026-10');
   assert.equal(startingMonth([], '2026-11-15', '2026-09-01'), '2026-09');
+});
+
+test('itemsOnDay keeps the items that cover the day, in order', () => {
+  const items = [
+    itemOf('a', { startDate: '2026-10-12', endDate: '2026-10-14' }),
+    itemOf('b', { startDate: '2026-10-15', endDate: '2026-10-15' }),
+    itemOf('c', { startDate: '2026-10-14', endDate: '2026-10-20' }),
+  ];
+  assert.deepEqual(
+    itemsOnDay(items, '2026-10-14').map((i) => i.id),
+    ['a', 'c'],
+  );
+  assert.deepEqual(itemsOnDay(items, '2026-10-21'), []);
 });

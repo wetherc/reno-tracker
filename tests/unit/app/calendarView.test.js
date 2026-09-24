@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { installDom } from '../domShim.js';
+import { installDom, press } from '../domShim.js';
 import { calendarView, WEEKDAYS } from '../../../src/app/calendarView.js';
 import { mountSchedule } from '../../../src/app/schedule.js';
 import { mountShell } from '../../../src/app/shell.js';
@@ -77,7 +77,8 @@ test('the grid opens on the first item when today has no work', async () => {
   assert.ok(first[0].classList.contains('cal__day--outside'));
   assert.ok(first[0].classList.contains('cal__day--weekend'));
   assert.equal(first[0].textContent, '27');
-  assert.equal(first[4].textContent, 'Oct 1');
+  assert.equal(first[4].textContent, 'Oct1');
+  assert.equal(first[4].querySelector('.cal__num-month').textContent, 'Oct');
   assert.ok(!first[4].classList.contains('cal__day--outside'));
 });
 
@@ -166,4 +167,91 @@ test('the schedule panel shows the calendar and the count opens the agenda', asy
   assert.equal(cal.className, 'cal');
   cal.querySelector('.cal-more').click();
   assert.equal(prefs.read('lastView'), 'agenda');
+});
+
+test('a day cell picks the day and lists its work under the grid', async () => {
+  const { el, view } = await setup(october);
+  const day = () => el.querySelector('.cal-day');
+  assert.equal(day().textContent, 'Pick a day to list its work.');
+  const cell = el.querySelector('[data-focus="day:2026-10-13"]');
+  assert.equal(
+    cell.getAttribute('aria-label'),
+    'Tuesday, October 13, 2026, 4 items',
+  );
+  assert.equal(cell.getAttribute('aria-pressed'), 'false');
+  cell.click();
+  assert.equal(view.picked, '2026-10-13');
+  assert.equal(cell.getAttribute('aria-pressed'), 'true');
+  assert.ok(cell.classList.contains('cal__day--picked'));
+  assert.equal(
+    day().querySelector('.cal-day__title').textContent,
+    'Tuesday, October 13, 2026',
+  );
+  const rows = day().querySelectorAll('.cal-day__row');
+  assert.equal(rows.length, 4);
+  assert.ok(rows[3].classList.contains('cal-day__row--complete'));
+  assert.match(rows[0].textContent, /Demo.*Oct 12 to Oct 14/);
+  rows[0].querySelector('.cal-day__item').click();
+  const dialog = $(dom.body.children[0]);
+  assert.match(dialog.textContent, /Demo/);
+  dialog.close();
+
+  const empty = el.querySelector('[data-focus="day:2026-10-02"]');
+  assert.equal(
+    empty.getAttribute('aria-label'),
+    'Friday, October 2, 2026, nothing scheduled',
+  );
+  empty.click();
+  assert.equal(cell.getAttribute('aria-pressed'), 'false');
+  assert.equal(
+    day().querySelector('.cal-day__hint').textContent,
+    'Nothing scheduled.',
+  );
+  assert.equal(
+    el
+      .querySelector('[data-focus="day:2026-10-29"]')
+      .getAttribute('aria-label'),
+    'Thursday, October 29, 2026, 1 item',
+  );
+});
+
+test('only one day is a tab stop and the arrow keys move it', async () => {
+  const { el } = await setup(october);
+  const cells = el.querySelectorAll('.cal__day');
+  const stops = cells.filter((/** @type {any} */ c) => c.tabIndex === 0);
+  assert.deepEqual(
+    stops.map((/** @type {any} */ c) => c.dataset.date),
+    ['2026-10-01'],
+  );
+  const first = stops[0];
+  press(first, 'ArrowDown');
+  const down = el.querySelector('[data-focus="day:2026-10-08"]');
+  assert.equal(dom.activeElement, down);
+  assert.equal(first.tabIndex, -1);
+  assert.equal(down.tabIndex, 0);
+  press(down, 'ArrowLeft');
+  assert.equal(dom.activeElement?.dataset.date, '2026-10-07');
+  const last = el.querySelector('[data-focus="day:2026-10-31"]');
+  last.focus();
+  assert.equal(press(last, 'ArrowRight'), false, 'the key is handled');
+  assert.equal(dom.activeElement, last, 'no day past the grid');
+  assert.equal(press(last, 'Enter'), true);
+  last.click();
+  assert.equal(last.tabIndex, -1, 'a pick does not move the stop');
+});
+
+test('the pick outlives a rebuild and clears when the month turns', async () => {
+  const { el, view, ctx } = await setup(october);
+  el.querySelector('[data-focus="day:2026-10-13"]').click();
+  const again = $(view.render($(ctx.payload)));
+  const cell = again.querySelector('[data-focus="day:2026-10-13"]');
+  assert.equal(cell.tabIndex, 0);
+  assert.equal(cell.getAttribute('aria-pressed'), 'true');
+  assert.equal(again.querySelectorAll('.cal-day__row').length, 4);
+  again.querySelector('.cal__nav').children[2].click();
+  assert.equal(view.picked, null);
+  assert.equal(
+    again.querySelector('.cal-day').textContent,
+    'Pick a day to list its work.',
+  );
 });
