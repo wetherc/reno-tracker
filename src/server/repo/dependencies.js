@@ -3,6 +3,7 @@ import { findCycle } from '../../schedule/graph.js';
 import { badRequest, conflict, notFound } from '../errors.js';
 import { getScheduleItem } from './schedule.js';
 import { toDependency } from './rows.js';
+import { statement } from './statements.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../../types.ts').Dependency} Dependency */
@@ -13,8 +14,10 @@ import { toDependency } from './rows.js';
  * @returns {Dependency[]}
  */
 export function listDependencies(db, projectId) {
-  return db
-    .prepare('SELECT * FROM dependencies WHERE projectId = ? ORDER BY rowid')
+  return statement(
+    db,
+    'SELECT * FROM dependencies WHERE projectId = ? ORDER BY rowid',
+  )
     .all(projectId)
     .map(toDependency);
 }
@@ -59,12 +62,13 @@ export function createDependency(db, projectId, input) {
     );
   }
   const id = randomUUID();
-  db.prepare(
+  statement(
+    db,
     'INSERT INTO dependencies (id, projectId, predecessorId, successorId) VALUES (?, ?, ?, ?)',
   ).run(id, projectId, pred.id, succ.id);
   return toDependency(
     /** @type {Record<string, unknown>} */ (
-      db.prepare('SELECT * FROM dependencies WHERE id = ?').get(id)
+      statement(db, 'SELECT * FROM dependencies WHERE id = ?').get(id)
     ),
   );
 }
@@ -74,6 +78,6 @@ export function createDependency(db, projectId, input) {
  * @param {string} id
  */
 export function deleteDependency(db, id) {
-  const result = db.prepare('DELETE FROM dependencies WHERE id = ?').run(id);
+  const result = statement(db, 'DELETE FROM dependencies WHERE id = ?').run(id);
   if (result.changes === 0) throw notFound('dependency', id);
 }

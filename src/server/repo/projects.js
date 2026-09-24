@@ -11,6 +11,7 @@ import {
   toScheduleItem,
   toVariance,
 } from './rows.js';
+import { statement } from './statements.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../../types.ts').Project} Project */
@@ -21,8 +22,7 @@ import {
  * @returns {Project[]} newest first
  */
 export function listProjects(db) {
-  return db
-    .prepare('SELECT * FROM projects ORDER BY createdAt DESC, name')
+  return statement(db, 'SELECT * FROM projects ORDER BY createdAt DESC, name')
     .all()
     .map(toProject);
 }
@@ -33,7 +33,7 @@ export function listProjects(db) {
  * @returns {Project}
  */
 export function getProject(db, id) {
-  const row = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+  const row = statement(db, 'SELECT * FROM projects WHERE id = ?').get(id);
   if (!row) throw notFound('project', id);
   return toProject(row);
 }
@@ -46,7 +46,8 @@ export function getProject(db, id) {
 export function createProject(db, input) {
   return withTransaction(db, () => {
     const id = randomUUID();
-    db.prepare(
+    statement(
+      db,
       `INSERT INTO projects (id, name, budgetCents, startDate, createdAt)
        VALUES (?, ?, ?, ?, ?)`,
     ).run(id, input.name, input.budgetCents, input.startDate, now());
@@ -65,7 +66,7 @@ export function patchProject(db, id, patch) {
     getProject(db, id);
     const { clause, values } = setClause(patch);
     if (clause) {
-      db.prepare(`UPDATE projects SET ${clause} WHERE id = ?`).run(
+      statement(db, `UPDATE projects SET ${clause} WHERE id = ?`).run(
         ...values,
         id,
       );
@@ -80,7 +81,7 @@ export function patchProject(db, id, patch) {
  * @param {string} id
  */
 export function deleteProject(db, id) {
-  const result = db.prepare('DELETE FROM projects WHERE id = ?').run(id);
+  const result = statement(db, 'DELETE FROM projects WHERE id = ?').run(id);
   if (result.changes === 0) throw notFound('project', id);
 }
 
@@ -91,12 +92,12 @@ export function deleteProject(db, id) {
  * @returns {import('../../types.ts').Variance[]}
  */
 export function getProjectVariances(db, id) {
-  return db
-    .prepare(
-      `SELECT v.* FROM variances v
+  return statement(
+    db,
+    `SELECT v.* FROM variances v
        JOIN schedule_items s ON s.id = v.scheduleItemId
        WHERE s.projectId = ? ORDER BY v.loggedAt, v.rowid`,
-    )
+  )
     .all(id)
     .map(toVariance);
 }
@@ -109,7 +110,7 @@ export function getProjectVariances(db, id) {
 export function getProjectPayload(db, id) {
   const project = getProject(db, id);
   /** @param {string} sql */
-  const rows = (sql) => db.prepare(sql).all(id);
+  const rows = (sql) => statement(db, sql).all(id);
   return {
     project,
     schedule: rows(

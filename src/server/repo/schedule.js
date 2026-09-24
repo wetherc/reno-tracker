@@ -4,6 +4,7 @@ import { badRequest, notFound } from '../errors.js';
 import { diffTrackedFields } from '../../entities/variance.js';
 import { getProject } from './projects.js';
 import { now, setClause, toScheduleItem, toVariance } from './rows.js';
+import { statement } from './statements.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../../types.ts').ScheduleItem} ScheduleItem */
@@ -15,7 +16,9 @@ import { now, setClause, toScheduleItem, toVariance } from './rows.js';
  * @returns {ScheduleItem}
  */
 export function getScheduleItem(db, id) {
-  const row = db.prepare('SELECT * FROM schedule_items WHERE id = ?').get(id);
+  const row = statement(db, 'SELECT * FROM schedule_items WHERE id = ?').get(
+    id,
+  );
   if (!row) throw notFound('schedule item', id);
   return toScheduleItem(row);
 }
@@ -28,10 +31,10 @@ export function getScheduleItem(db, id) {
  */
 export function listChanges(db, id) {
   getScheduleItem(db, id);
-  return db
-    .prepare(
-      'SELECT * FROM variances WHERE scheduleItemId = ? ORDER BY loggedAt, rowid',
-    )
+  return statement(
+    db,
+    'SELECT * FROM variances WHERE scheduleItemId = ? ORDER BY loggedAt, rowid',
+  )
     .all(id)
     .map(toVariance);
 }
@@ -48,7 +51,8 @@ export function createScheduleItem(db, projectId, input) {
   return withTransaction(db, () => {
     getProject(db, projectId);
     const id = randomUUID();
-    db.prepare(
+    statement(
+      db,
       `INSERT INTO schedule_items
          (id, projectId, title, description, startDate, endDate,
           responsibleParty, estimatedCents, actualCents, sortOrder)
@@ -85,12 +89,13 @@ export function patchScheduleItem(db, id, patch, reason = '') {
     const changes = diffTrackedFields(before, patch);
     const { clause, values } = setClause(patch);
     if (clause) {
-      db.prepare(`UPDATE schedule_items SET ${clause} WHERE id = ?`).run(
+      statement(db, `UPDATE schedule_items SET ${clause} WHERE id = ?`).run(
         ...values,
         id,
       );
     }
-    const insert = db.prepare(
+    const insert = statement(
+      db,
       `INSERT INTO variances (id, scheduleItemId, kind, field, oldValue, newValue, reason, loggedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
@@ -119,7 +124,7 @@ export function patchScheduleItem(db, id, patch, reason = '') {
  */
 export function setScheduleItemComplete(db, id, complete) {
   getScheduleItem(db, id);
-  db.prepare('UPDATE schedule_items SET complete = ? WHERE id = ?').run(
+  statement(db, 'UPDATE schedule_items SET complete = ? WHERE id = ?').run(
     Number(complete),
     id,
   );
@@ -131,7 +136,9 @@ export function setScheduleItemComplete(db, id, complete) {
  * @param {string} id
  */
 export function deleteScheduleItem(db, id) {
-  const result = db.prepare('DELETE FROM schedule_items WHERE id = ?').run(id);
+  const result = statement(db, 'DELETE FROM schedule_items WHERE id = ?').run(
+    id,
+  );
   if (result.changes === 0) throw notFound('schedule item', id);
 }
 
@@ -144,8 +151,10 @@ export function deleteScheduleItem(db, id) {
  * @param {string[]} ids
  */
 export function reorderRows(db, table, projectId, ids) {
-  const existing = db
-    .prepare(`SELECT id FROM ${table} WHERE projectId = ? ORDER BY id`)
+  const existing = statement(
+    db,
+    `SELECT id FROM ${table} WHERE projectId = ? ORDER BY id`,
+  )
     .all(projectId)
     .map((r) => String(r.id));
   const given = [...new Set(ids)].sort();
@@ -156,7 +165,10 @@ export function reorderRows(db, table, projectId, ids) {
     );
   }
   withTransaction(db, () => {
-    const update = db.prepare(`UPDATE ${table} SET sortOrder = ? WHERE id = ?`);
+    const update = statement(
+      db,
+      `UPDATE ${table} SET sortOrder = ? WHERE id = ?`,
+    );
     ids.forEach((id, i) => update.run(i, id));
   });
 }

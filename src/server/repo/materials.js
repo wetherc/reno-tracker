@@ -4,6 +4,7 @@ import { badRequest, notFound } from '../errors.js';
 import { getProject } from './projects.js';
 import { getScheduleItem, reorderRows } from './schedule.js';
 import { setClause, toMaterialItem } from './rows.js';
+import { statement } from './statements.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../../types.ts').MaterialItem} MaterialItem */
@@ -15,7 +16,9 @@ import { setClause, toMaterialItem } from './rows.js';
  * @returns {MaterialItem}
  */
 export function getMaterialItem(db, id) {
-  const row = db.prepare('SELECT * FROM material_items WHERE id = ?').get(id);
+  const row = statement(db, 'SELECT * FROM material_items WHERE id = ?').get(
+    id,
+  );
   if (!row) throw notFound('material item', id);
   return toMaterialItem(row);
 }
@@ -48,7 +51,8 @@ export function createMaterialItem(db, projectId, input) {
     getProject(db, projectId);
     checkLink(db, projectId, input.scheduleItemId);
     const id = randomUUID();
-    db.prepare(
+    statement(
+      db,
       `INSERT INTO material_items
          (id, projectId, scheduleItemId, name, allowanceCents, estimatedCents,
           actualCents, expectedDate, sortOrder)
@@ -81,7 +85,7 @@ export function patchMaterialItem(db, id, patch) {
     checkLink(db, before.projectId, patch.scheduleItemId);
     const { clause, values } = setClause(patch);
     if (clause) {
-      db.prepare(`UPDATE material_items SET ${clause} WHERE id = ?`).run(
+      statement(db, `UPDATE material_items SET ${clause} WHERE id = ?`).run(
         ...values,
         id,
       );
@@ -98,7 +102,7 @@ export function patchMaterialItem(db, id, patch) {
  */
 export function setMaterialItemComplete(db, id, complete) {
   getMaterialItem(db, id);
-  db.prepare('UPDATE material_items SET complete = ? WHERE id = ?').run(
+  statement(db, 'UPDATE material_items SET complete = ? WHERE id = ?').run(
     Number(complete),
     id,
   );
@@ -110,7 +114,9 @@ export function setMaterialItemComplete(db, id, complete) {
  * @param {string} id
  */
 export function deleteMaterialItem(db, id) {
-  const result = db.prepare('DELETE FROM material_items WHERE id = ?').run(id);
+  const result = statement(db, 'DELETE FROM material_items WHERE id = ?').run(
+    id,
+  );
   if (result.changes === 0) throw notFound('material item', id);
 }
 

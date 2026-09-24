@@ -12,6 +12,7 @@ import {
 } from '../repo/projects.js';
 import { now } from '../repo/rows.js';
 import { checkImport, EXPORT_FORMAT } from '../../entities/importFile.js';
+import { statement } from '../repo/statements.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../router.js').Router} Router */
@@ -53,7 +54,8 @@ export function importProject(db, file) {
     /** @param {string} old */
     const mapped = (old) => /** @type {string} */ (ids.get(old));
 
-    const item = db.prepare(
+    const item = statement(
+      db,
       `INSERT INTO schedule_items (id, projectId, title, description, startDate, endDate,
          responsibleParty, estimatedCents, actualCents, complete, sortOrder)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -73,7 +75,8 @@ export function importProject(db, file) {
         s.sortOrder,
       );
     }
-    const dep = db.prepare(
+    const dep = statement(
+      db,
       'INSERT INTO dependencies (id, projectId, predecessorId, successorId) VALUES (?, ?, ?, ?)',
     );
     for (const d of file.dependencies) {
@@ -84,7 +87,8 @@ export function importProject(db, file) {
         mapped(d.successorId),
       );
     }
-    const variance = db.prepare(
+    const variance = statement(
+      db,
       `INSERT INTO variances (id, scheduleItemId, kind, field, oldValue, newValue, reason, loggedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
@@ -100,7 +104,8 @@ export function importProject(db, file) {
         v.loggedAt,
       );
     }
-    const note = db.prepare(
+    const note = statement(
+      db,
       'INSERT INTO notes (id, scheduleItemId, body, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)',
     );
     for (const n of file.notes) {
@@ -112,7 +117,8 @@ export function importProject(db, file) {
         n.updatedAt,
       );
     }
-    const material = db.prepare(
+    const material = statement(
+      db,
       `INSERT INTO material_items (id, projectId, scheduleItemId, name, allowanceCents,
          estimatedCents, actualCents, complete, expectedDate, sortOrder)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
