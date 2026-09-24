@@ -4,6 +4,7 @@ import { installDom } from '../domShim.js';
 import { mountProjects } from '../../../src/app/projects.js';
 import { createContext } from '../../../src/app/context.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
+import { todayIso } from '../../../src/schedule/dates.js';
 
 const dom = installDom();
 
@@ -259,10 +260,11 @@ test('save downloads the open project as a named file', async () => {
   $(save).click();
   await tick();
   assert.deepEqual(log, ['get a', 'export a']);
-  assert.equal(made[0].download, 'attic-2026-09-15.json');
+  const name = `attic-${todayIso()}.json`;
+  assert.equal(made[0].download, name);
   assert.equal(made[0].href, 'blob:fake');
   assert.deepEqual(urlLog, ['create', 'revoke blob:fake']);
-  assert.deepEqual(toasts, ['ok Saved attic-2026-09-15.json']);
+  assert.deepEqual(toasts, [`ok Saved ${name}`]);
 
   setProjects([projectOf('locked', 'Locked')]);
   await ctx.loadProjects();

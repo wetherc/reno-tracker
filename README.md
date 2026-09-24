@@ -193,7 +193,8 @@ startDate 2026-01-09`. A dependency on itself or a loop of dependencies
 also answers 400. A note, change row, or dependency that points at an
 item the file does not list is dropped, and so is a second copy of an
 edge. A material that points at such an item loses its link. The picker's Save and Load buttons call
-these two routes. The file name is the project slug plus the export day.
+these two routes. The file name is the project slug plus the export day
+in the local time zone.
 
 ## UI components
 

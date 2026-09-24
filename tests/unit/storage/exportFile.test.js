@@ -28,17 +28,14 @@ function fakeDoc() {
 
 test('exportFileName slugs the project name and adds the export day', () => {
   assert.equal(
-    exportFileName('Kitchen remodel', '2026-09-15T10:00:00.000Z'),
+    exportFileName('Kitchen remodel', '2026-09-15'),
     'kitchen-remodel-2026-09-15.json',
   );
   assert.equal(
-    exportFileName('  Back Deck / Stairs!! ', '2027-01-02T00:00:00.000Z'),
+    exportFileName('  Back Deck / Stairs!! ', '2027-01-02'),
     'back-deck-stairs-2027-01-02.json',
   );
-  assert.equal(
-    exportFileName('***', '2026-01-01T00:00:00.000Z'),
-    'project-2026-01-01.json',
-  );
+  assert.equal(exportFileName('***', '2026-01-01'), 'project-2026-01-01.json');
 });
 
 test('saveJson clicks a hidden download link and revokes the URL', () => {

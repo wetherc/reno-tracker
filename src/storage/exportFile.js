@@ -6,16 +6,18 @@
 /**
  * The file name a saved project gets: the project name as a slug plus
  * the day it was exported. "Kitchen remodel" on 2026-09-15 becomes
- * kitchen-remodel-2026-09-15.json.
+ * kitchen-remodel-2026-09-15.json. The caller passes the local day from
+ * todayIso, because the UTC day of exportedAt is already tomorrow on a
+ * US evening.
  * @param {string} name
- * @param {string} exportedAt an ISO timestamp
+ * @param {string} day YYYY-MM-DD
  */
-export function exportFileName(name, exportedAt) {
+export function exportFileName(name, day) {
   const slug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
-  return `${slug || 'project'}-${exportedAt.slice(0, 10)}.json`;
+  return `${slug || 'project'}-${day}.json`;
 }
 
 /**

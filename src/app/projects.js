@@ -4,6 +4,7 @@
 // Loading a file always creates a new project, so a file can be loaded
 // twice without touching the project it came from.
 import { describeFailure } from '../api/errors.js';
+import { todayIso } from '../schedule/dates.js';
 import {
   exportFileName,
   parseExportFile,
@@ -137,7 +138,7 @@ export function mountProjects({ ctx, host, files }) {
     if (!project) return;
     try {
       const file = await ctx.api.exportProject(project.id);
-      const fileName = exportFileName(project.name, file.exportedAt);
+      const fileName = exportFileName(project.name, todayIso());
       saveJson(fileName, file, files);
       ctx.toaster.success(`Saved ${fileName}`);
     } catch (error) {
