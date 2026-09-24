@@ -50,9 +50,9 @@ import {
   patchInvoice,
 } from './invoices.js';
 import {
+  cleanInvoiceInput,
+  INVOICE_FIELDS,
   invoiceDefaults,
-  lineDefaults,
-  pickLines,
   validateInvoice,
 } from '../entities/invoice.js';
 import { createStore, projectOf } from './store.js';
@@ -64,7 +64,6 @@ import { exportProject, importProject, readExportFile } from './transfer.js';
 /** @typedef {import('../types.ts').ScheduleItemInput} ScheduleItemInput */
 /** @typedef {import('../types.ts').MaterialItemInput} MaterialItemInput */
 /** @typedef {import('../types.ts').ProjectInput} ProjectInput */
-/** @typedef {import('../types.ts').InvoiceInput} InvoiceInput */
 
 const PROJECT_FIELDS = /** @type {const} */ ([
   'name',
@@ -87,14 +86,6 @@ const MATERIAL_FIELDS = /** @type {const} */ ([
   'estimatedCents',
   'actualCents',
   'expectedDate',
-]);
-
-const INVOICE_FIELDS = /** @type {const} */ ([
-  'number',
-  'party',
-  'issuedDate',
-  'dueDate',
-  'lines',
 ]);
 
 /**
@@ -284,11 +275,10 @@ export function createLocalApi(storage, events) {
       mutate(owner('project', projectId), (db) => {
         const body = pick(asObject(input), INVOICE_FIELDS);
         rejectInvalid(validateInvoice(body));
-        body.lines = pickLines(body.lines);
         return createInvoice(
           db,
           projectId,
-          invoiceDefaults(/** @type {InvoiceInput} */ (body)),
+          invoiceDefaults(cleanInvoiceInput(body)),
         );
       }),
     patchInvoice: (id, input) =>
@@ -296,11 +286,7 @@ export function createLocalApi(storage, events) {
         const body = pick(asObject(input), INVOICE_FIELDS);
         const current = getInvoice(db, id);
         rejectInvalid(validateInvoice(body, { partial: true, current }));
-        const { lines, ...fields } = /** @type {InvoiceInput} */ (body);
-        return patchInvoice(db, id, {
-          ...fields,
-          ...(lines && { lines: pickLines(lines).map(lineDefaults) }),
-        });
+        return patchInvoice(db, id, cleanInvoiceInput(body));
       }),
     deleteInvoice: (id) =>
       mutate(owner('invoices', id), (db) => deleteInvoice(db, id)),

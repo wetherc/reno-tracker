@@ -1,4 +1,4 @@
-// Invoices in a LocalDb. Each invoice keeps its lines. Every row a line
+// Invoices in a LocalDb. Each invoice keeps its lines and payments. Every row a line
 // bills must belong to the invoice's project, and a billed row cannot be
 // deleted, the same as on the server.
 import { invoiceName } from '../entities/invoice.js';
@@ -45,6 +45,13 @@ function linesFor(db, projectId, lines) {
 }
 
 /**
+ * @param {NewInvoice['payments']} payments
+ * @returns {Invoice['payments']} the payments with fresh ids
+ */
+export const withIds = (payments) =>
+  payments.map((p) => ({ id: newId(), ...p }));
+
+/**
  * @param {LocalDb} db
  * @param {string} projectId
  * @param {NewInvoice} input
@@ -58,22 +65,27 @@ export function createInvoice(db, projectId, input) {
     projectId,
     ...input,
     lines: linesFor(db, projectId, input.lines),
+    payments: withIds(input.payments),
   };
   db.invoices.push(invoice);
   return invoice;
 }
 
 /**
- * Lines in the patch replace every line of the invoice.
+ * Lines in the patch replace every line of the invoice, and payments
+ * replace every payment.
  * @param {LocalDb} db
  * @param {string} id
- * @param {Omit<InvoiceInput, 'lines'> & { lines?: NewInvoice['lines'] }} patch
+ * @param {Omit<InvoiceInput, 'lines' | 'payments'> & Partial<Pick<NewInvoice, 'lines' | 'payments'>>} patch
  * @returns {Invoice}
  */
-export function patchInvoice(db, id, { lines, ...fields }) {
+export function patchInvoice(db, id, { lines, payments, ...fields }) {
   const invoice = getInvoice(db, id);
   const next = lines ? linesFor(db, invoice.projectId, lines) : invoice.lines;
-  Object.assign(invoice, fields, { lines: next });
+  Object.assign(invoice, fields, {
+    lines: next,
+    payments: payments ? withIds(payments) : invoice.payments,
+  });
   return invoice;
 }
 

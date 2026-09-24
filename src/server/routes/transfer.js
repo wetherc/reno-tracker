@@ -10,6 +10,7 @@ import {
   getProjectPayload,
   getProjectVariances,
 } from '../repo/projects.js';
+import { insertPayments } from '../repo/invoices.js';
 import { now } from '../repo/rows.js';
 import { checkImport, EXPORT_FORMAT } from '../../entities/importFile.js';
 import { statement } from '../repo/statements.js';
@@ -144,8 +145,9 @@ export function importProject(db, file) {
     }
     const invoice = statement(
       db,
-      `INSERT INTO invoices (id, projectId, number, party, issuedDate, dueDate)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO invoices
+         (id, projectId, number, party, issuedDate, dueDate, retainageCents)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
     const line = statement(
       db,
@@ -162,7 +164,9 @@ export function importProject(db, file) {
         inv.party,
         inv.issuedDate,
         inv.dueDate,
+        inv.retainageCents,
       );
+      insertPayments(db, id, inv.payments);
       inv.lines.forEach((l, i) =>
         line.run(
           randomUUID(),

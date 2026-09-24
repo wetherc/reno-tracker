@@ -1,7 +1,12 @@
 // Checks the invoices list of an export file. A file with no list has no
-// invoices. A line that bills a row the file does not list stops the
+// invoices, and an invoice with no payments list has no payments. A line that bills a row the file does not list stops the
 // import, because dropping that line would change the invoice total.
-import { invoiceDefaults, pickLines, validateInvoice } from './invoice.js';
+import {
+  cleanInvoiceInput,
+  INVOICE_FIELDS,
+  invoiceDefaults,
+  validateInvoice,
+} from './invoice.js';
 import { show } from './validate.js';
 
 /** @typedef {import('../types.ts').ImportRows} ImportRows */
@@ -27,15 +32,12 @@ export function checkInvoices(list, known, fail) {
     }
     /** @type {Record<string, unknown>} */
     const fields = {};
-    for (const key of ['number', 'party', 'issuedDate', 'dueDate', 'lines']) {
+    for (const key of INVOICE_FIELDS) {
       if (key in row) fields[key] = row[key];
     }
     const error = validateInvoice(fields);
     if (error) bad(error.message);
-    const invoice = invoiceDefaults({
-      ...fields,
-      lines: pickLines(fields.lines),
-    });
+    const invoice = invoiceDefaults(cleanInvoiceInput(fields));
     invoice.lines.forEach((line, j) => {
       if (
         line.scheduleItemId !== null &&

@@ -155,7 +155,8 @@ function parseObject(text) {
 }
 
 /**
- * Fills in any list the stored document lacks.
+ * Fills in any list the stored document lacks, and the retainage and
+ * payments of an invoice stored without them.
  * @param {Record<string, unknown>} input
  * @returns {LocalDb}
  */
@@ -166,6 +167,11 @@ function normalize(input) {
       db[key] = /** @type {never} */ (input[key]);
     }
   }
+  db.invoices = db.invoices.map((i) => ({
+    ...i,
+    retainageCents: i.retainageCents ?? 0,
+    payments: i.payments ?? [],
+  }));
   return db;
 }
 

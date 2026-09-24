@@ -1,12 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  cleanInvoiceInput,
   invoiceDefaults,
   invoiceErrors,
   invoiceName,
+  invoicePaid,
   invoiceTotal,
   MAX_LINES,
+  MAX_PAYMENTS,
+  paymentDefaults,
   pickLines,
+  pickPayments,
   validateInvoice,
 } from '../../../src/entities/invoice.js';
 
@@ -108,6 +113,8 @@ test('defaults fill every field of the invoice and its lines', () => {
         amountCents: 500,
       },
     ],
+    retainageCents: 0,
+    payments: [],
   });
   assert.deepEqual(invoiceDefaults({}).lines, []);
   assert.deepEqual(invoiceDefaults({}).party, '');
@@ -140,5 +147,91 @@ test('names and totals', () => {
       ],
     }),
     750,
+  );
+});
+
+test('payments are optional and each needs a day and more than zero cents', () => {
+  const pay = { paidDate: '2026-01-06', amountCents: 100 };
+  assert.deepEqual(invoiceErrors({ ...ok, payments: [pay] }), []);
+  assert.deepEqual(invoiceErrors({ ...ok, payments: 'x' }), [
+    { field: 'payments', message: 'payments must be a list' },
+  ]);
+  assert.equal(
+    validateInvoice({ ...ok, payments: Array(MAX_PAYMENTS + 1).fill(pay) })
+      ?.message,
+    `payments must list at most ${MAX_PAYMENTS} payments, got ${MAX_PAYMENTS + 1}`,
+  );
+  assert.deepEqual(invoiceErrors({ payments: [pay, 3] }, { partial: true }), [
+    { field: 'payments.1', message: 'payment 2 must be an object, got 3' },
+  ]);
+  assert.deepEqual(
+    invoiceErrors({ ...ok, payments: [{ amountCents: 0, note: 5 }] }),
+    [
+      {
+        field: 'payments.0.paidDate',
+        message:
+          'payment 1: paidDate must be a date like 2026-03-14, got undefined',
+      },
+      {
+        field: 'payments.0.amountCents',
+        message: 'payment 1: amountCents must be more than zero',
+      },
+      {
+        field: 'payments.0.note',
+        message: 'payment 1: note must be text, got 5',
+      },
+    ],
+  );
+  assert.equal(
+    validateInvoice({ ...ok, payments: [{ ...pay, amountCents: -1 }] })?.field,
+    'payments.0.amountCents',
+  );
+});
+
+test('retainage is whole cents, zero or more', () => {
+  assert.equal(validateInvoice({ ...ok, retainageCents: 900 }), null);
+  assert.equal(
+    validateInvoice({ retainageCents: -1 }, { partial: true })?.field,
+    'retainageCents',
+  );
+});
+
+test('clean input keeps known keys and puts payments in paid-day order', () => {
+  const late = { paidDate: '2026-02-01', amountCents: 1, extra: 1 };
+  const early = { paidDate: '2026-01-01', amountCents: 2 };
+  const same = { paidDate: '2026-01-01', amountCents: 3, note: 'Deposit' };
+  assert.deepEqual(
+    cleanInvoiceInput({ party: 'P', payments: [late, early, same] }),
+    {
+      party: 'P',
+      payments: [
+        { paidDate: '2026-01-01', amountCents: 2, note: '' },
+        { paidDate: '2026-01-01', amountCents: 3, note: 'Deposit' },
+        { paidDate: '2026-02-01', amountCents: 1, note: '' },
+      ],
+    },
+  );
+  assert.deepEqual(cleanInvoiceInput({ lines: [{ ...line, id: 'x' }] }), {
+    lines: [
+      {
+        scheduleItemId: 'a',
+        materialItemId: null,
+        description: '',
+        amountCents: 500,
+      },
+    ],
+  });
+  assert.deepEqual(pickPayments([late]), [
+    { paidDate: '2026-02-01', amountCents: 1 },
+  ]);
+  assert.deepEqual(paymentDefaults([]), []);
+  assert.equal(
+    invoicePaid({
+      payments: [
+        { id: '1', paidDate: '2026-01-01', amountCents: 2, note: '' },
+        { id: '2', paidDate: '2026-01-02', amountCents: 5, note: '' },
+      ],
+    }),
+    7,
   );
 });

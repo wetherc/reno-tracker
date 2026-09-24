@@ -88,7 +88,9 @@ function twoProjects() {
       party: 'Pinch',
       issuedDate: '2026-01-05',
       dueDate: null,
+      retainageCents: 0,
       lines: [],
+      payments: [],
     });
   }
   return db;
@@ -448,4 +450,24 @@ test('a blocked storage reads empty and reports a failed write', () => {
 test('ids and timestamps come from the platform', () => {
   assert.match(newId(), /^[0-9a-f-]{36}$/);
   assert.match(now(), /^\d{4}-\d{2}-\d{2}T/);
+});
+
+test('an invoice stored with no retainage or payments reads with none', () => {
+  const storage = memoryStorage();
+  const invoice = {
+    id: 'i',
+    projectId: 'a',
+    number: '',
+    party: 'Pinch',
+    issuedDate: '2026-01-05',
+    dueDate: null,
+    lines: [],
+  };
+  storage.setItem(
+    PROJECT_PREFIX + 'a',
+    JSON.stringify({ projects: [projectOfId('a')], invoices: [invoice] }),
+  );
+  assert.deepEqual(createStore(storage).read().invoices, [
+    { ...invoice, retainageCents: 0, payments: [] },
+  ]);
 });

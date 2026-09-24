@@ -70,7 +70,9 @@ export function invoiceOf(id, extra = {}) {
     party: `Party ${id}`,
     issuedDate: '2026-10-05',
     dueDate: null,
+    retainageCents: 0,
     lines: [],
+    payments: [],
     ...extra,
   };
 }

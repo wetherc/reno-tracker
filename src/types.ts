@@ -87,6 +87,18 @@ export interface InvoiceLine {
   amountCents: Cents;
 }
 
+// One payment against an invoice. A deposit is a payment dated before
+// the invoice's issue day.
+export interface Payment {
+  id: string;
+  paidDate: IsoDate;
+  amountCents: Cents; // more than zero
+  note: string;
+}
+
+// retainageCents is the part of the total that the household keeps back
+// until the work is done. It is owed but not due, and a payment
+// releases it. Payments are listed by paid day.
 export interface Invoice {
   id: string;
   projectId: string;
@@ -94,7 +106,9 @@ export interface Invoice {
   party: string;
   issuedDate: IsoDate;
   dueDate: IsoDate | null;
+  retainageCents: Cents;
   lines: InvoiceLine[];
+  payments: Payment[];
 }
 
 // One project and its rows. GET /api/projects/:id returns this, and the
@@ -150,16 +164,28 @@ export type InvoiceLineInput = Pick<InvoiceLine, 'amountCents'> &
     Pick<InvoiceLine, 'scheduleItemId' | 'materialItemId' | 'description'>
   >;
 
-// A patch that carries lines replaces every line of the invoice.
+export type PaymentInput = Pick<Payment, 'paidDate' | 'amountCents'> &
+  Partial<Pick<Payment, 'note'>>;
+
+// A patch that carries lines replaces every line of the invoice, and a
+// patch that carries payments replaces every payment.
 export type InvoiceInput = Partial<
-  Pick<Invoice, 'number' | 'party' | 'issuedDate' | 'dueDate'> & {
+  Pick<
+    Invoice,
+    'number' | 'party' | 'issuedDate' | 'dueDate' | 'retainageCents'
+  > & {
     lines: InvoiceLineInput[];
+    payments: PaymentInput[];
   }
 >;
 
 // A checked invoice with every field filled, before it gets its ids.
-export type NewInvoice = Omit<Invoice, 'id' | 'projectId' | 'lines'> & {
+export type NewInvoice = Omit<
+  Invoice,
+  'id' | 'projectId' | 'lines' | 'payments'
+> & {
   lines: Omit<InvoiceLine, 'id'>[];
+  payments: Omit<Payment, 'id'>[];
 };
 
 export type NoteInput = Pick<Note, 'body'>;

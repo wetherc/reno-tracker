@@ -371,4 +371,19 @@ export const REFUSED = [
     'invoices row 1: line 1 bills material "m", which the file does not list',
     'invoices',
   ],
+  [
+    'an invoice payment with no amount',
+    file({
+      invoices: [
+        {
+          party: 'P',
+          issuedDate: '2026-01-05',
+          lines: [{ scheduleItemId: 'a', amountCents: 1 }],
+          payments: [{ paidDate: '2026-01-05' }],
+        },
+      ],
+    }),
+    'invoices row 1: payment 1: amountCents must be whole cents, zero or more, got undefined',
+    'invoices',
+  ],
 ];

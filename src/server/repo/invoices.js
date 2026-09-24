@@ -3,7 +3,7 @@ import { withTransaction } from '../db/open.js';
 import { badRequest, conflict, notFound } from '../errors.js';
 import { invoiceName } from '../../entities/invoice.js';
 import { getProject } from './projects.js';
-import { setClause, toInvoice, toInvoiceLine } from './rows.js';
+import { setClause, toInvoice, toInvoiceLine, toPayment } from './rows.js';
 import { statement } from './statements.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
@@ -12,7 +12,8 @@ import { statement } from './statements.js';
 /** @typedef {import('../../types.ts').NewInvoice} NewInvoice */
 
 /**
- * Every invoice of a project with its lines, oldest issue day first.
+ * Every invoice of a project with its lines and payments, oldest issue
+ * day first.
  * @param {Database} db
  * @param {string} projectId
  * @returns {Invoice[]}
@@ -24,6 +25,12 @@ export function listInvoices(db, projectId) {
        JOIN invoices i ON i.id = l.invoiceId
        WHERE i.projectId = ? ORDER BY l.position`,
   ).all(projectId);
+  const payments = statement(
+    db,
+    `SELECT p.* FROM invoice_payments p
+       JOIN invoices i ON i.id = p.invoiceId
+       WHERE i.projectId = ? ORDER BY p.position`,
+  ).all(projectId);
   return statement(
     db,
     'SELECT * FROM invoices WHERE projectId = ? ORDER BY issuedDate, rowid',
@@ -33,6 +40,7 @@ export function listInvoices(db, projectId) {
       toInvoice(
         row,
         lines.filter((l) => l.invoiceId === row.id).map(toInvoiceLine),
+        payments.filter((p) => p.invoiceId === row.id).map(toPayment),
       ),
     );
 }
@@ -51,7 +59,13 @@ export function getInvoice(db, id) {
   )
     .all(id)
     .map(toInvoiceLine);
-  return toInvoice(row, lines);
+  const payments = statement(
+    db,
+    'SELECT * FROM invoice_payments WHERE invoiceId = ? ORDER BY position',
+  )
+    .all(id)
+    .map(toPayment);
+  return toInvoice(row, lines, payments);
 }
 
 /**
@@ -106,6 +120,23 @@ function insertLines(db, invoiceId, lines) {
 
 /**
  * @param {Database} db
+ * @param {string} invoiceId
+ * @param {NewInvoice['payments']} payments
+ */
+export function insertPayments(db, invoiceId, payments) {
+  const insert = statement(
+    db,
+    `INSERT INTO invoice_payments
+       (id, invoiceId, position, paidDate, amountCents, note)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  );
+  payments.forEach((p, i) =>
+    insert.run(randomUUID(), invoiceId, i, p.paidDate, p.amountCents, p.note),
+  );
+}
+
+/**
+ * @param {Database} db
  * @param {string} projectId
  * @param {NewInvoice} input
  * @returns {Invoice}
@@ -117,8 +148,9 @@ export function createInvoice(db, projectId, input) {
     const id = randomUUID();
     statement(
       db,
-      `INSERT INTO invoices (id, projectId, number, party, issuedDate, dueDate)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO invoices
+         (id, projectId, number, party, issuedDate, dueDate, retainageCents)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       id,
       projectId,
@@ -126,21 +158,23 @@ export function createInvoice(db, projectId, input) {
       input.party,
       input.issuedDate,
       input.dueDate,
+      input.retainageCents,
     );
     insertLines(db, id, input.lines);
+    insertPayments(db, id, input.payments);
     return getInvoice(db, id);
   });
 }
 
 /**
  * Writes the fields of the patch. Lines in the patch replace every line
- * of the invoice.
+ * of the invoice, and payments replace every payment.
  * @param {Database} db
  * @param {string} id
- * @param {Omit<InvoiceInput, 'lines'> & { lines?: NewInvoice['lines'] }} patch
+ * @param {Omit<InvoiceInput, 'lines' | 'payments'> & Partial<Pick<NewInvoice, 'lines' | 'payments'>>} patch
  * @returns {Invoice}
  */
-export function patchInvoice(db, id, { lines, ...fields }) {
+export function patchInvoice(db, id, { lines, payments, ...fields }) {
   return withTransaction(db, () => {
     const before = getInvoice(db, id);
     const { clause, values } = setClause(fields);
@@ -154,6 +188,10 @@ export function patchInvoice(db, id, { lines, ...fields }) {
       checkLinks(db, before.projectId, lines);
       statement(db, 'DELETE FROM invoice_lines WHERE invoiceId = ?').run(id);
       insertLines(db, id, lines);
+    }
+    if (payments) {
+      statement(db, 'DELETE FROM invoice_payments WHERE invoiceId = ?').run(id);
+      insertPayments(db, id, payments);
     }
     return getInvoice(db, id);
   });

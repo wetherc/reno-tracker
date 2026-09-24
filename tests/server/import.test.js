@@ -270,6 +270,8 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
             amountCents: 50,
           },
         ],
+        retainageCents: 0,
+        payments: [],
       },
     ]);
   } finally {

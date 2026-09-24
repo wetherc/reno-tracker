@@ -261,6 +261,73 @@ for (const [name, make] of BACKENDS) {
       assert.deepEqual(payload.invoices, [two.invoice]);
     });
 
+    test('payments and retainage are stored, replaced, and kept', async () => {
+      const api = make();
+      const { project, invoice } = await seed(api);
+      assert.equal(invoice.retainageCents, 0);
+      assert.deepEqual(invoice.payments, []);
+
+      const paid = await api.patchInvoice(invoice.id, {
+        retainageCents: 8_250,
+        payments: [
+          { paidDate: '2026-01-20', amountCents: 100_000 },
+          /** @type {any} */ ({
+            paidDate: '2026-01-02',
+            amountCents: 20_000,
+            note: 'Deposit',
+            extra: 1,
+          }),
+        ],
+      });
+      assert.equal(paid.retainageCents, 8_250);
+      assert.deepEqual(
+        paid.payments.map(({ id: _id, ...rest }) => rest),
+        [
+          { paidDate: '2026-01-02', amountCents: 20_000, note: 'Deposit' },
+          { paidDate: '2026-01-20', amountCents: 100_000, note: '' },
+        ],
+      );
+      assert.ok(paid.payments.every((p) => typeof p.id === 'string'));
+
+      const renamed = await api.patchInvoice(invoice.id, { number: '7' });
+      assert.deepEqual(renamed.payments, paid.payments);
+      const payload = await api.getProject(project.id);
+      assert.deepEqual(payload.invoices, [renamed]);
+
+      const cleared = await api.patchInvoice(invoice.id, { payments: [] });
+      assert.deepEqual(cleared.payments, []);
+
+      await fails(
+        api.patchInvoice(invoice.id, {
+          payments: [{ paidDate: '2026-01-20', amountCents: 0 }],
+        }),
+        400,
+        'payment 1: amountCents must be more than zero',
+        'payments.0.amountCents',
+      );
+      await fails(
+        api.createInvoice(project.id, {
+          party: 'P',
+          issuedDate: '2026-01-05',
+          retainageCents: -5,
+          lines: invoice.lines,
+        }),
+        400,
+        'retainageCents must be whole cents, zero or more, got -5',
+        'retainageCents',
+      );
+
+      const made = await api.createInvoice(project.id, {
+        party: 'P',
+        issuedDate: '2026-01-05',
+        retainageCents: 10,
+        lines: invoice.lines,
+        payments: [{ paidDate: '2026-01-05', amountCents: 5 }],
+      });
+      assert.equal(made.retainageCents, 10);
+      assert.equal(made.payments[0].note, '');
+    });
+
     test('export and import keep every line on its row', async () => {
       const api = make();
       const { project } = await seed(api);
@@ -273,6 +340,22 @@ for (const [name, make] of BACKENDS) {
       assert.equal(copy.schedule[0].id, invoice.lines[0].scheduleItemId);
       assert.equal(copy.materials[0].id, invoice.lines[1].materialItemId);
       assert.notEqual(invoice.id, file.invoices?.[0].id);
+
+      await api.patchInvoice(file.invoices?.[0].id ?? '', {
+        retainageCents: 40,
+        payments: [{ paidDate: '2026-01-12', amountCents: 500, note: 'Check' }],
+      });
+      const paidFile = await api.exportProject(project.id);
+      const paidCopy = (await api.importProject(paidFile)).invoices[0];
+      assert.equal(paidCopy.retainageCents, 40);
+      assert.deepEqual(
+        paidCopy.payments.map(({ id: _id, ...rest }) => rest),
+        [{ paidDate: '2026-01-12', amountCents: 500, note: 'Check' }],
+      );
+      assert.notEqual(
+        paidCopy.payments[0].id,
+        paidFile.invoices?.[0].payments[0].id,
+      );
 
       const older = { ...file };
       delete older.invoices;

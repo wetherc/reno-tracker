@@ -9,6 +9,7 @@ import {
   getProjectPayload,
   getProjectVariances,
 } from './projects.js';
+import { withIds } from './invoices.js';
 import { newId, now } from './store.js';
 
 /** @typedef {import('./store.js').LocalDb} LocalDb */
@@ -112,6 +113,7 @@ export function importProject(db, file) {
             ? null
             : /** @type {string} */ (materialIds.get(line.materialItemId)),
       })),
+      payments: withIds(invoice.payments),
     });
   }
   return getProjectPayload(db, project.id);

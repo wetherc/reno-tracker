@@ -1,7 +1,8 @@
 // An invoice is one bill from one party. Each of its lines bills one
 // schedule item or one material, so the sum of the lines on a row is
-// what that row cost. A line error names its field as lines.<index>.<name>
-// so a form can mark the control on that line.
+// what that row cost. An invoice may also list its payments. A line
+// error names its field as lines.<index>.<name>, and a payment error as
+// payments.<index>.<name>, so a form can mark the control on that row.
 import {
   checkCents,
   checkDate,
@@ -16,10 +17,25 @@ import {
 /** @typedef {import('../types.ts').InvoiceInput} InvoiceInput */
 /** @typedef {import('../types.ts').InvoiceLineInput} InvoiceLineInput */
 /** @typedef {import('../types.ts').NewInvoice} NewInvoice */
+/** @typedef {import('../types.ts').PaymentInput} PaymentInput */
 /** @typedef {import('./validate.js').FieldError} FieldError */
 
 /** The most lines one invoice takes. */
 export const MAX_LINES = 100;
+
+/** The fields an invoice body may carry. */
+export const INVOICE_FIELDS = /** @type {const} */ ([
+  'number',
+  'party',
+  'issuedDate',
+  'dueDate',
+  'retainageCents',
+  'lines',
+  'payments',
+]);
+
+/** The most payments one invoice takes. */
+export const MAX_PAYMENTS = 100;
 
 const CHECKS = {
   number: (/** @type {string} */ f, /** @type {unknown} */ v) =>
@@ -28,12 +44,21 @@ const CHECKS = {
     checkText(f, v, { min: 1, max: 200 }),
   issuedDate: checkDate,
   dueDate: nullable(checkDate),
+  retainageCents: checkCents,
 };
 
 const LINE_CHECKS = {
   description: (/** @type {string} */ f, /** @type {unknown} */ v) =>
     checkText(f, v, { max: 200 }),
   amountCents: checkCents,
+};
+
+const PAYMENT_CHECKS = {
+  paidDate: checkDate,
+  amountCents: (/** @type {string} */ f, /** @type {unknown} */ v) =>
+    checkCents(f, v) ?? (v === 0 ? `${f} must be more than zero` : null),
+  note: (/** @type {string} */ f, /** @type {unknown} */ v) =>
+    checkText(f, v, { max: 200 }),
 };
 
 /**
@@ -83,7 +108,48 @@ function lineErrors(line, index) {
 }
 
 /**
- * Field checks, every line, and the rule that an invoice is due on or
+ * The problems of one payment.
+ * @param {unknown} payment
+ * @param {number} index
+ * @returns {FieldError[]}
+ */
+function paymentErrors(payment, index) {
+  const at = `payments.${index}`;
+  const label = `payment ${index + 1}`;
+  if (!isObject(payment)) {
+    return [
+      {
+        field: at,
+        message: `${label} must be an object, got ${show(payment)}`,
+      },
+    ];
+  }
+  return fieldErrors(payment, PAYMENT_CHECKS, ['paidDate', 'amountCents']).map(
+    (e) => ({ field: `${at}.${e.field}`, message: `${label}: ${e.message}` }),
+  );
+}
+
+/**
+ * @param {unknown} payments
+ * @returns {FieldError[]}
+ */
+function paymentListErrors(payments) {
+  if (!Array.isArray(payments)) {
+    return [{ field: 'payments', message: 'payments must be a list' }];
+  }
+  if (payments.length > MAX_PAYMENTS) {
+    return [
+      {
+        field: 'payments',
+        message: `payments must list at most ${MAX_PAYMENTS} payments, got ${payments.length}`,
+      },
+    ];
+  }
+  return payments.flatMap(paymentErrors);
+}
+
+/**
+ * Field checks, every line and payment, and the rule that an invoice is due on or
  * after the day it is issued. For a patch, pass the current invoice so a
  * one-sided date change is checked against the date it keeps.
  * @param {Record<string, unknown>} input
@@ -112,6 +178,7 @@ export function invoiceErrors(input, { partial = false, current } = {}) {
       lines.forEach((line, i) => errors.push(...lineErrors(line, i)));
     }
   }
+  if ('payments' in input) errors.push(...paymentListErrors(input.payments));
   if (errors.some((e) => e.field === 'issuedDate' || e.field === 'dueDate')) {
     return errors;
   }
@@ -153,6 +220,22 @@ export function lineDefaults(line) {
 }
 
 /**
+ * Checked payments with every field filled, oldest paid day first. Two
+ * payments on one day keep their order.
+ * @param {PaymentInput[]} payments
+ * @returns {NewInvoice['payments']}
+ */
+export function paymentDefaults(payments) {
+  return payments
+    .map((p) => ({
+      paidDate: p.paidDate,
+      amountCents: p.amountCents,
+      note: p.note ?? '',
+    }))
+    .sort((a, b) => a.paidDate.localeCompare(b.paidDate));
+}
+
+/**
  * Fills a checked create body with defaults.
  * @param {InvoiceInput} input
  * @returns {NewInvoice}
@@ -163,30 +246,61 @@ export function invoiceDefaults(input) {
     party: input.party ?? '',
     issuedDate: input.issuedDate ?? '',
     dueDate: input.dueDate ?? null,
+    retainageCents: input.retainageCents ?? 0,
     lines: (input.lines ?? []).map(lineDefaults),
+    payments: paymentDefaults(input.payments ?? []),
   };
 }
 
 /**
- * Keeps only the known keys of each line, so an unknown key cannot land
+ * Keeps only the given keys of each row, so an unknown key cannot land
  * on a stored row.
+ * @param {unknown} rows a checked list of objects
+ * @param {string[]} keys
+ * @returns {Record<string, unknown>[]}
+ */
+function pickRows(rows, keys) {
+  return /** @type {Record<string, unknown>[]} */ (rows).map((row) =>
+    Object.fromEntries(keys.filter((k) => k in row).map((k) => [k, row[k]])),
+  );
+}
+
+/**
  * @param {unknown} lines a checked list of lines
  * @returns {InvoiceLineInput[]}
  */
-export function pickLines(lines) {
-  return /** @type {Record<string, unknown>[]} */ (lines).map((line) => {
-    /** @type {Record<string, unknown>} */
-    const out = {};
-    for (const key of [
+export const pickLines = (lines) =>
+  /** @type {InvoiceLineInput[]} */ (
+    pickRows(lines, [
       'scheduleItemId',
       'materialItemId',
       'description',
       'amountCents',
-    ]) {
-      if (key in line) out[key] = line[key];
-    }
-    return /** @type {InvoiceLineInput} */ (out);
-  });
+    ])
+  );
+
+/**
+ * @param {unknown} payments a checked list of payments
+ * @returns {PaymentInput[]}
+ */
+export const pickPayments = (payments) =>
+  /** @type {PaymentInput[]} */ (
+    pickRows(payments, ['paidDate', 'amountCents', 'note'])
+  );
+
+/**
+ * A checked body with only known keys on its lines and payments, and
+ * the payments filled and in paid-day order.
+ * @param {Record<string, unknown>} body
+ * @returns {Omit<InvoiceInput, 'lines' | 'payments'> & { lines?: NewInvoice['lines'], payments?: NewInvoice['payments'] }}
+ */
+export function cleanInvoiceInput(body) {
+  const { lines, payments, ...fields } = /** @type {InvoiceInput} */ (body);
+  return {
+    ...fields,
+    ...(lines && { lines: pickLines(lines).map(lineDefaults) }),
+    ...(payments && { payments: paymentDefaults(pickPayments(payments)) }),
+  };
 }
 
 /**
@@ -199,6 +313,14 @@ export function invoiceName(invoice) {
   return invoice.number
     ? `Invoice ${invoice.number} from ${invoice.party}`
     : `An invoice from ${invoice.party}`;
+}
+
+/**
+ * @param {Pick<Invoice, 'payments'>} invoice
+ * @returns {number} the sum of the payments
+ */
+export function invoicePaid(invoice) {
+  return invoice.payments.reduce((sum, p) => sum + p.amountCents, 0);
 }
 
 /**

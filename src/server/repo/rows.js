@@ -128,10 +128,24 @@ export function toInvoiceLine(r) {
 
 /**
  * @param {Row} r
+ * @returns {import('../../types.ts').Payment}
+ */
+export function toPayment(r) {
+  return {
+    id: text(r.id),
+    paidDate: text(r.paidDate),
+    amountCents: int(r.amountCents),
+    note: text(r.note),
+  };
+}
+
+/**
+ * @param {Row} r
  * @param {import('../../types.ts').InvoiceLine[]} lines
+ * @param {import('../../types.ts').Payment[]} payments
  * @returns {import('../../types.ts').Invoice}
  */
-export function toInvoice(r, lines) {
+export function toInvoice(r, lines, payments) {
   return {
     id: text(r.id),
     projectId: text(r.projectId),
@@ -139,7 +153,9 @@ export function toInvoice(r, lines) {
     party: text(r.party),
     issuedDate: text(r.issuedDate),
     dueDate: textOrNull(r.dueDate),
+    retainageCents: int(r.retainageCents),
     lines,
+    payments,
   };
 }
 

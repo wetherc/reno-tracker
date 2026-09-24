@@ -312,7 +312,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
     return fields;
   }
 
-  /** @returns {Required<InvoiceInput> | null} */
+  /** @returns {Required<Omit<InvoiceInput, 'retainageCents' | 'payments'>> | null} */
   function readForm() {
     /** @type {import('../entities/validate.js').FieldError[]} */
     const problems = [];
