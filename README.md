@@ -106,7 +106,9 @@ path such as `/reno-tracker/` as well as at a domain root.
 `.github/workflows/pages.yml` runs the build on every push to `main` and
 publishes `dist/` with `actions/deploy-pages`. Enable Pages once in the
 repository settings with GitHub Actions as the source. The build needs
-Node only, so the workflow installs no packages.
+Node only, so the workflow installs no packages. Each action is pinned to
+a commit SHA. Only the deploy job gets the `pages: write` and
+`id-token: write` permissions, and checkout keeps no token in the clone.
 
 The Playwright project named `pages` runs `tests/e2e/pages.spec.js`
 against the static build with no API. It checks that no request goes to
