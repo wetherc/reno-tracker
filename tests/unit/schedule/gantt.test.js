@@ -4,6 +4,7 @@ import {
   connectorPath,
   daysDragged,
   ganttLayout,
+  labelPlace,
   moveDates,
   workPieces,
 } from '../../../src/schedule/gantt.js';
@@ -193,4 +194,17 @@ test('workPieces paints a weekend at either end of an item', () => {
   assert.deepEqual(workPieces('2026-10-10', '2026-10-11'), [
     { offset: 0, days: 2 },
   ]);
+});
+
+test('labelPlace keeps a fitting title inside and puts a long one after or before', () => {
+  const bar = { labelWidth: 100, barLeft: 200, barRight: 300, chartWidth: 500 };
+  assert.equal(labelPlace({ ...bar, fits: true }), 'inside');
+  assert.equal(labelPlace({ ...bar, fits: false }), 'after');
+  // After would pass the right edge, so the title goes before.
+  assert.equal(labelPlace({ ...bar, fits: false, chartWidth: 350 }), 'before');
+  // Neither side has room, so the title stays after.
+  assert.equal(
+    labelPlace({ ...bar, fits: false, barLeft: 50, chartWidth: 350 }),
+    'after',
+  );
 });

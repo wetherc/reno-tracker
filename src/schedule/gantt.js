@@ -100,8 +100,8 @@ export function ganttLayout({
   const starts = sorted.map((i) => i.startDate).sort();
   const ends = sorted.map((i) => i.endDate).sort();
   const start = startOfWeek(starts[0] ?? today);
-  // One empty week after the last item, so the title beside a narrow bar
-  // in the last week has grid under it instead of spilling past the edge.
+  // One empty week after the last item, so a title beside a bar in the
+  // last week has grid under it.
   const end = addDays(startOfWeek(ends[ends.length - 1] ?? today), 13);
   const days = spanDays(start, end);
 
@@ -215,6 +215,38 @@ export function workPieces(startDate, endDate) {
     else pieces.push({ offset: i, days: 1 });
   });
   return pieces;
+}
+
+/** @typedef {'inside' | 'after' | 'before'} LabelPlace */
+
+/**
+ * @typedef {{
+ *   fits: boolean,
+ *   labelWidth: number,
+ *   barLeft: number,
+ *   barRight: number,
+ *   chartWidth: number,
+ * }} LabelFit fits is true when the whole title fits in the widest piece; widths in pixels
+ */
+
+/**
+ * Where a bar's title goes. A title that fits in the widest piece stays
+ * inside. Otherwise it sits after the bar at full length, or before the
+ * bar when after would run past the right edge of the chart and before
+ * would not run past the left edge.
+ * @param {LabelFit} fit
+ * @returns {LabelPlace}
+ */
+export function labelPlace({
+  fits,
+  labelWidth,
+  barLeft,
+  barRight,
+  chartWidth,
+}) {
+  if (fits) return 'inside';
+  if (barRight + labelWidth <= chartWidth) return 'after';
+  return barLeft - labelWidth >= 0 ? 'before' : 'after';
 }
 
 /** @typedef {'start' | 'end' | 'both'} DragEdge */

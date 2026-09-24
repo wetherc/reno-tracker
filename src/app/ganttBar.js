@@ -2,10 +2,17 @@
 // whole item on a drag. Each end is a handle that moves one date. Every
 // part answers the arrow keys: one day per press, seven with Shift. The
 // bar paints as one piece per run of workdays, with a gap over each
-// weekend inside the item, and the title sits in the widest piece.
+// weekend inside the item. The title sits in the widest piece when the
+// whole name fits there, and beside the bar at full length when it does
+// not.
 import { formatDayMonth, formatRange } from '../format/date.js';
 import { dayOffset, spanDays } from '../schedule/dates.js';
-import { daysDragged, moveDates, workPieces } from '../schedule/gantt.js';
+import {
+  daysDragged,
+  labelPlace,
+  moveDates,
+  workPieces,
+} from '../schedule/gantt.js';
 import { bareButton } from '../ui/buttons.js';
 import { icon } from '../ui/icon.js';
 
@@ -19,6 +26,7 @@ import { icon } from '../ui/icon.js';
  *   item: ScheduleItem,
  *   row: GanttRow,
  *   dayWidth: number,
+ *   chartWidth: number,
  *   onOpen: (item: ScheduleItem) => void,
  *   onMove: (item: ScheduleItem, patch: DatePatch, edge: DragEdge) => void,
  *   onPreview: (text: string | null) => void,
@@ -27,9 +35,9 @@ import { icon } from '../ui/icon.js';
 
 const ARROWS = { ArrowLeft: -1, ArrowRight: 1 };
 
-// A widest piece shorter than this many days cannot hold the title, so
-// the title sits to the right of the bar instead.
-export const NARROW_DAYS = 3;
+// The space between a bar and a title beside it: the title's margin plus
+// its side padding in gantt.css.
+const LABEL_GAP = 8;
 
 /**
  * The sentence a toast shows after a move. It names only the dates that
@@ -53,7 +61,15 @@ export function moveMessage(item, patch) {
  * @param {GanttBarOptions} options
  * @returns {HTMLDivElement}
  */
-export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
+export function ganttBar({
+  item,
+  row,
+  dayWidth,
+  chartWidth,
+  onOpen,
+  onMove,
+  onPreview,
+}) {
   const el = document.createElement('div');
   el.className = item.complete ? 'gantt-bar gantt-bar--complete' : 'gantt-bar';
   el.style.left = `${row.x}px`;
@@ -149,6 +165,7 @@ export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
       el.style.left = `${row.x + dayOffset(item.startDate, shown.start) * dayWidth}px`;
       el.style.width = `${spanDays(shown.start, shown.end) * dayWidth}px`;
       drawPieces(el, paint, shown.start, shown.end, dayWidth);
+      fitLabel(el, chartWidth);
       onPreview(`${item.title}: ${formatRange(shown.start, shown.end)}`);
     });
     const settle = (/** @type {PointerEvent} */ event) => {
@@ -163,6 +180,7 @@ export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
         el.style.left = `${row.x}px`;
         el.style.width = `${row.width}px`;
         drawPieces(el, paint, item.startDate, item.endDate, dayWidth);
+        fitLabel(el, chartWidth);
       }
       days = 0;
     };
@@ -200,7 +218,29 @@ function drawPieces(el, paint, start, end, dayWidth) {
     '--gantt-label-end',
     `${(total - widest.offset - widest.days) * dayWidth}px`,
   );
-  el.classList.toggle('gantt-bar--narrow', widest.days < NARROW_DAYS);
+}
+
+/**
+ * Measures the title in the widest piece and moves it beside the bar when
+ * the whole name does not fit. It needs the bar in the page, because an
+ * element outside the page has no width to measure.
+ * @param {HTMLElement} el a bar from ganttBar
+ * @param {number} chartWidth
+ */
+export function fitLabel(el, chartWidth) {
+  const title = /** @type {HTMLElement} */ (
+    el.querySelector('.gantt-bar__title')
+  );
+  el.classList.remove('gantt-bar--label-after', 'gantt-bar--label-before');
+  const barLeft = parseFloat(el.style.left);
+  const place = labelPlace({
+    fits: title.scrollWidth <= title.clientWidth,
+    labelWidth: title.scrollWidth + LABEL_GAP,
+    barLeft,
+    barRight: barLeft + parseFloat(el.style.width),
+    chartWidth,
+  });
+  if (place !== 'inside') el.classList.add(`gantt-bar--label-${place}`);
 }
 
 /** @param {string} className @param {string} value */

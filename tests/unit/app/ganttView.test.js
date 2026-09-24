@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom, press } from '../domShim.js';
-import { moveMessage } from '../../../src/app/ganttBar.js';
+import { fitLabel, moveMessage } from '../../../src/app/ganttBar.js';
 import {
   DAY_WIDTH,
   ganttView,
@@ -131,7 +131,6 @@ test('bars land on their days and a complete bar is marked', async () => {
   );
   assert.equal(bars[2].style['--gantt-label-start'], '112px');
   assert.equal(bars[2].style['--gantt-label-end'], '0px');
-  assert.ok(!bars[2].classList.contains('gantt-bar--narrow'));
   assert.equal(
     bars[2].querySelector('.gantt-bar__body').children[0].tagName,
     'SVG',
@@ -324,19 +323,30 @@ test('moveMessage names only the dates that changed', () => {
   );
 });
 
-test('a bar under three days wide carries its title beside it', async () => {
-  const { el } = await setup({
-    schedule: [
-      itemOf('inspect', {
-        title: 'Inspection',
-        startDate: '2026-10-01',
-        endDate: '2026-10-02',
-      }),
-      items[0],
-    ],
-    dependencies: [],
-  });
-  const bars = el.querySelectorAll('.gantt-bar');
-  assert.ok(bars[0].classList.contains('gantt-bar--narrow'));
-  assert.ok(!bars[1].classList.contains('gantt-bar--narrow'));
+test('fitLabel keeps a title that fits inside and moves a long one beside the bar', () => {
+  const view = ganttView({ ctx: /** @type {any} */ ({}) });
+  const el = $(
+    view.render(
+      /** @type {any} */ ({ schedule: [items[0]], dependencies: [] }),
+    ),
+  );
+  const bar = el.querySelector('.gantt-bar');
+  const title = bar.querySelector('.gantt-bar__title');
+  /** @param {number} scroll @param {number} client */
+  const measure = (scroll, client) => {
+    title.scrollWidth = scroll;
+    title.clientWidth = client;
+  };
+  // Demo sits at 112px and is 84px wide.
+  measure(40, 60);
+  fitLabel(bar, 400);
+  assert.equal(bar.className, 'gantt-bar');
+  measure(90, 60);
+  fitLabel(bar, 400);
+  assert.equal(bar.className, 'gantt-bar gantt-bar--label-after');
+  fitLabel(bar, 250);
+  assert.equal(bar.className, 'gantt-bar gantt-bar--label-before');
+  measure(40, 60);
+  fitLabel(bar, 250);
+  assert.equal(bar.className, 'gantt-bar');
 });

@@ -9,7 +9,7 @@ import { todayIso } from '../schedule/dates.js';
 import { ganttLayout } from '../schedule/gantt.js';
 import { bareButton } from '../ui/buttons.js';
 import { completeToggle } from './completeToggle.js';
-import { ganttBar, moveMessage } from './ganttBar.js';
+import { fitLabel, ganttBar, moveMessage } from './ganttBar.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -79,6 +79,7 @@ export function ganttView({ ctx }) {
           item: row.item,
           row,
           dayWidth: layout.dayWidth,
+          chartWidth: layout.width,
           onOpen: (item) => openScheduleEditor({ ctx, item }),
           onMove: move,
           onPreview: (text) => {
@@ -102,6 +103,9 @@ export function ganttView({ ctx }) {
 
     root.append(side, chart);
     queueMicrotask(() => {
+      for (const bar of rows.querySelectorAll('.gantt-bar')) {
+        fitLabel(/** @type {HTMLElement} */ (bar), layout.width);
+      }
       root.scrollLeft =
         scrollLeft ?? Math.max(0, (layout.todayX ?? 0) - layout.dayWidth * 7);
       if (pendingFocus) {
