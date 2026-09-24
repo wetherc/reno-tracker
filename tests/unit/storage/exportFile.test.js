@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { ShimElement } from '../domShim.js';
 import {
   exportFileName,
+  loadedName,
   parseExportFile,
   pickJsonFile,
   saveJson,
@@ -36,6 +37,26 @@ test('exportFileName slugs the project name and adds the export day', () => {
     'back-deck-stairs-2027-01-02.json',
   );
   assert.equal(exportFileName('***', '2026-01-01'), 'project-2026-01-01.json');
+});
+
+test('loadedName keeps a free name and marks a taken one with the day', () => {
+  assert.equal(loadedName('Deck', ['Kitchen'], '2026-09-24'), 'Deck');
+  assert.equal(
+    loadedName('Kitchen', ['kitchen'], '2026-09-24'),
+    'Kitchen (loaded Sep 24)',
+  );
+  assert.equal(
+    loadedName(
+      'Kitchen',
+      ['Kitchen', 'Kitchen (loaded Sep 24)', 'Kitchen (loaded Sep 24, 2)'],
+      '2026-09-24',
+    ),
+    'Kitchen (loaded Sep 24, 3)',
+  );
+  const long = `${'a'.repeat(195)} end`;
+  const renamed = loadedName(long, [long], '2026-09-24');
+  assert.equal(renamed.length <= 200, true);
+  assert.match(renamed, /^a+ \(loaded Sep 24\)$/);
 });
 
 test('saveJson clicks a hidden download link and revokes the URL', () => {

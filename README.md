@@ -35,6 +35,8 @@ static site on GitHub Pages, where it keeps its data in the browser.
   rows that land that day and the running totals, and drops a line from
   the dot to the axis.
 - Save of a project to a JSON file, and load of that file as a new project.
+  A loaded project whose name is taken gets the load day in its name, such
+  as "Kitchen (loaded Sep 24)". The picker lists projects by name.
 
 ## Running
 

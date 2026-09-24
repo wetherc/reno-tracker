@@ -2,11 +2,14 @@
 // buttons that start, edit, delete, save, and load one. Deleting closes
 // the project first so the refetch after the write has nothing to fetch.
 // Loading a file always creates a new project, so a file can be loaded
-// twice without touching the project it came from.
+// twice without touching the project it came from. A loaded project whose
+// name is taken gets the load day in its name, and the select lists the
+// projects by name, so two rows never read the same.
 import { describeFailure } from '../api/errors.js';
 import { todayIso } from '../schedule/dates.js';
 import {
   exportFileName,
+  loadedName,
   parseExportFile,
   pickJsonFile,
   saveJson,
@@ -19,6 +22,16 @@ import { openProjectDialog } from './projectDialog.js';
 /** @typedef {import('../types.ts').Project} Project */
 
 /** @typedef {import('../storage/exportFile.js').FileDeps} FileDeps */
+
+/**
+ * @param {Project[]} projects
+ * @returns {Project[]} a copy sorted by name, with numbers in order
+ */
+function byName(projects) {
+  return [...projects].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { numeric: true }),
+  );
+}
 
 /**
  * @param {{ ctx: AppContext, host: HTMLElement, files?: FileDeps }} deps files is the document and URL a test hands in
@@ -72,7 +85,7 @@ export function mountProjects({ ctx, host, files }) {
   function render() {
     const open = ctx.payload?.project ?? null;
     select.replaceChildren(
-      ...ctx.projects.map((project) => {
+      ...byName(ctx.projects).map((project) => {
         const option = document.createElement('option');
         option.value = project.id;
         option.append(project.name);
@@ -129,7 +142,7 @@ export function mountProjects({ ctx, host, files }) {
       done: `Deleted ${project.name}`,
       reload: true,
     });
-    const next = outcome.ok ? ctx.projects[0]?.id : project.id;
+    const next = outcome.ok ? byName(ctx.projects)[0]?.id : project.id;
     if (next) await ctx.openProject(next);
   }
 
@@ -156,6 +169,16 @@ export function mountProjects({ ctx, host, files }) {
     } catch (error) {
       ctx.toaster.failure(describeFailure(error));
       return;
+    }
+    // A file that is not an object with a project name fails the import
+    // check on the backend with its own message.
+    const name = file?.project?.name;
+    if (typeof name === 'string') {
+      const taken = ctx.projects.map((p) => p.name);
+      file = {
+        ...file,
+        project: { ...file.project, name: loadedName(name, taken, todayIso()) },
+      };
     }
     const outcome = await ctx.write((api) => api.importProject(file), {
       reload: true,

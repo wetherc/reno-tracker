@@ -95,10 +95,15 @@ test('save a project to a file and load it back as a new project', async ({
   const chooser = await choosing;
   await chooser.setFiles(path);
   await expect(page.locator('.toast').last()).toContainText(
-    'Loaded Garage from',
+    /Loaded Garage \(loaded [A-Z][a-z]{2} \d{1,2}\) from/,
   );
   const select = page.getByLabel('Project', { exact: true });
-  await expect(select.locator('option')).toHaveCount(2);
+  // The copy gets the load day in its name, and the list sorts by name.
+  await expect(select.locator('option')).toHaveText([
+    'Garage',
+    /^Garage \(loaded [A-Z][a-z]{2} \d{1,2}\)$/,
+  ]);
+  await expect(select.locator('option:checked')).toHaveText(/loaded/);
   await page.screenshot({
     path: 'test-results/project-loaded.png',
     animations: 'disabled',

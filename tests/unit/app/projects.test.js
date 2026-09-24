@@ -5,6 +5,7 @@ import { mountProjects } from '../../../src/app/projects.js';
 import { createContext } from '../../../src/app/context.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 import { todayIso } from '../../../src/schedule/dates.js';
+import { formatDayMonth } from '../../../src/format/date.js';
 
 const dom = installDom();
 
@@ -302,8 +303,36 @@ test('load reads a picked file, imports it, and opens the copy', async () => {
   await pick({ name: 'boom.json', text: '{"project":{"name":"boom"}}' });
   assert.deepEqual(toasts.at(-1), 'bad boom');
   assert.equal(ctx.payload, null);
+  await pick({ name: 'null.json', text: 'null' });
+  assert.match(toasts.at(-1) ?? '', /^bad /);
   await pick({ name: 'deck.json', text: '{"project":{"name":"Deck"}}' });
   assert.deepEqual(log, ['import Deck', 'get d']);
   assert.deepEqual(toasts.at(-1), 'ok Loaded Deck from deck.json');
   assert.equal($(ctx).payload?.project.id, 'd');
+});
+
+test('a loaded name that is taken gets the day, and the list sorts by name', async () => {
+  const { ctx, load, select, log, made, setProjects } = setup();
+  setProjects([
+    projectOf('b', 'Bath'),
+    projectOf('x', 'Room 10'),
+    projectOf('y', 'Room 9'),
+    projectOf('a', 'attic'),
+  ]);
+  await ctx.loadProjects();
+  assert.deepEqual(
+    select.children.map((/** @type {any} */ o) => o.textContent),
+    ['attic', 'Bath', 'Room 9', 'Room 10'],
+  );
+  $(load).click();
+  await tick();
+  const input = made.at(-1);
+  input.files = [
+    { name: 'a.json', text: async () => '{"project":{"name":"Attic"}}' },
+  ];
+  input.dispatchEvent({ type: 'change' });
+  await tick();
+  await tick();
+  const day = formatDayMonth(todayIso());
+  assert.deepEqual(log, [`import Attic (loaded ${day})`, 'get d']);
 });

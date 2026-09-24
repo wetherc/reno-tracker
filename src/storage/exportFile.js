@@ -2,6 +2,8 @@
 // a JSON file in memory and clicks a hidden download link. Loading opens
 // the file picker and reads the chosen file as text. Both take the
 // document and URL objects as arguments so a test can hand in fakes.
+import { PROJECT_NAME_MAX } from '../entities/project.js';
+import { formatDayMonth } from '../format/date.js';
 
 /**
  * The file name a saved project gets: the project name as a slug plus
@@ -18,6 +20,35 @@ export function exportFileName(name, day) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   return `${slug || 'project'}-${day}.json`;
+}
+
+/**
+ * The name a loaded project gets. A name that no project has stays as it
+ * is. A taken name gets the day of the load, plus a count when that name
+ * is taken too, so the picker never lists two rows with the same text.
+ * "Kitchen remodel" loaded on 2026-09-24 becomes "Kitchen remodel (loaded
+ * Sep 24)", then "Kitchen remodel (loaded Sep 24, 2)". Names compare
+ * without case. The name is cut short to keep the suffix inside the
+ * length limit.
+ * @param {string} name
+ * @param {string[]} taken the names of every project
+ * @param {string} day YYYY-MM-DD, the local day of the load
+ */
+export function loadedName(name, taken, day) {
+  const seen = new Set(taken.map((t) => t.toLocaleLowerCase()));
+  /** @param {string} n */
+  const free = (n) => !seen.has(n.toLocaleLowerCase());
+  if (free(name)) return name;
+  const when = formatDayMonth(day);
+  /** @param {number} count */
+  const mark = (count) => {
+    const suffix =
+      count === 1 ? ` (loaded ${when})` : ` (loaded ${when}, ${count})`;
+    return name.slice(0, PROJECT_NAME_MAX - suffix.length).trimEnd() + suffix;
+  };
+  let count = 1;
+  while (!free(mark(count))) count += 1;
+  return mark(count);
 }
 
 /**

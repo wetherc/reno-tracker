@@ -9,9 +9,12 @@ import {
 /** @typedef {import('../types.ts').Project} Project */
 /** @typedef {import('../types.ts').ProjectInput} ProjectInput */
 
+/** The most characters a project name takes. */
+export const PROJECT_NAME_MAX = 200;
+
 const CHECKS = {
   name: (/** @type {string} */ f, /** @type {unknown} */ v) =>
-    checkText(f, v, { min: 1, max: 200 }),
+    checkText(f, v, { min: 1, max: PROJECT_NAME_MAX }),
   budgetCents: checkCents,
   startDate: checkDate,
 };
