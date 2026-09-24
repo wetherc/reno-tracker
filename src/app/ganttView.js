@@ -3,14 +3,17 @@
 // connector from each predecessor to its successor. The item names stay
 // fixed on the left while the grid scrolls. A bar moves by drag or by
 // arrow key and the change is saved through the same patch as the
-// editor, so the change log records it like any other edit.
+// editor, so the change log records it like any other edit. A late item
+// gets the Late badge beside its name and a late bar.
 import { formatDayMonth } from '../format/date.js';
+import { isLate } from '../entities/scheduleItem.js';
 import { todayIso } from '../schedule/dates.js';
 import { ganttLayout } from '../schedule/gantt.js';
 import { bareButton } from '../ui/buttons.js';
 import { focusKey } from '../ui/focusKey.js';
 import { completeToggle } from './completeToggle.js';
 import { fitLabels, ganttBar, moveMessage } from './ganttBar.js';
+import { lateBadge } from './lateBadge.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -39,10 +42,11 @@ export function ganttView({ ctx }) {
 
   /** @param {ProjectPayload} payload */
   function render(payload) {
+    const today = todayIso();
     const layout = ganttLayout({
       items: payload.schedule,
       dependencies: payload.dependencies,
-      today: todayIso(),
+      today,
       dayWidth: DAY_WIDTH,
       rowHeight: ROW_HEIGHT,
     });
@@ -65,7 +69,7 @@ export function ganttView({ ctx }) {
     corner.append(status);
     const names = document.createElement('div');
     names.className = 'gantt__names';
-    names.append(...layout.rows.map((row) => label(row.item)));
+    names.append(...layout.rows.map((row) => label(row.item, today)));
     const side = document.createElement('div');
     side.className = 'gantt__labels';
     side.append(corner, names);
@@ -78,6 +82,7 @@ export function ganttView({ ctx }) {
       rows.append(
         ganttBar({
           item: row.item,
+          late: isLate(row.item, today),
           row,
           dayWidth: layout.dayWidth,
           chartWidth: layout.width,
@@ -95,11 +100,11 @@ export function ganttView({ ctx }) {
     chart.style.width = `${layout.width}px`;
     chart.append(scale(layout), rows);
     if (layout.todayX !== null) {
-      const today = document.createElement('div');
-      today.className = 'gantt__today';
-      today.style.left = `${layout.todayX}px`;
-      today.setAttribute('aria-hidden', 'true');
-      chart.append(today);
+      const line = document.createElement('div');
+      line.className = 'gantt__today';
+      line.style.left = `${layout.todayX}px`;
+      line.setAttribute('aria-hidden', 'true');
+      chart.append(line);
     }
 
     root.append(side, chart);
@@ -139,12 +144,15 @@ export function ganttView({ ctx }) {
     return outcome.ok;
   }
 
-  /** @param {ScheduleItem} item */
-  function label(item) {
+  /** @param {ScheduleItem} item @param {string} today */
+  function label(item, today) {
     const el = document.createElement('div');
+    const late = lateBadge(item, today);
     el.className = item.complete
       ? 'gantt__label gantt__label--complete'
-      : 'gantt__label';
+      : late.length
+        ? 'gantt__label gantt__label--late'
+        : 'gantt__label';
     const name = bareButton({
       className: 'gantt__name',
       label: item.title,
@@ -153,7 +161,7 @@ export function ganttView({ ctx }) {
     focusKey(name, `${item.id}:open`);
     const head = document.createElement('div');
     head.className = 'gantt__head';
-    head.append(completeToggle({ ctx, item }), name);
+    head.append(completeToggle({ ctx, item }), name, ...late);
     el.append(head);
     if (item.responsibleParty) {
       const party = document.createElement('span');

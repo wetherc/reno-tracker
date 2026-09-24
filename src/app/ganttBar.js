@@ -6,7 +6,8 @@
 // while a save runs, and a failed save puts the bar back. The bar paints as one piece per run of workdays, with a gap over each
 // weekend inside the item. The title sits in the widest piece when the
 // whole name fits there, and beside the bar at full length when it does
-// not.
+// not. A late bar paints in the danger colour with an alert icon, and
+// its label ends in "late".
 import { formatDayMonth, formatRange } from '../format/date.js';
 import { dayOffset, spanDays } from '../schedule/dates.js';
 import {
@@ -26,13 +27,14 @@ import { icon } from '../ui/icon.js';
 /**
  * @typedef {{
  *   item: ScheduleItem,
+ *   late?: boolean,
  *   row: GanttRow,
  *   dayWidth: number,
  *   chartWidth: number,
  *   onOpen: (item: ScheduleItem) => void,
  *   onMove: (item: ScheduleItem, patch: DatePatch, edge: DragEdge, refocus: boolean) => Promise<boolean>,
  *   onPreview: (text: string | null) => void,
- * }} GanttBarOptions onMove saves and resolves true on success, and refocus asks for focus on the same part after the rebuild. onPreview receives the dates shown during a drag or a run of key presses, then null
+ * }} GanttBarOptions late marks an open item past its end date. onMove saves and resolves true on success, and refocus asks for focus on the same part after the rebuild. onPreview receives the dates shown during a drag or a run of key presses, then null
  */
 
 const ARROWS = { ArrowLeft: -1, ArrowRight: 1 };
@@ -68,6 +70,7 @@ export function moveMessage(item, patch) {
  */
 export function ganttBar({
   item,
+  late = false,
   row,
   dayWidth,
   chartWidth,
@@ -76,7 +79,11 @@ export function ganttBar({
   onPreview,
 }) {
   const el = document.createElement('div');
-  el.className = item.complete ? 'gantt-bar gantt-bar--complete' : 'gantt-bar';
+  el.className = item.complete
+    ? 'gantt-bar gantt-bar--complete'
+    : late
+      ? 'gantt-bar gantt-bar--late'
+      : 'gantt-bar';
   el.style.left = `${row.x}px`;
   el.style.top = `${row.y}px`;
   el.style.width = `${row.width}px`;
@@ -88,10 +95,13 @@ export function ganttBar({
   const range = formatRange(item.startDate, item.endDate);
   const body = bareButton({
     className: 'gantt-bar__body',
-    ariaLabel: `${item.title}, ${range}`,
-    children: item.complete
-      ? [icon('check'), text('gantt-bar__title', item.title)]
-      : [text('gantt-bar__title', item.title)],
+    ariaLabel: late
+      ? `${item.title}, ${range}, late`
+      : `${item.title}, ${range}`,
+    children: [
+      ...(item.complete ? [icon('check')] : late ? [icon('alert')] : []),
+      text('gantt-bar__title', item.title),
+    ],
   });
   const start = handle(
     'start',

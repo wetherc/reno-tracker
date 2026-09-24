@@ -3,7 +3,8 @@
 // with more bars than fit shows a count that opens the agenda there.
 // Each day cell is a button that picks the day and lists its work under
 // the grid. The arrow keys move between days, and only one day is in the
-// tab order.
+// tab order. A late item's bar paints in the danger colour with an
+// alert icon.
 import {
   formatDayLong,
   formatDayMonth,
@@ -27,6 +28,7 @@ import {
 import { bareButton, button, iconButton } from '../ui/buttons.js';
 import { focusKey, keepFocus } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
+import { isLate } from '../entities/scheduleItem.js';
 import { dayListParts } from './calendarDay.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
@@ -197,7 +199,7 @@ export function calendarView({ ctx, onMore }) {
         cells.push(cell);
         row.append(cell);
       });
-      for (const bar of week.bars) row.append(barButton(bar));
+      for (const bar of week.bars) row.append(barButton(bar, today));
       week.hidden.forEach((count, col) => {
         if (count === 0) return;
         const date = week.days[col].date;
@@ -214,19 +216,23 @@ export function calendarView({ ctx, onMore }) {
       return row;
     }
 
-    /** @param {CalendarBar} bar */
-    function barButton(bar) {
+    /** @param {CalendarBar} bar @param {string} today */
+    function barButton(bar, today) {
       const { item } = bar;
+      const late = isLate(item, today);
+      const range = formatRange(item.startDate, item.endDate);
       const el = bareButton({
         className: 'cal-bar',
-        ariaLabel: `${item.title}, ${formatRange(item.startDate, item.endDate)}`,
-        children: item.complete
-          ? [icon('check'), span('cal-bar__title', item.title)]
-          : [span('cal-bar__title', item.title)],
+        ariaLabel: `${item.title}, ${range}${late ? ', late' : ''}`,
+        children: [
+          ...(item.complete ? [icon('check')] : late ? [icon('alert')] : []),
+          span('cal-bar__title', item.title),
+        ],
         onClick: () => openScheduleEditor({ ctx, item }),
       });
       focusKey(el, `${item.id}:open`);
       if (item.complete) el.classList.add('cal-bar--complete');
+      if (late) el.classList.add('cal-bar--late');
       if (bar.continuesBefore) el.classList.add('cal-bar--before');
       if (bar.continuesAfter) el.classList.add('cal-bar--after');
       el.style.gridColumn = `${bar.startCol + 1} / ${bar.endCol + 2}`;

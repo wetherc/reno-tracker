@@ -83,6 +83,10 @@
   text-decoration: line-through;
 }
 
+.gantt__head .badge {
+  flex: none;
+}
+
 .gantt__party {
   padding-left: calc(1.125rem + var(--space-2));
   overflow: hidden;
@@ -377,4 +381,25 @@
 
 .gantt-bar--complete .gantt-bar__handle--end {
   border-left-color: var(--border-strong);
+}
+
+.gantt-bar--late {
+  color: var(--danger-contrast);
+}
+
+.gantt-bar--late .gantt-bar__piece {
+  background: var(--danger);
+}
+
+.gantt-bar--late .gantt-bar__pieces::before {
+  background: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+
+.gantt-bar--late .gantt-bar__body .icon {
+  flex: none;
+}
+
+.gantt-bar--late .gantt-bar__handle--start,
+.gantt-bar--late .gantt-bar__handle--end {
+  border-color: var(--danger-contrast);
 }

@@ -469,3 +469,34 @@ test('fitLabels reads every width between one pass of removes and one of adds', 
     'add 0 gantt-bar--label-after',
   ]);
 });
+
+test('a late item gets the badge beside its name and a late bar', async () => {
+  const { el } = await setup({
+    schedule: [
+      itemOf('old', {
+        title: 'Permit',
+        startDate: '2020-01-06',
+        endDate: '2020-01-08',
+      }),
+      itemOf('done', {
+        title: 'Survey',
+        startDate: '2020-01-06',
+        endDate: '2020-01-07',
+        complete: true,
+      }),
+    ],
+    dependencies: [],
+  });
+  // Survey ends first, so it takes the top row.
+  const labels = el.querySelectorAll('.gantt__label');
+  assert.equal(labels[1].className, 'gantt__label gantt__label--late');
+  assert.equal(labels[1].querySelector('.badge').textContent, 'Late');
+  assert.equal(labels[0].className, 'gantt__label gantt__label--complete');
+  assert.equal(labels[0].querySelectorAll('.badge').length, 0);
+  const bars = el.querySelectorAll('.gantt-bar');
+  assert.ok(bars[1].classList.contains('gantt-bar--late'));
+  const body = bars[1].querySelector('.gantt-bar__body');
+  assert.equal(body.getAttribute('aria-label'), 'Permit, Jan 6 to Jan 8, late');
+  assert.equal(body.children[0].tagName, 'SVG');
+  assert.ok(!bars[0].classList.contains('gantt-bar--late'));
+});

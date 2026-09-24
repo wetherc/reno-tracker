@@ -255,3 +255,30 @@ test('the pick outlives a rebuild and clears when the month turns', async () => 
     'Pick a day to list its work.',
   );
 });
+
+test('a late bar is marked and says so', async () => {
+  const { el } = await setup([
+    itemOf('old', {
+      title: 'Permit',
+      startDate: '2020-01-06',
+      endDate: '2020-01-08',
+    }),
+    itemOf('done', {
+      title: 'Survey',
+      startDate: '2020-01-06',
+      endDate: '2020-01-07',
+      complete: true,
+    }),
+  ]);
+  const bars = el.querySelectorAll('.cal-bar');
+  const late = bars.find(
+    (/** @type {any} */ b) =>
+      b.getAttribute('aria-label') === 'Permit, Jan 6 to Jan 8, late',
+  );
+  assert.ok(late.classList.contains('cal-bar--late'));
+  assert.equal(late.children[0].tagName, 'SVG');
+  const done = bars.find((/** @type {any} */ b) =>
+    b.getAttribute('aria-label').startsWith('Survey'),
+  );
+  assert.ok(!done.classList.contains('cal-bar--late'));
+});
