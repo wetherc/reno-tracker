@@ -66,17 +66,16 @@ test('the agenda lists days, marks today, filters finished work, and lands on a 
     fullPage: true,
   });
 
-  // Hiding finished work drops Demo from both of its days.
-  await agenda.getByRole('checkbox', { name: 'Hide finished' }).check();
+  // The Open status drops Demo from both of its days.
+  const open = page.getByRole('radio', { name: 'Open', exact: true });
+  await open.click();
   await expect(days).toHaveCount(6);
   await expect(agenda.locator('.agenda-row--complete')).toHaveCount(0);
   // The choice is kept through a reload.
   await page.reload();
-  await expect(
-    agenda.getByRole('checkbox', { name: 'Hide finished' }),
-  ).toBeChecked();
+  await expect(open).toBeChecked();
   await expect(days).toHaveCount(6);
-  await agenda.getByRole('checkbox', { name: 'Hide finished' }).uncheck();
+  await page.getByRole('radio', { name: 'All', exact: true }).click();
 
   // A title opens the editor.
   await agenda.getByRole('button', { name: 'Drywall' }).last().click();

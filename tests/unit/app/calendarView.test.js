@@ -163,7 +163,7 @@ test('the schedule panel shows the calendar and the count opens the agenda', asy
   const panel = mountSchedule({ ctx: fx.ctx, shell });
   fx.ctx.on('payload', () => panel.show());
   await fx.ctx.openProject('p1');
-  const cal = $(shell.body.children[0]);
+  const cal = $(shell.body.children[1].children[0]);
   assert.equal(cal.className, 'cal');
   cal.querySelector('.cal-more').click();
   assert.equal(prefs.read('lastView'), 'agenda');

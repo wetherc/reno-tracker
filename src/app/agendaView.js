@@ -12,7 +12,6 @@ import {
 import { agendaDays, dayFor } from '../schedule/agenda.js';
 import { monthOf, spanDays, todayIso } from '../schedule/dates.js';
 import { bareButton, button } from '../ui/buttons.js';
-import { emptyState } from '../ui/emptyState.js';
 import { focusKey, keepFocus } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { sectionLabel } from '../ui/sectionLabel.js';
@@ -30,13 +29,10 @@ import { openScheduleEditor } from './scheduleEditor.js';
  * @returns {{
  *   render(payload: ProjectPayload): HTMLElement,
  *   focus(date: string): void,
- *   hideComplete: boolean,
  * }} focus asks the next draw to scroll to the day that covers a date
  */
 export function agendaView({ ctx }) {
-  // Both choices outlive the rebuild after a write. Prefs keep the filter
-  // for the next visit.
-  let hideComplete = ctx.prefs.read('agendaHideFinished') === 'true';
+  // The day to scroll to outlives the rebuild after a write.
   /** @type {string | null} */
   let pending = null;
 
@@ -50,11 +46,8 @@ export function agendaView({ ctx }) {
 
     function draw() {
       headings.clear();
-      const days = agendaDays(payload.schedule, { hideComplete });
-      keepFocus(
-        () => root.replaceChildren(toolbar(days.length), ...dayList(days)),
-        root,
-      );
+      const days = agendaDays(payload.schedule);
+      keepFocus(() => root.replaceChildren(toolbar(), dayList(days)), root);
       if (pending === null) return;
       const day = dayFor(days, pending);
       pending = null;
@@ -67,40 +60,22 @@ export function agendaView({ ctx }) {
       });
     }
 
-    /** @param {number} dayCount */
-    function toolbar(dayCount) {
+    function toolbar() {
       const bar = document.createElement('div');
       bar.className = 'agenda__bar';
-      const filter = document.createElement('label');
-      filter.className = 'agenda__filter';
-      const box = document.createElement('input');
-      box.type = 'checkbox';
-      box.className = 'check';
-      box.checked = hideComplete;
-      focusKey(box, 'agenda:hide');
-      box.addEventListener('change', () => {
-        hideComplete = box.checked;
-        ctx.prefs.write('agendaHideFinished', String(hideComplete));
-        draw();
-      });
-      filter.append(box, 'Hide finished');
       const jump = button({
         label: 'Today',
-        disabled: dayCount === 0,
         onClick: () => {
           pending = today;
           draw();
         },
       });
-      bar.append(filter, focusKey(jump, 'agenda:today'));
+      bar.append(focusKey(jump, 'agenda:today'));
       return bar;
     }
 
     /** @param {AgendaDay[]} days */
     function dayList(days) {
-      if (days.length === 0) {
-        return [emptyState('Everything on the schedule is finished.')];
-      }
       const list = document.createElement('ol');
       list.className = 'agenda__days';
       let month = '';
@@ -117,7 +92,7 @@ export function agendaView({ ctx }) {
         list.append(dayEntry(day));
       }
       if (!todayShown) list.append(todayLine());
-      return [list];
+      return list;
     }
 
     /** @param {string} month */
@@ -198,9 +173,6 @@ export function agendaView({ ctx }) {
     /** @param {string} date */
     focus(date) {
       pending = date;
-    },
-    get hideComplete() {
-      return hideComplete;
     },
   };
 }

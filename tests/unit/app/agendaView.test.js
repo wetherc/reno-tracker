@@ -47,9 +47,7 @@ async function setup(schedule) {
 }
 
 /** @param {any} root */
-const filterBox = (root) => root.querySelector('.agenda__filter').children[0];
-/** @param {any} root */
-const todayButton = (root) => root.querySelector('.agenda__bar').children[1];
+const todayButton = (root) => root.querySelector('.agenda__bar').children[0];
 /** @param {any} root */
 const entries = (root) =>
   /** @type {string[]} */ (
@@ -123,31 +121,6 @@ test('a day with both edges labels the starting rows too', async () => {
   );
 });
 
-test('the filter hides finished items and says so when none are left', async () => {
-  const { el, view } = await setup(items);
-  const box = filterBox(el);
-  box.checked = true;
-  box.dispatchEvent({ type: 'change' });
-  assert.equal(view.hideComplete, true);
-  assert.equal(el.querySelectorAll('.agenda-day').length, 3);
-  // The choice is saved, and the next agenda opens with it.
-  const { ctx } = await setup(items);
-  ctx.prefs.write('agendaHideFinished', 'true');
-  const again = agendaView({ ctx });
-  assert.equal(again.hideComplete, true);
-  assert.equal(filterBox($(again.render($(ctx.payload)))).checked, true);
-  assert.equal(el.querySelectorAll('.agenda-row--complete').length, 0);
-  const done = await setup([itemOf('a', { complete: true })]);
-  const only = filterBox(done.el);
-  only.checked = true;
-  only.dispatchEvent({ type: 'change' });
-  assert.equal(
-    done.el.querySelector('.empty-state').textContent,
-    'Everything on the schedule is finished.',
-  );
-  assert.equal(todayButton(done.el).disabled, true);
-});
-
 test('focus scrolls to the day that covers the date after the draw', async () => {
   const fx = setupSchedule({ schedule: items });
   await fx.ctx.openProject('p1');
@@ -166,19 +139,15 @@ test('focus scrolls to the day that covers the date after the draw', async () =>
   });
 });
 
-test('focus with no matching day is dropped', async () => {
-  const fx = setupSchedule({ schedule: [itemOf('a', { complete: true })] });
+test('focus with no day to land on is dropped', async () => {
+  const fx = setupSchedule({ schedule: [] });
   await fx.ctx.openProject('p1');
   const view = agendaView({ ctx: fx.ctx });
   const el = $(view.render($(fx.ctx.payload)));
-  filterBox(el).checked = true;
-  filterBox(el).dispatchEvent({ type: 'change' });
   view.focus('2026-01-01');
   todayButton(el).click();
-  assert.equal(
-    el.querySelector('.empty-state').className,
-    'empty-state u-muted',
-  );
+  await Promise.resolve();
+  assert.deepEqual(entries(el), ['agenda__today']);
 });
 
 test('a title opens the editor and the checkbox marks the item done', async () => {
@@ -215,9 +184,10 @@ test('the calendar count lands on that day in the agenda', async () => {
   const panel = mountSchedule({ ctx: fx.ctx, shell });
   fx.ctx.on('payload', () => panel.show());
   await fx.ctx.openProject('p1');
-  assert.equal($(shell.body.children[0]).className, 'agenda');
+  assert.equal($(shell.body.children[1].children[0]).className, 'agenda');
   assert.equal(
-    $(shell.body.children[0]).querySelector('.agenda__today') !== null,
+    $(shell.body.children[1].children[0]).querySelector('.agenda__today') !==
+      null,
     true,
   );
 });

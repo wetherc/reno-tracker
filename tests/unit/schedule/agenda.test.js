@@ -39,13 +39,7 @@ test('agendaDays groups by start and end date in order', () => {
   );
 });
 
-test('agendaDays can hide complete items', () => {
-  const days = agendaDays(items, { hideComplete: true });
-  assert.deepEqual(
-    days.map((d) => d.date),
-    ['2026-10-01', '2026-10-03'],
-  );
-  assert.deepEqual(days[1].starting, []);
+test('agendaDays of no items is empty', () => {
   assert.deepEqual(agendaDays([]), []);
 });
 

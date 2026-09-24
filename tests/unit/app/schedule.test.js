@@ -38,7 +38,7 @@ async function setup(seed, saved = {}) {
 }
 
 /** @param {any} shell */
-const table = (shell) => shell.body.children[0].children[0];
+const table = (shell) => shell.body.children[1].children[0].children[0];
 /** @param {any} shell */
 const rows = (shell) => $(table(shell).children[2]).children;
 
@@ -257,10 +257,11 @@ test('every view id has a renderer', async () => {
   ctx.prefs.write('lastView', 'agenda');
   const panel = mountSchedule({ ctx, shell });
   panel.show();
-  assert.equal(shell.body.children[0].className, 'agenda');
+  const view = () => $(shell.body.children[1]).children[0];
+  assert.equal(view().className, 'agenda');
   $(shell.tools.children[0]).children[0].click();
-  assert.equal(shell.body.children[0].className, 'table-scroll');
-  assert.equal(shell.body.children[0].children[0].tagName, 'TABLE');
+  assert.equal(view().className, 'table-scroll');
+  assert.equal(view().children[0].tagName, 'TABLE');
 });
 
 test('the table opens in start date order', async () => {

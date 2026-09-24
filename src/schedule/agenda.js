@@ -20,10 +20,9 @@ const byOrder = (a, b) =>
 
 /**
  * @param {ScheduleItem[]} items
- * @param {{ hideComplete?: boolean }} [options]
  * @returns {AgendaDay[]} sorted by date
  */
-export function agendaDays(items, { hideComplete = false } = {}) {
+export function agendaDays(items) {
   /** @type {Map<string, AgendaDay>} */
   const days = new Map();
   /** @param {string} date */
@@ -36,7 +35,6 @@ export function agendaDays(items, { hideComplete = false } = {}) {
     return day;
   };
   for (const item of items) {
-    if (hideComplete && item.complete) continue;
     dayOf(item.startDate).starting.push(item);
     if (item.endDate !== item.startDate)
       dayOf(item.endDate).finishing.push(item);

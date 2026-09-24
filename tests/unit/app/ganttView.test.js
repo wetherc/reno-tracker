@@ -285,7 +285,7 @@ test('the moved handle gets focus back after the rebuild', async (t) => {
   const panel = mountSchedule({ ctx: fx.ctx, shell });
   fx.ctx.on('payload', () => panel.show());
   await fx.ctx.openProject('p1');
-  const first = $(shell.body.children[0]);
+  const first = $(shell.body.children[1].children[0]);
   assert.equal(first.className, 'gantt');
   first.scrollLeft = 150;
   first.dispatchEvent({ type: 'scroll' });
@@ -294,7 +294,7 @@ test('the moved handle gets focus back after the rebuild', async (t) => {
   press(end, 'ArrowRight');
   t.mock.timers.tick(KEY_DELAY);
   await settle();
-  const second = $(shell.body.children[0]);
+  const second = $(shell.body.children[1].children[0]);
   assert.notEqual(second, first);
   assert.equal(second.scrollLeft, 150);
   const focused = $(dom.activeElement);
@@ -308,7 +308,7 @@ test('the moved handle gets focus back after the rebuild', async (t) => {
   other.focus();
   blur(start);
   await settle();
-  assert.notEqual($(shell.body.children[0]), second);
+  assert.notEqual($(shell.body.children[1].children[0]), second);
   assert.equal(dom.activeElement, other);
 });
 

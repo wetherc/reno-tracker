@@ -7,7 +7,7 @@ export const PREFIX = 'reno-tracker:';
 /**
  * @typedef {'theme' | 'lastProject' | 'lastView' | 'lastSection'
  *   | 'scheduleSort' | 'materialsSort' | 'invoicesSort'
- *   | 'agendaHideFinished'} PrefKey
+ *   | 'scheduleStatus'} PrefKey
  */
 
 /** @typedef {import('../ui/DataTable.js').SortState} SortState */

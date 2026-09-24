@@ -7,6 +7,7 @@ const NS = 'http://www.w3.org/2000/svg';
 export const ICON_PATHS = {
   check: 'M5 12l5 5L20 7',
   x: 'M6 6l12 12M18 6L6 18',
+  search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM16 16l4 4',
   plus: 'M12 5v14M5 12h14',
   minus: 'M5 12h14',
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',

@@ -43,6 +43,13 @@ static site on GitHub Pages, where it keeps its data in the browser.
   the grid, which is how a phone reaches items whose bars are too thin
   to tap. A screen under the breakpoint opens on the agenda until a view
   is picked, because the table needs a sideways scroll there.
+- A filter bar over every schedule view. The search box matches each
+  typed word against the title, description, and responsible party of
+  an item. A picker keeps one responsible party, and a status switch
+  keeps all items, open items, or late items. A line beside the bar
+  counts the items shown out of the total and offers Clear. The status
+  is kept between visits. The search text and the party reset when
+  another project opens.
 - A costs panel with summary tiles, a cumulative cost line against the
   budget, a cost-by-week bar chart, and a table of every line item, labor
   and materials together. A line under the table totals the cost incurred
