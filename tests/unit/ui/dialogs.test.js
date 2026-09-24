@@ -4,7 +4,7 @@ import { installDom } from '../domShim.js';
 import { focusKey } from '../../../src/ui/focusKey.js';
 import { modal } from '../../../src/ui/Modal.js';
 import { confirmDialog } from '../../../src/ui/ConfirmDialog.js';
-import { createToaster } from '../../../src/ui/Toast.js';
+import { createToaster, MAX_TOASTS } from '../../../src/ui/Toast.js';
 import {
   applyTheme,
   readTheme,
@@ -133,6 +133,61 @@ test('toaster shows, times out, and keeps failures', () => {
   assert.deepEqual([...region.children], [bad]);
   $(bad.children[1]).click();
   assert.equal(region.children.length, 0);
+});
+
+test('toaster keeps three and pushes out the oldest that times out', () => {
+  const region = document.createElement('div');
+  const toaster = createToaster(region, {
+    setTimer: /** @type {any} */ (() => 0),
+  });
+  /** @returns {string[]} */
+  const texts = () =>
+    $(region).children.map((/** @type {any} */ t) => t.children[0].textContent);
+  toaster.failure('Bad one');
+  toaster.success('A');
+  toaster.success('B');
+  toaster.success('C');
+  assert.equal(MAX_TOASTS, 3);
+  assert.deepEqual(texts(), ['Bad one', 'B', 'C']);
+  toaster.failure('Bad two');
+  toaster.failure('Bad three');
+  assert.deepEqual(texts(), ['Bad one', 'Bad two', 'Bad three']);
+  // When every toast is a failure, the oldest failure goes.
+  toaster.failure('Bad four');
+  assert.deepEqual(texts(), ['Bad two', 'Bad three', 'Bad four']);
+});
+
+test('toaster counts a repeat and restarts its timer', () => {
+  const region = document.createElement('div');
+  /** @type {Function[]} */
+  const timers = [];
+  const toaster = createToaster(region, {
+    setTimer: /** @type {any} */ (
+      (/** @type {Function} */ fn) => {
+        timers.push(fn);
+        return 0;
+      }
+    ),
+  });
+  toaster.success('Saved Demo');
+  toaster.success('Saved Tile');
+  const again = toaster.success('Saved Demo');
+  assert.equal(region.children.length, 2);
+  const [tile, demo] = region.children;
+  assert.equal(demo.children[0].textContent, 'Saved Demo (2 times)');
+  assert.equal(tile.children[0].textContent, 'Saved Tile');
+  // The first timer of the repeat is stale and leaves the toast up.
+  timers[0]();
+  assert.equal(region.children.length, 2);
+  timers[2]();
+  assert.deepEqual([...region.children], [tile]);
+  // The same text in another tone is its own toast.
+  toaster.failure('Saved Tile');
+  assert.equal(region.children.length, 2);
+  // A dismissed toast's timer does nothing, and a new one starts at one.
+  again();
+  toaster.success('Saved Demo');
+  assert.equal($(region).children.at(-1).children[0].textContent, 'Saved Demo');
 });
 
 test('toaster returns a dismiss handle', () => {
