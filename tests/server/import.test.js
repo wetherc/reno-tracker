@@ -18,6 +18,13 @@ function normalize(payload) {
   const names = new Map(
     payload.schedule.map((/** @type {any} */ s) => [s.id, `item:${s.title}`]),
   );
+  /** @type {Map<string, string>} */
+  const materials = new Map(
+    payload.materials.map((/** @type {any} */ m) => [
+      m.id,
+      `material:${m.name}`,
+    ]),
+  );
   /** @param {string | null} id */
   const name = (id) => (id === null ? null : names.get(id));
   /** @param {any} row */
@@ -44,6 +51,14 @@ function normalize(payload) {
     materials: payload.materials.map((/** @type {any} */ m) => ({
       ...strip(m),
       scheduleItemId: name(m.scheduleItemId),
+    })),
+    invoices: payload.invoices.map((/** @type {any} */ i) => ({
+      ...strip(i),
+      lines: i.lines.map((/** @type {any} */ l) => ({
+        ...strip(l),
+        scheduleItemId: name(l.scheduleItemId),
+        materialItemId: materials.get(l.materialItemId) ?? null,
+      })),
     })),
   };
 }
@@ -146,8 +161,24 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
           { scheduleItemId: 'gone', body: '' },
         ],
         materials: [
-          { name: 'Grout', scheduleItemId: 'a', expectedDate: '2026-01-08' },
+          {
+            id: 'g',
+            name: 'Grout',
+            scheduleItemId: 'a',
+            expectedDate: '2026-01-08',
+          },
           { name: 'Loose', scheduleItemId: 'gone', complete: true },
+        ],
+        invoices: [
+          {
+            id: 'x',
+            party: 'Pinch',
+            issuedDate: '2026-01-10',
+            lines: [
+              { scheduleItemId: 'b', amountCents: 900, extra: 1 },
+              { materialItemId: 'g', amountCents: 50, description: 'Bag' },
+            ],
+          },
         ],
       }),
     );
@@ -219,6 +250,28 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
         ['Loose', null, 0, 0, null, true, null, 1],
       ],
     );
+    assert.deepEqual(imported.invoices, [
+      {
+        number: '',
+        party: 'Pinch',
+        issuedDate: '2026-01-10',
+        dueDate: null,
+        lines: [
+          {
+            scheduleItemId: 'item:Tile',
+            materialItemId: null,
+            description: '',
+            amountCents: 900,
+          },
+          {
+            scheduleItemId: null,
+            materialItemId: 'material:Grout',
+            description: 'Bag',
+            amountCents: 50,
+          },
+        ],
+      },
+    ]);
   } finally {
     await app.close();
   }

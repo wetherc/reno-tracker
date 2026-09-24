@@ -77,6 +77,26 @@ export interface MaterialItem {
   sortOrder: number;
 }
 
+// One bill from one party. Each line bills one schedule item or one
+// material: exactly one of scheduleItemId and materialItemId is set.
+export interface InvoiceLine {
+  id: string;
+  scheduleItemId: string | null;
+  materialItemId: string | null;
+  description: string;
+  amountCents: Cents;
+}
+
+export interface Invoice {
+  id: string;
+  projectId: string;
+  number: string;
+  party: string;
+  issuedDate: IsoDate;
+  dueDate: IsoDate | null;
+  lines: InvoiceLine[];
+}
+
 // One project and its rows. GET /api/projects/:id returns this, and the
 // client keeps one of these in memory. The change log is left out,
 // because it grows with every edit. GET /api/schedule/:id/changes
@@ -87,6 +107,7 @@ export interface ProjectPayload {
   dependencies: Dependency[];
   notes: Note[];
   materials: MaterialItem[];
+  invoices: Invoice[];
 }
 
 // Inputs. Every field is optional on a patch. Create bodies fill missing
@@ -124,6 +145,23 @@ export type MaterialItemInput = Partial<
   >
 >;
 
+export type InvoiceLineInput = Pick<InvoiceLine, 'amountCents'> &
+  Partial<
+    Pick<InvoiceLine, 'scheduleItemId' | 'materialItemId' | 'description'>
+  >;
+
+// A patch that carries lines replaces every line of the invoice.
+export type InvoiceInput = Partial<
+  Pick<Invoice, 'number' | 'party' | 'issuedDate' | 'dueDate'> & {
+    lines: InvoiceLineInput[];
+  }
+>;
+
+// A checked invoice with every field filled, before it gets its ids.
+export type NewInvoice = Omit<Invoice, 'id' | 'projectId' | 'lines'> & {
+  lines: Omit<InvoiceLine, 'id'>[];
+};
+
 export type NoteInput = Pick<Note, 'body'>;
 
 export type DependencyInput = Pick<Dependency, 'predecessorId' | 'successorId'>;
@@ -146,6 +184,8 @@ export interface ExportFile {
   variances: Variance[];
   notes: Note[];
   materials: MaterialItem[];
+  // A file with no invoices list imports with no invoices.
+  invoices?: Invoice[];
 }
 
 // The rows of an export file after the import check. Ids are the ones
@@ -156,7 +196,8 @@ export interface ImportRows {
   dependencies: Pick<Dependency, 'predecessorId' | 'successorId'>[];
   variances: Omit<Variance, 'id'>[];
   notes: Omit<Note, 'id'>[];
-  materials: Omit<MaterialItem, 'id' | 'projectId'>[];
+  materials: (Omit<MaterialItem, 'id' | 'projectId'> & { id: string | null })[];
+  invoices: NewInvoice[];
 }
 
 export interface ApiErrorBody {

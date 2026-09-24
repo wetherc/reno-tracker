@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { withTransaction } from '../db/open.js';
 import { badRequest, notFound } from '../errors.js';
 import { getProject } from './projects.js';
+import { checkUnbilled } from './invoices.js';
 import { getScheduleItem, reorderRows } from './schedule.js';
 import { setClause, toMaterialItem } from './rows.js';
 import { statement } from './statements.js';
@@ -114,6 +115,7 @@ export function setMaterialItemComplete(db, id, complete) {
  * @param {string} id
  */
 export function deleteMaterialItem(db, id) {
+  checkUnbilled(db, 'materialItemId', id, getMaterialItem(db, id).name);
   const result = statement(db, 'DELETE FROM material_items WHERE id = ?').run(
     id,
   );

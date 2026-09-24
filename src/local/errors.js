@@ -24,10 +24,13 @@ export function notFound(what, id) {
 
 /**
  * @param {string} message
- * @param {string} field
+ * @param {string} [field]
  */
 export function conflict(message, field) {
-  return new ApiError(409, { error: message, field });
+  return new ApiError(
+    409,
+    field ? { error: message, field } : { error: message },
+  );
 }
 
 /**

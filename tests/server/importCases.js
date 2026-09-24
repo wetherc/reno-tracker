@@ -304,4 +304,71 @@ export const REFUSED = [
     'materials row 1: expectedDate must be a date like 2026-03-14, got "soon"',
     'materials',
   ],
+  [
+    'a material id that is not text',
+    file({ materials: [{ id: 5, name: 'Grout' }] }),
+    'materials row 1: id must be text, got 5',
+    'materials',
+  ],
+  [
+    'two materials with one id',
+    file({
+      materials: [
+        { id: 'm', name: 'Grout' },
+        { id: 'm', name: 'Tile' },
+      ],
+    }),
+    'materials row 2: id "m" appears twice',
+    'materials',
+  ],
+  [
+    'invoices that are not a list',
+    file({ invoices: {} }),
+    'invoices must be a list',
+    'invoices',
+  ],
+  [
+    'an invoice that is not an object',
+    file({ invoices: [7] }),
+    'invoices row 1: must be an object, got 7',
+    'invoices',
+  ],
+  [
+    'an invoice with no lines',
+    file({ invoices: [{ party: 'P', issuedDate: '2026-01-05', lines: [] }] }),
+    'invoices row 1: lines must list at least one line',
+    'invoices',
+  ],
+  [
+    'an invoice line for an item the file does not list',
+    file({
+      invoices: [
+        {
+          party: 'P',
+          issuedDate: '2026-01-05',
+          lines: [
+            { scheduleItemId: 'a', amountCents: 1 },
+            { scheduleItemId: 'zz', amountCents: 1 },
+          ],
+        },
+      ],
+    }),
+    'invoices row 1: line 2 bills schedule item "zz", which the file does not list',
+    'invoices',
+  ],
+  [
+    'an invoice line for a material the file does not list',
+    file({
+      materials: [{ name: 'Grout' }],
+      invoices: [
+        {
+          party: 'P',
+          issuedDate: '2026-01-05',
+          lines: [{ materialItemId: 'm', amountCents: 1 }],
+        },
+      ],
+    }),
+    'invoices row 1: line 1 bills material "m", which the file does not list',
+    'invoices',
+  ],
 ];

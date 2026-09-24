@@ -112,6 +112,37 @@ export function toMaterialItem(r) {
   };
 }
 
+/**
+ * @param {Row} r
+ * @returns {import('../../types.ts').InvoiceLine}
+ */
+export function toInvoiceLine(r) {
+  return {
+    id: text(r.id),
+    scheduleItemId: textOrNull(r.scheduleItemId),
+    materialItemId: textOrNull(r.materialItemId),
+    description: text(r.description),
+    amountCents: int(r.amountCents),
+  };
+}
+
+/**
+ * @param {Row} r
+ * @param {import('../../types.ts').InvoiceLine[]} lines
+ * @returns {import('../../types.ts').Invoice}
+ */
+export function toInvoice(r, lines) {
+  return {
+    id: text(r.id),
+    projectId: text(r.projectId),
+    number: text(r.number),
+    party: text(r.party),
+    issuedDate: text(r.issuedDate),
+    dueDate: textOrNull(r.dueDate),
+    lines,
+  };
+}
+
 /** @returns {string} */
 export function now() {
   return new Date().toISOString();

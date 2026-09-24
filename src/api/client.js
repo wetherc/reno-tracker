@@ -14,6 +14,8 @@ import { ApiError } from './errors.js';
 /** @typedef {import('../types.ts').DependencyInput} DependencyInput */
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
 /** @typedef {import('../types.ts').MaterialItemInput} MaterialItemInput */
+/** @typedef {import('../types.ts').Invoice} Invoice */
+/** @typedef {import('../types.ts').InvoiceInput} InvoiceInput */
 /** @typedef {import('../types.ts').ReorderKind} ReorderKind */
 /** @typedef {import('../types.ts').ExportFile} ExportFile */
 
@@ -108,6 +110,14 @@ export function createApi({
     /** @param {string} id @param {boolean} complete @returns {Promise<MaterialItem>} */
     setMaterialComplete: (id, complete) =>
       request('POST', `/api/materials/${id}/complete`, { complete }),
+
+    /** @param {string} projectId @param {InvoiceInput} input @returns {Promise<Invoice>} */
+    createInvoice: (projectId, input) =>
+      request('POST', `/api/projects/${projectId}/invoices`, input),
+    /** @param {string} id @param {InvoiceInput} input @returns {Promise<Invoice>} */
+    patchInvoice: (id, input) => request('PATCH', `/api/invoices/${id}`, input),
+    /** @param {string} id @returns {Promise<void>} */
+    deleteInvoice: (id) => request('DELETE', `/api/invoices/${id}`),
 
     /** @param {string} projectId @param {ReorderKind} kind @param {string[]} ids @returns {Promise<ProjectPayload>} */
     reorder: (projectId, kind, ids) =>

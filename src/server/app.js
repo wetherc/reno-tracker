@@ -10,6 +10,7 @@ import { scheduleRoutes } from './routes/schedule.js';
 import { noteRoutes } from './routes/notes.js';
 import { dependencyRoutes } from './routes/dependencies.js';
 import { materialRoutes } from './routes/materials.js';
+import { invoiceRoutes } from './routes/invoices.js';
 import { transferRoutes } from './routes/transfer.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
@@ -28,6 +29,7 @@ export function buildRouter(db) {
   noteRoutes(router, db);
   dependencyRoutes(router, db);
   materialRoutes(router, db);
+  invoiceRoutes(router, db);
   return router;
 }
 

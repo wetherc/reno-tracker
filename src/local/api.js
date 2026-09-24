@@ -43,6 +43,18 @@ import {
   patchMaterialItem,
   setMaterialItemComplete,
 } from './materials.js';
+import {
+  createInvoice,
+  deleteInvoice,
+  getInvoice,
+  patchInvoice,
+} from './invoices.js';
+import {
+  invoiceDefaults,
+  lineDefaults,
+  pickLines,
+  validateInvoice,
+} from '../entities/invoice.js';
 import { createStore, projectOf } from './store.js';
 import { exportProject, importProject, readExportFile } from './transfer.js';
 
@@ -52,6 +64,7 @@ import { exportProject, importProject, readExportFile } from './transfer.js';
 /** @typedef {import('../types.ts').ScheduleItemInput} ScheduleItemInput */
 /** @typedef {import('../types.ts').MaterialItemInput} MaterialItemInput */
 /** @typedef {import('../types.ts').ProjectInput} ProjectInput */
+/** @typedef {import('../types.ts').InvoiceInput} InvoiceInput */
 
 const PROJECT_FIELDS = /** @type {const} */ ([
   'name',
@@ -74,6 +87,14 @@ const MATERIAL_FIELDS = /** @type {const} */ ([
   'estimatedCents',
   'actualCents',
   'expectedDate',
+]);
+
+const INVOICE_FIELDS = /** @type {const} */ ([
+  'number',
+  'party',
+  'issuedDate',
+  'dueDate',
+  'lines',
 ]);
 
 /**
@@ -258,6 +279,31 @@ export function createLocalApi(storage, events) {
       mutate(owner('materials', id), (db) =>
         setMaterialItemComplete(db, id, boolean(complete)),
       ),
+
+    createInvoice: (projectId, input) =>
+      mutate(owner('project', projectId), (db) => {
+        const body = pick(asObject(input), INVOICE_FIELDS);
+        rejectInvalid(validateInvoice(body));
+        body.lines = pickLines(body.lines);
+        return createInvoice(
+          db,
+          projectId,
+          invoiceDefaults(/** @type {InvoiceInput} */ (body)),
+        );
+      }),
+    patchInvoice: (id, input) =>
+      mutate(owner('invoices', id), (db) => {
+        const body = pick(asObject(input), INVOICE_FIELDS);
+        const current = getInvoice(db, id);
+        rejectInvalid(validateInvoice(body, { partial: true, current }));
+        const { lines, ...fields } = /** @type {InvoiceInput} */ (body);
+        return patchInvoice(db, id, {
+          ...fields,
+          ...(lines && { lines: pickLines(lines).map(lineDefaults) }),
+        });
+      }),
+    deleteInvoice: (id) =>
+      mutate(owner('invoices', id), (db) => deleteInvoice(db, id)),
 
     reorder: (projectId, kind, ids) =>
       mutate(owner('project', projectId), (db) => {

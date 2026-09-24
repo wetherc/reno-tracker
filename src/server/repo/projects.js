@@ -12,6 +12,7 @@ import {
   toVariance,
 } from './rows.js';
 import { statement } from './statements.js';
+import { listInvoices } from './invoices.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../../types.ts').Project} Project */
@@ -127,5 +128,6 @@ export function getProjectPayload(db, id) {
     materials: rows(
       'SELECT * FROM material_items WHERE projectId = ? ORDER BY sortOrder, name',
     ).map(toMaterialItem),
+    invoices: listInvoices(db, id),
   };
 }

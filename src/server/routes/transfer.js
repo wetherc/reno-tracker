@@ -25,7 +25,7 @@ import { statement } from '../repo/statements.js';
  * @returns {ExportFile}
  */
 export function exportProject(db, id) {
-  const { project, schedule, dependencies, notes, materials } =
+  const { project, schedule, dependencies, notes, materials, invoices } =
     getProjectPayload(db, id);
   return {
     format: EXPORT_FORMAT,
@@ -36,6 +36,7 @@ export function exportProject(db, id) {
     variances: getProjectVariances(db, id),
     notes,
     materials,
+    invoices,
   };
 }
 
@@ -117,6 +118,8 @@ export function importProject(db, file) {
         n.updatedAt,
       );
     }
+    /** @type {Map<string, string>} */
+    const materialIds = new Map();
     const material = statement(
       db,
       `INSERT INTO material_items (id, projectId, scheduleItemId, name, allowanceCents,
@@ -124,8 +127,10 @@ export function importProject(db, file) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     for (const m of file.materials) {
+      const id = randomUUID();
+      if (m.id !== null) materialIds.set(m.id, id);
       material.run(
-        randomUUID(),
+        id,
         project.id,
         m.scheduleItemId === null ? null : mapped(m.scheduleItemId),
         m.name,
@@ -135,6 +140,41 @@ export function importProject(db, file) {
         Number(m.complete),
         m.expectedDate,
         m.sortOrder,
+      );
+    }
+    const invoice = statement(
+      db,
+      `INSERT INTO invoices (id, projectId, number, party, issuedDate, dueDate)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    );
+    const line = statement(
+      db,
+      `INSERT INTO invoice_lines (id, invoiceId, position, scheduleItemId,
+         materialItemId, description, amountCents)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    );
+    for (const inv of file.invoices) {
+      const id = randomUUID();
+      invoice.run(
+        id,
+        project.id,
+        inv.number,
+        inv.party,
+        inv.issuedDate,
+        inv.dueDate,
+      );
+      inv.lines.forEach((l, i) =>
+        line.run(
+          randomUUID(),
+          id,
+          i,
+          l.scheduleItemId === null ? null : mapped(l.scheduleItemId),
+          l.materialItemId === null
+            ? null
+            : /** @type {string} */ (materialIds.get(l.materialItemId)),
+          l.description,
+          l.amountCents,
+        ),
       );
     }
     return getProjectPayload(db, project.id);

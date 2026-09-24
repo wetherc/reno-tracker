@@ -114,6 +114,11 @@ every edit. The browser store therefore keeps the newest 50 change rows
 of each item and drops older ones. The server keeps every row. Save a
 project to a file to keep its full log.
 
+A tab keeps the page code it loaded. A tab that loaded a build with no
+invoices reads a stored project without its invoices, and its next
+write stores the project with none. Reload every open tab after the
+site updates.
+
 A document under the key `reno-tracker:db` keeps many projects in one
 key. On load the store moves each of its projects to a key of its own
 and removes `reno-tracker:db`. A project that the browser refuses to
@@ -205,6 +210,14 @@ schema version. `migrate.js` then applies each numbered file under
 one transaction, and writes the new version. Every child table declares
 `ON DELETE CASCADE`, so deleting a project removes its rows.
 
+An invoice line bills one schedule item or one material. Its link to
+that row has no `ON DELETE` action. Both backends answer 409 to a delete
+of a billed item or material, such as `Invoice 1043 from Pinch Plumbing
+bills Tile. Remove that line first.`, and SQLite refuses the delete if
+the check is skipped. So a single delete cannot change an invoice
+total. A project delete still removes every row, because SQLite checks
+the link at the end of the statement, after the invoices are gone.
+
 The database stores money as integer cents and dates as `YYYY-MM-DD`
 strings. One money field takes at most one billion dollars, because
 `node:sqlite` throws on a read of an integer above 2^53 and a sum of
@@ -222,7 +235,8 @@ day. The server makes every id as a UUID.
   "dependencies": [],
   "variances": [],
   "notes": [],
-  "materials": []
+  "materials": [],
+  "invoices": []
 }
 ```
 
@@ -236,7 +250,11 @@ and row number, for example `schedule row 3: endDate 2026-01-05 is before
 startDate 2026-01-09`. A dependency on itself or a loop of dependencies
 also answers 400. A note, change row, or dependency that points at an
 item the file does not list is dropped, and so is a second copy of an
-edge. A material that points at such an item loses its link. The picker's Save and Load buttons call
+edge. A material that points at such an item loses its link. A file
+with no `invoices` list loads with no invoices. An invoice line that
+bills an item or a material the file does not list answers 400, because
+dropping the line would change the invoice total. A material keeps its
+file id through the check so a line can name it. The picker's Save and Load buttons call
 these two routes. The file name is the project slug plus the export day
 in the local time zone.
 

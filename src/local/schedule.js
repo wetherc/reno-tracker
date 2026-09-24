@@ -7,6 +7,7 @@
 import { diffTrackedFields } from '../entities/variance.js';
 import { findCycle } from '../schedule/graph.js';
 import { badRequest, conflict, notFound } from './errors.js';
+import { checkUnbilled } from './invoices.js';
 import { getProject } from './projects.js';
 import { newId, now } from './store.js';
 
@@ -135,7 +136,7 @@ export function setScheduleItemComplete(db, id, complete) {
  * @param {string} id
  */
 export function deleteScheduleItem(db, id) {
-  getScheduleItem(db, id);
+  checkUnbilled(db, 'scheduleItemId', id, getScheduleItem(db, id).title);
   db.schedule = db.schedule.filter((s) => s.id !== id);
   db.variances = db.variances.filter((v) => v.scheduleItemId !== id);
   db.notes = db.notes.filter((n) => n.scheduleItemId !== id);

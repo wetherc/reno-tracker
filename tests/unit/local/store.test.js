@@ -81,6 +81,15 @@ function twoProjects() {
       expectedDate: null,
       sortOrder: 0,
     });
+    db.invoices.push({
+      id: `${p}i`,
+      projectId: p,
+      number: '',
+      party: 'Pinch',
+      issuedDate: '2026-01-05',
+      dueDate: null,
+      lines: [],
+    });
   }
   return db;
 }
@@ -140,7 +149,7 @@ test('projectRows and removeRows split one project from the rest', () => {
   const rows = /** @type {LocalDb} */ (projectRows(db, 'a'));
   assert.deepEqual(
     Object.values(rows).map((list) => list.length),
-    [1, 2, 1, 1, 1, 1],
+    [1, 2, 1, 1, 1, 1, 1],
   );
   assert.ok(
     Object.values(rows)

@@ -7,7 +7,8 @@
 // item the file does not list is dropped, and so is a dependency with
 // an unknown end or a second copy of an edge, because nothing could
 // show them. A material that points at an unknown item is kept with no
-// link. A dependency on itself or a loop of dependencies stops the
+// link. A material keeps its file id, if it has one, so an invoice line
+// can name it. A dependency on itself or a loop of dependencies stops the
 // import, because the Gantt drops every item in a loop.
 import {
   scheduleItemDefaults,
@@ -18,6 +19,7 @@ import { materialItemDefaults, validateMaterialItem } from './materialItem.js';
 import { projectDefaults, validateProject } from './project.js';
 import { checkBoolean, checkText, checkTimestamp, show } from './validate.js';
 import { findCycle } from '../schedule/graph.js';
+import { checkInvoices } from './importInvoices.js';
 
 /** @typedef {import('./validate.js').FieldError} FieldError */
 /** @typedef {import('../types.ts').ImportRows} ImportRows */
@@ -249,18 +251,46 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
     });
   });
 
+  /** @type {Set<string>} */
+  const materialIds = new Set();
   const materials = lists.materials.map((raw, i) => {
     const row = object('materials', raw, i);
+    const id = row.id ?? null;
+    if (id !== null) {
+      check('materials', i, checkText('id', id, { min: 1, max: 100 }));
+      if (materialIds.has(/** @type {string} */ (id))) {
+        bad('materials', i, `id ${show(id)} appears twice`);
+      }
+      materialIds.add(/** @type {string} */ (id));
+    }
     const link = /** @type {string} */ (row.scheduleItemId);
     const fields = {
       ...pick(row, MATERIAL_FIELDS),
       scheduleItemId: titles.has(link) ? link : null,
     };
     check('materials', i, validateMaterialItem(fields)?.message ?? null);
-    return { ...materialItemDefaults(fields), ...order('materials', row, i) };
+    return {
+      id: /** @type {string | null} */ (id),
+      ...materialItemDefaults(fields),
+      ...order('materials', row, i),
+    };
   });
 
-  return { project, schedule, dependencies, variances, notes, materials };
+  const invoices = checkInvoices(
+    body.invoices,
+    { items: new Set(titles.keys()), materials: materialIds },
+    fail,
+  );
+
+  return {
+    project,
+    schedule,
+    dependencies,
+    variances,
+    notes,
+    materials,
+    invoices,
+  };
 }
 
 /**

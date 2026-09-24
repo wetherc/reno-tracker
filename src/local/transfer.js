@@ -22,7 +22,7 @@ import { newId, now } from './store.js';
  * @returns {ExportFile}
  */
 export function exportProject(db, id) {
-  const { project, schedule, dependencies, notes, materials } =
+  const { project, schedule, dependencies, notes, materials, invoices } =
     getProjectPayload(db, id);
   return {
     format: EXPORT_FORMAT,
@@ -33,6 +33,7 @@ export function exportProject(db, id) {
     variances: getProjectVariances(db, id),
     notes,
     materials,
+    invoices,
   };
 }
 
@@ -83,13 +84,34 @@ export function importProject(db, file) {
       scheduleItemId: mapped(n.scheduleItemId),
     });
   }
-  for (const m of file.materials) {
+  /** @type {Map<string, string>} */
+  const materialIds = new Map();
+  for (const { id: old, ...m } of file.materials) {
+    const id = newId();
+    if (old !== null) materialIds.set(old, id);
     db.materials.push({
       ...m,
-      id: newId(),
+      id,
       projectId: project.id,
       scheduleItemId:
         m.scheduleItemId === null ? null : mapped(m.scheduleItemId),
+    });
+  }
+  for (const invoice of file.invoices) {
+    db.invoices.push({
+      ...invoice,
+      id: newId(),
+      projectId: project.id,
+      lines: invoice.lines.map((line) => ({
+        ...line,
+        id: newId(),
+        scheduleItemId:
+          line.scheduleItemId === null ? null : mapped(line.scheduleItemId),
+        materialItemId:
+          line.materialItemId === null
+            ? null
+            : /** @type {string} */ (materialIds.get(line.materialItemId)),
+      })),
     });
   }
   return getProjectPayload(db, project.id);
