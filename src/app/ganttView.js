@@ -2,8 +2,8 @@
 // its successors, bars on a day grid that scrolls sideways, and a
 // connector from each predecessor to its successor. The item names stay
 // fixed on the left while the grid scrolls. A bar moves by drag or by
-// arrow key and the change is saved at once, so the change log records
-// it like any other edit.
+// arrow key and the change is saved through the same patch as the
+// editor, so the change log records it like any other edit.
 import { formatDayMonth } from '../format/date.js';
 import { todayIso } from '../schedule/dates.js';
 import { ganttLayout } from '../schedule/gantt.js';
@@ -122,12 +122,17 @@ export function ganttView({ ctx }) {
    * @param {ScheduleItem} item
    * @param {{ startDate?: string, endDate?: string }} patch
    * @param {DragEdge} edge
+   * @param {boolean} refocus
+   * @returns {Promise<boolean>} true when the move saved
    */
-  async function move(item, patch, edge) {
-    pendingFocus = `${item.id}:${edge}`;
-    await ctx.write((api) => api.patchScheduleItem(item.id, patch), {
-      done: moveMessage(item, patch),
-    });
+  async function move(item, patch, edge, refocus) {
+    pendingFocus = refocus ? `${item.id}:${edge}` : null;
+    const outcome = await ctx.write(
+      (api) => api.patchScheduleItem(item.id, patch),
+      { done: moveMessage(item, patch) },
+    );
+    if (!outcome.ok) pendingFocus = null;
+    return outcome.ok;
   }
 
   /** @param {ScheduleItem} item */

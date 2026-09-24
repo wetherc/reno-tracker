@@ -77,6 +77,18 @@ test('the gantt draws bars in order, links them, and moves a bar by key and by d
   await page.keyboard.press('Shift+ArrowRight');
   await expect(page.getByText('Demo now ends Oct 11')).toBeVisible();
 
+  // Quick presses add up and save as one move.
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowRight');
+  await expect(gantt.locator('.gantt__status')).toHaveText(
+    'Demo: Oct 1 to Oct 14',
+  );
+  await page.screenshot({ path: 'test-results/gantt-keys.png' });
+  await expect(page.getByText('Demo now ends Oct 14')).toBeVisible();
+  await expect(page.getByText(/Demo now ends Oct 1[23]$/)).toHaveCount(0);
+  await expect(
+    gantt.getByRole('button', { name: 'End of Demo, Oct 14' }),
+  ).toBeFocused();
+
   // A drag on the body moves both dates, and the status reads the dates
   // under the pointer before the release saves them.
   const plumb = gantt.getByRole('button', {

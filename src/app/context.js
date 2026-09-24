@@ -30,6 +30,10 @@ export function createContext({ api, prefs, toaster }) {
   let payload = null;
   /** @type {{ [K in keyof Events]: Set<(value: Events[K]) => void> }} */
   const listeners = { projects: new Set(), payload: new Set() };
+  // Each fetch takes the next number. A response whose number is no
+  // longer the latest is dropped, so a slow refetch that lands after a
+  // newer one cannot put older data on screen.
+  const latest = { projects: 0, payload: 0 };
 
   /**
    * @template {keyof Events} K
@@ -63,20 +67,32 @@ export function createContext({ api, prefs, toaster }) {
     },
 
     async loadProjects() {
-      projects = await api.listProjects();
+      const turn = ++latest.projects;
+      const list = await api.listProjects();
+      if (turn !== latest.projects) return projects;
+      projects = list;
       emit('projects', projects);
       return projects;
     },
 
-    /** @param {string} id */
+    /**
+     * Fetches and shows one project. When a newer open or a close starts
+     * before this fetch returns, the result is dropped and the current
+     * payload comes back instead.
+     * @param {string} id
+     */
     async openProject(id) {
-      payload = await api.getProject(id);
+      const turn = ++latest.payload;
+      const next = await api.getProject(id);
+      if (turn !== latest.payload) return payload;
+      payload = next;
       prefs.write('lastProject', id);
       emit('payload', payload);
       return payload;
     },
 
     closeProject() {
+      latest.payload += 1;
       payload = null;
       prefs.clear('lastProject');
       emit('payload', null);

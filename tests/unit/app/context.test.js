@@ -53,7 +53,7 @@ test('loadProjects and openProject store state, emit, and save the id', async ()
   await ctx.loadProjects();
   assert.equal(ctx.projects.length, 2);
   const opened = await ctx.openProject('b');
-  assert.equal(opened.project.id, 'b');
+  assert.equal(opened?.project.id, 'b');
   assert.equal(ctx.payload, opened);
   assert.equal(prefs.read('lastProject'), 'b');
   off();
@@ -98,4 +98,44 @@ test('write toasts the failure and returns the error', async () => {
   });
   assert.deepEqual(outcome, { ok: false, error });
   assert.deepEqual(toasts, ['bad title cannot be blank']);
+});
+
+test('an older fetch that lands after a newer one is dropped', async () => {
+  const { ctx, prefs } = setup();
+  const api = /** @type {any} */ (ctx.api);
+  /** @type {Map<string, (value: unknown) => void>} */
+  const waiting = new Map();
+  api.getProject = (/** @type {string} */ id) =>
+    new Promise((r) => waiting.set(id, () => r(payloadFor(id))));
+  api.listProjects = () =>
+    new Promise((r) =>
+      waiting.set(`list ${waiting.size}`, () => r([payloadFor('x').project])),
+    );
+  /** @type {string[]} */
+  const seen = [];
+  ctx.on('payload', (p) => seen.push(p?.project.id ?? 'none'));
+  ctx.on('projects', (p) => seen.push(`list ${p.length}`));
+
+  const first = ctx.openProject('a');
+  const second = ctx.openProject('b');
+  /** @type {any} */ (waiting.get('b'))();
+  assert.equal((await second)?.project.id, 'b');
+  /** @type {any} */ (waiting.get('a'))();
+  assert.equal((await first)?.project.id, 'b');
+  assert.equal(ctx.payload?.project.id, 'b');
+  assert.equal(prefs.read('lastProject'), 'b');
+
+  const late = ctx.openProject('c');
+  ctx.closeProject();
+  /** @type {any} */ (waiting.get('c'))();
+  assert.equal(await late, null);
+  assert.equal(ctx.payload, null);
+
+  const oldList = ctx.loadProjects();
+  const newList = ctx.loadProjects();
+  /** @type {any} */ (waiting.get('list 4'))();
+  await newList;
+  /** @type {any} */ (waiting.get('list 3'))();
+  assert.equal((await oldList).length, 1);
+  assert.deepEqual(seen, ['b', 'none', 'list 1']);
 });

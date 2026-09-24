@@ -1,7 +1,9 @@
 // One gantt bar. The middle opens the editor on a click and moves the
 // whole item on a drag. Each end is a handle that moves one date. Every
-// part answers the arrow keys: one day per press, seven with Shift. The
-// bar paints as one piece per run of workdays, with a gap over each
+// part answers the arrow keys: one day per press, seven with Shift. Key
+// presses add up on the bar and save as one move KEY_DELAY ms after the
+// last press, or when the part loses focus. Keys and drags are ignored
+// while a save runs, and a failed save puts the bar back. The bar paints as one piece per run of workdays, with a gap over each
 // weekend inside the item. The title sits in the widest piece when the
 // whole name fits there, and beside the bar at full length when it does
 // not.
@@ -28,12 +30,15 @@ import { icon } from '../ui/icon.js';
  *   dayWidth: number,
  *   chartWidth: number,
  *   onOpen: (item: ScheduleItem) => void,
- *   onMove: (item: ScheduleItem, patch: DatePatch, edge: DragEdge) => void,
+ *   onMove: (item: ScheduleItem, patch: DatePatch, edge: DragEdge, refocus: boolean) => Promise<boolean>,
  *   onPreview: (text: string | null) => void,
- * }} GanttBarOptions onPreview receives the dates under the pointer during a drag, then null
+ * }} GanttBarOptions onMove saves and resolves true on success, and refocus asks for focus on the same part after the rebuild. onPreview receives the dates shown during a drag or a run of key presses, then null
  */
 
 const ARROWS = { ArrowLeft: -1, ArrowRight: 1 };
+
+/** The pause after the last arrow key press before the move saves. */
+export const KEY_DELAY = 400;
 
 // The space between a bar and a title beside it: the title's margin plus
 // its side padding in gantt.css.
@@ -104,6 +109,9 @@ export function ganttBar({
 
   // A drag that moved the bar must not also open the editor on release.
   let dragged = false;
+  // True from the start of a save until the rebuild replaces the bar, or
+  // until a failed save puts it back.
+  let busy = false;
   body.addEventListener('click', () => {
     if (dragged) {
       dragged = false;
@@ -135,17 +143,47 @@ export function ganttBar({
       'aria-keyshortcuts',
       'ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight',
     );
+    // Days of key presses not yet saved, and the timer that saves them.
+    let pending = 0;
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
+    let timer;
+    /** @param {boolean} refocus */
+    const flush = (refocus) => {
+      clearTimeout(timer);
+      timer = undefined;
+      const patch = moveDates(item, pending, edge);
+      pending = 0;
+      onPreview(null);
+      save(patch, edge, refocus);
+    };
     part.addEventListener('keydown', (event) => {
       const step = ARROWS[/** @type {keyof typeof ARROWS} */ (event.key)];
       if (!step) return;
       event.preventDefault();
-      const patch = moveDates(item, step * (event.shiftKey ? 7 : 1), edge);
-      if (Object.keys(patch).length > 0) onMove(item, patch, edge);
+      if (busy) return;
+      const patch = moveDates(
+        item,
+        pending + step * (event.shiftKey ? 7 : 1),
+        edge,
+      );
+      // A press past a limit does not count, so the next press the other
+      // way moves the bar at once.
+      pending = daysMoved(item, patch, edge);
+      preview(patch);
+      clearTimeout(timer);
+      timer = setTimeout(
+        () => flush(document.activeElement === part),
+        KEY_DELAY,
+      );
+    });
+    part.addEventListener('blur', () => {
+      if (timer !== undefined) flush(false);
     });
 
     let originX = 0;
     let days = 0;
     part.addEventListener('pointerdown', (event) => {
+      if (busy) return;
       originX = event.clientX;
       days = 0;
       part.setPointerCapture(event.pointerId);
@@ -157,16 +195,7 @@ export function ganttBar({
       days = next;
       if (edge === 'both') dragged = dragged || days !== 0;
       el.classList.toggle('gantt-bar--dragging', days !== 0);
-      const patch = moveDates(item, days, edge);
-      const shown = {
-        start: patch.startDate ?? item.startDate,
-        end: patch.endDate ?? item.endDate,
-      };
-      el.style.left = `${row.x + dayOffset(item.startDate, shown.start) * dayWidth}px`;
-      el.style.width = `${spanDays(shown.start, shown.end) * dayWidth}px`;
-      drawPieces(el, paint, shown.start, shown.end, dayWidth);
-      fitLabel(el, chartWidth);
-      onPreview(`${item.title}: ${formatRange(shown.start, shown.end)}`);
+      preview(moveDates(item, days, edge));
     });
     const settle = (/** @type {PointerEvent} */ event) => {
       if (!part.hasPointerCapture(event.pointerId)) return;
@@ -175,20 +204,65 @@ export function ganttBar({
       onPreview(null);
       const patch =
         event.type === 'pointerup' ? moveDates(item, days, edge) : {};
-      if (Object.keys(patch).length > 0) onMove(item, patch, edge);
-      else {
-        el.style.left = `${row.x}px`;
-        el.style.width = `${row.width}px`;
-        drawPieces(el, paint, item.startDate, item.endDate, dayWidth);
-        fitLabel(el, chartWidth);
-      }
+      save(patch, edge, true);
       days = 0;
     };
     part.addEventListener('pointerup', settle);
     part.addEventListener('pointercancel', settle);
   }
 
+  /**
+   * Draws the bar at the patched dates and announces them.
+   * @param {DatePatch} patch
+   */
+  function preview(patch) {
+    const start = patch.startDate ?? item.startDate;
+    const end = patch.endDate ?? item.endDate;
+    place(start, end);
+    onPreview(`${item.title}: ${formatRange(start, end)}`);
+  }
+
+  /** @param {string} start @param {string} end */
+  function place(start, end) {
+    el.style.left = `${row.x + dayOffset(item.startDate, start) * dayWidth}px`;
+    el.style.width = `${spanDays(start, end) * dayWidth}px`;
+    drawPieces(el, paint, start, end, dayWidth);
+    fitLabel(el, chartWidth);
+  }
+
+  /**
+   * Saves a move, or puts the bar back when the patch is empty or the
+   * save fails.
+   * @param {DatePatch} patch
+   * @param {DragEdge} edge
+   * @param {boolean} refocus
+   */
+  function save(patch, edge, refocus) {
+    const reset = () => place(item.startDate, item.endDate);
+    if (Object.keys(patch).length === 0) return reset();
+    busy = true;
+    onMove(item, patch, edge, refocus).then((ok) => {
+      if (ok) return;
+      busy = false;
+      reset();
+    });
+  }
+
   return el;
+}
+
+/**
+ * The days a patch from moveDates moves the edge that the key or drag
+ * controls.
+ * @param {ScheduleItem} item
+ * @param {DatePatch} patch
+ * @param {DragEdge} edge
+ * @returns {number}
+ */
+export function daysMoved(item, patch, edge) {
+  return edge === 'end'
+    ? dayOffset(item.endDate, patch.endDate ?? item.endDate)
+    : dayOffset(item.startDate, patch.startDate ?? item.startDate);
 }
 
 /**

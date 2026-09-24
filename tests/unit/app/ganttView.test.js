@@ -1,7 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom, press } from '../domShim.js';
-import { fitLabel, moveMessage } from '../../../src/app/ganttBar.js';
+import {
+  daysMoved,
+  fitLabel,
+  KEY_DELAY,
+  moveMessage,
+} from '../../../src/app/ganttBar.js';
 import {
   DAY_WIDTH,
   ganttView,
@@ -173,40 +178,101 @@ test('the today line is drawn only when today is on the grid', async () => {
   assert.ok(current.querySelector('.gantt__today'));
 });
 
-test('arrow keys move a date and the toast says where it went', async () => {
+/** Runs every pending promise job while setTimeout is mocked. */
+const settle = () => new Promise((r) => setImmediate(r));
+
+/** @param {any} part */
+const blur = (part) => part.dispatchEvent({ type: 'blur' });
+
+test('arrow presses add up and save as one move after the pause', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
   const { el, log, toasts } = await setup();
+  const status = el.querySelector('.gantt__status');
   const bar = el.querySelectorAll('.gantt-bar')[0];
-  const [start, body, end] = bar.children;
+  const end = bar.children[2];
   press(end, 'ArrowRight');
-  await tick();
+  press(end, 'ArrowRight');
+  t.mock.timers.tick(KEY_DELAY - 1);
+  press(end, 'ArrowRight');
+  t.mock.timers.tick(KEY_DELAY - 1);
+  await settle();
+  assert.deepEqual(log, []);
+  assert.equal(status.textContent, 'Demo: Oct 1 to Oct 6');
+  assert.equal(bar.style.width, `${84 + DAY_WIDTH * 3}px`);
+  t.mock.timers.tick(1);
+  await settle();
   assert.deepEqual(log, ['patch demo ']);
-  assert.equal(toasts.at(-1), 'ok Demo now ends Oct 4');
-  press(start, 'ArrowLeft', { shiftKey: true });
-  await tick();
-  assert.equal(toasts.at(-1), 'ok Demo now starts Sep 24');
-  press(body, 'ArrowRight', { shiftKey: true });
-  await tick();
-  assert.equal(toasts.at(-1), 'ok Demo now runs Oct 8 to Oct 10');
-  press(body, 'Enter');
-  await tick();
-  assert.equal(log.length, 3);
+  assert.deepEqual(toasts, ['ok Demo now ends Oct 6']);
+  assert.equal(status.textContent, '');
+  blur(end);
+  await settle();
+  assert.equal(log.length, 1);
 });
 
-test('a start handle cannot pass the end and a no-op press saves nothing', async () => {
-  const { el, log } = await setup({
-    schedule: [
-      itemOf('one', { startDate: '2026-10-01', endDate: '2026-10-01' }),
-    ],
-    dependencies: [],
-  });
-  const [start, , end] = el.querySelector('.gantt-bar').children;
-  press(start, 'ArrowRight');
+test('a blur saves the presses at once, and Shift moves a week', async () => {
+  const fx = await setup();
+  let bar = fx.el.querySelectorAll('.gantt-bar')[0];
+  press(bar.children[0], 'ArrowLeft', { shiftKey: true });
+  blur(bar.children[0]);
+  await tick();
+  assert.equal(fx.toasts.at(-1), 'ok Demo now starts Sep 24');
+  bar = $(fx.view.render($(fx.ctx.payload))).querySelectorAll('.gantt-bar')[0];
+  press(bar.children[1], 'ArrowRight', { shiftKey: true });
+  press(bar.children[1], 'Enter');
+  blur(bar.children[1]);
+  await tick();
+  assert.equal(fx.toasts.at(-1), 'ok Demo now runs Oct 1 to Oct 10');
+  assert.equal(fx.log.length, 2);
+});
+
+test('a press past a limit does not count toward the next press back', async () => {
+  const { el, log } = await setup();
+  const status = el.querySelector('.gantt__status');
+  const [start, , end] = el.querySelectorAll('.gantt-bar')[0].children;
+  for (let i = 0; i < 5; i += 1) press(start, 'ArrowRight');
+  assert.equal(status.textContent, 'Demo: Oct 3');
+  press(start, 'ArrowLeft');
+  assert.equal(status.textContent, 'Demo: Oct 2 to Oct 3');
+  press(start, 'ArrowLeft');
+  blur(start);
   press(end, 'ArrowLeft');
+  press(end, 'ArrowRight');
+  blur(end);
   await tick();
   assert.deepEqual(log, []);
 });
 
-test('the moved handle gets focus back after the rebuild', async () => {
+test('keys and drags wait while a save runs, and a failed save puts the bar back', async () => {
+  const { el, ctx, log, toasts } = await setup();
+  const status = el.querySelector('.gantt__status');
+  const bar = el.querySelectorAll('.gantt-bar')[0];
+  const [, body, end] = bar.children;
+  /** @type {(value?: unknown) => void} */
+  let release = () => {};
+  const api = $(ctx.api);
+  api.patchScheduleItem = () =>
+    new Promise((_, reject) => {
+      release = () => reject(new Error('disk full'));
+    });
+  press(end, 'ArrowRight');
+  blur(end);
+  press(end, 'ArrowRight');
+  body.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 0 });
+  assert.equal(body.hasPointerCapture(1), false);
+  assert.equal(status.textContent, '');
+  assert.equal(bar.style.width, `${84 + DAY_WIDTH}px`);
+  release();
+  await tick();
+  assert.equal(bar.style.width, '84px');
+  assert.equal(toasts.length, 1);
+  assert.match(toasts[0], /^bad /);
+  press(end, 'ArrowRight');
+  assert.equal(status.textContent, 'Demo: Oct 1 to Oct 4');
+  assert.deepEqual(log, []);
+});
+
+test('the moved handle gets focus back after the rebuild', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
   const fx = setupSchedule({ schedule: items, dependencies });
   const prefs = fx.ctx.prefs;
   prefs.write('lastView', 'gantt');
@@ -223,14 +289,26 @@ test('the moved handle gets focus back after the rebuild', async () => {
   first.scrollLeft = 150;
   first.dispatchEvent({ type: 'scroll' });
   const end = first.querySelector('.gantt-bar').children[2];
+  end.focus();
   press(end, 'ArrowRight');
-  await tick();
+  t.mock.timers.tick(KEY_DELAY);
+  await settle();
   const second = $(shell.body.children[0]);
   assert.notEqual(second, first);
   assert.equal(second.scrollLeft, 150);
   const focused = $(dom.activeElement);
   assert.equal(focused.getAttribute('data-focus'), 'demo:end');
   assert.equal(focused.getAttribute('aria-label'), 'End of Demo, Oct 4');
+
+  // A save that a blur starts leaves focus where the user moved it.
+  const other = $(document.createElement('button'));
+  const start = second.querySelector('.gantt-bar').children[0];
+  press(start, 'ArrowLeft');
+  other.focus();
+  blur(start);
+  await settle();
+  assert.notEqual($(shell.body.children[0]), second);
+  assert.equal(dom.activeElement, other);
 });
 
 test('a drag previews the dates, saves on release, and does not open the editor', async () => {
@@ -349,4 +427,16 @@ test('fitLabel keeps a title that fits inside and moves a long one beside the ba
   measure(40, 60);
   fitLabel(bar, 250);
   assert.equal(bar.className, 'gantt-bar');
+});
+
+test('daysMoved counts the days of the edge that moved', () => {
+  const item = items[0];
+  assert.equal(daysMoved(item, { endDate: '2026-10-05' }, 'end'), 2);
+  assert.equal(daysMoved(item, {}, 'end'), 0);
+  assert.equal(daysMoved(item, { startDate: '2026-09-29' }, 'start'), -2);
+  assert.equal(
+    daysMoved(item, { startDate: '2026-10-02', endDate: '2026-10-04' }, 'both'),
+    1,
+  );
+  assert.equal(daysMoved(item, {}, 'both'), 0);
 });
