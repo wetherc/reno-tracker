@@ -91,6 +91,13 @@ The Save button in the project picker writes a project to a JSON file, and
 Load reads that file back, so a project can move between the static site
 and a local server, or between two browsers.
 
+When the text under `reno-tracker:db` does not parse as a JSON object,
+the store copies it to `reno-tracker:db-damaged` and starts empty. The
+next write replaces the damaged text, and the copy stays for recovery by
+hand. When that key already holds a different damaged copy, or the
+browser refuses the copy, every action fails with a message and nothing
+is written.
+
 ```sh
 pnpm build:pages   # writes the site to dist/
 pnpm serve:pages   # builds, then serves dist/ on http://127.0.0.1:3118

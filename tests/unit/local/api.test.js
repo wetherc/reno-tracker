@@ -395,3 +395,14 @@ test('every write lands in storage so a second api instance reads it', async () 
     [p.id],
   );
 });
+
+test('a write over a damaged document keeps the damaged text under its own key', async () => {
+  const { api, storage } = setup();
+  storage.setItem('reno-tracker:db', '{"projects":[');
+  await api.createProject({ name: 'Fresh', startDate: '2026-01-05' });
+  assert.equal(storage.getItem('reno-tracker:db-damaged'), '{"projects":[');
+  assert.deepEqual(
+    (await api.listProjects()).map((p) => p.name),
+    ['Fresh'],
+  );
+});

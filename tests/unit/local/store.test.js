@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { memoryStorage } from '../../../src/storage/prefs.js';
 import {
   createStore,
+  DAMAGED_KEY,
   DB_KEY,
   emptyDb,
   newId,
@@ -31,19 +32,58 @@ test('write then read round-trips the document under the prefixed key', () => {
   assert.deepEqual(store.read(), db);
 });
 
-test('a damaged or partial document reads as far as it can', () => {
+test('a partial document reads as far as it can', () => {
   const storage = memoryStorage();
   const store = createStore(storage);
-  storage.setItem(DB_KEY, 'not json');
-  assert.deepEqual(store.read(), emptyDb());
-  storage.setItem(DB_KEY, '[1]');
-  assert.deepEqual(store.read(), emptyDb());
-  storage.setItem(DB_KEY, '42');
-  assert.deepEqual(store.read(), emptyDb());
   storage.setItem(DB_KEY, '{"projects":[{"id":"p1"}],"notes":"x"}');
   const db = store.read();
   assert.deepEqual(db.projects, [{ id: 'p1' }]);
   assert.deepEqual(db.notes, []);
+  assert.equal(storage.getItem(DAMAGED_KEY), null);
+});
+
+test('a damaged document is copied aside before it reads as empty', () => {
+  for (const text of ['not json', '[1]', '42', 'null']) {
+    const storage = memoryStorage();
+    const store = createStore(storage);
+    storage.setItem(DB_KEY, text);
+    assert.deepEqual(store.read(), emptyDb());
+    assert.deepEqual(store.read(), emptyDb());
+    assert.equal(storage.getItem(DAMAGED_KEY), text);
+    store.write(emptyDb());
+    assert.equal(storage.getItem(DAMAGED_KEY), text);
+  }
+});
+
+test('a second damaged document does not replace the first copy', () => {
+  const storage = memoryStorage();
+  const store = createStore(storage);
+  storage.setItem(DAMAGED_KEY, 'first');
+  storage.setItem(DB_KEY, 'second');
+  assert.throws(() => store.read(), {
+    name: 'ApiError',
+    status: 500,
+    message: /older damaged copy is already kept under reno-tracker:db-damaged/,
+  });
+  assert.equal(storage.getItem(DAMAGED_KEY), 'first');
+  assert.equal(storage.getItem(DB_KEY), 'second');
+});
+
+test('a damaged document that cannot be copied stops the store', () => {
+  const storage = memoryStorage();
+  storage.setItem(DB_KEY, 'damaged');
+  const store = createStore({
+    getItem: (key) => storage.getItem(key),
+    setItem: () => {
+      throw new Error('full');
+    },
+    removeItem: () => {},
+  });
+  assert.throws(() => store.read(), {
+    name: 'ApiError',
+    status: 507,
+    message: /refused to keep a copy/,
+  });
 });
 
 test('a blocked storage reads empty and reports a failed write', () => {
