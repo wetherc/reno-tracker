@@ -25,8 +25,29 @@
     border-bottom: 1px solid var(--border);
   }
 
-  .nav {
-    flex-direction: row;
+  /* On a phone the sections form a tab bar: four equal columns with the
+     icon over the label, so all four fit one line. A screen too narrow
+     for four columns wraps them rather than push the page wider. */
+  .app__sidebar .nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+    flex: 1 1 auto;
+    max-width: 32rem;
+    min-width: 0;
+  }
+
+  .nav .row-select {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-1);
+    width: auto;
+    padding: var(--space-2) var(--space-1);
+    font-size: var(--text-label);
+    text-align: center;
+  }
+
+  .nav .row-select .icon {
+    font-size: 1.25rem;
   }
 
   .app__main {
