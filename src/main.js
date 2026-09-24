@@ -9,10 +9,9 @@ import { mountNotes } from './app/notesView.js';
 import { mountProjects } from './app/projects.js';
 import { mountSchedule } from './app/schedule.js';
 import { mountShell, SECTIONS } from './app/shell.js';
+import { startView } from './app/startView.js';
 import { mountTheme } from './app/theme.js';
 import { browserStorage, createPrefs } from './storage/prefs.js';
-import { button } from './ui/buttons.js';
-import { emptyState } from './ui/emptyState.js';
 import { keepFocus, trackFocus } from './ui/focusKey.js';
 import { createToaster } from './ui/Toast.js';
 
@@ -43,27 +42,21 @@ const notes = mountNotes({ ctx, shell });
 const materials = mountMaterials({ ctx, shell });
 const costs = mountCosts({ ctx, shell });
 
+/** @type {import('./app/startView.js').StartState} */
+let start = { kind: 'loading' };
+
 function render() {
   const section = SECTIONS.find((s) => s.id === shell.section);
   shell.setTitle(section?.label ?? '');
   shell.tools.replaceChildren();
   if (!ctx.payload) {
-    const actions = document.createElement('span');
-    actions.className = 'empty-state__actions';
-    actions.append(
-      button({
-        label: 'Start a project',
-        icon: 'plus',
-        variant: 'primary',
-        onClick: projects.newProject,
-      }),
-      button({
-        label: 'Load from a file',
-        icon: 'upload',
-        onClick: projects.importProject,
+    shell.setBody(
+      startView(start, {
+        onRetry: load,
+        onNew: projects.newProject,
+        onLoad: projects.importProject,
       }),
     );
-    shell.setBody(emptyState('No project open.', { action: actions }));
     return;
   }
   if (shell.section === 'schedule') {
@@ -86,13 +79,27 @@ function render() {
 const redraw = () => keepFocus(render, shell.el);
 shell.onSection(redraw);
 ctx.on('payload', redraw);
-render();
 
-ctx
-  .loadProjects()
-  .then((projects) => {
-    const last = prefs.read('lastProject');
-    const id = projects.find((p) => p.id === last)?.id ?? projects[0]?.id;
-    return id ? ctx.openProject(id) : null;
-  })
-  .catch((error) => toaster.failure(describeFailure(error)));
+/** @param {import('./app/startView.js').StartState} next */
+function setStart(next) {
+  start = next;
+  if (!ctx.payload) redraw();
+}
+
+// Opens the last project, or the first one. Retry runs it again.
+function load() {
+  setStart({ kind: 'loading' });
+  ctx
+    .loadProjects()
+    .then((projects) => {
+      const last = prefs.read('lastProject');
+      const id = projects.find((p) => p.id === last)?.id ?? projects[0]?.id;
+      return id ? ctx.openProject(id) : null;
+    })
+    .then(
+      () => setStart({ kind: 'ready' }),
+      (error) => setStart({ kind: 'error', message: describeFailure(error) }),
+    );
+}
+
+load();
