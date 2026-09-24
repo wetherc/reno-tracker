@@ -8,6 +8,7 @@ import { formatDayMonth } from '../format/date.js';
 import { todayIso } from '../schedule/dates.js';
 import { ganttLayout } from '../schedule/gantt.js';
 import { bareButton } from '../ui/buttons.js';
+import { focusKey } from '../ui/focusKey.js';
 import { completeToggle } from './completeToggle.js';
 import { fitLabels, ganttBar, moveMessage } from './ganttBar.js';
 import { openScheduleEditor } from './scheduleEditor.js';
@@ -149,6 +150,7 @@ export function ganttView({ ctx }) {
       label: item.title,
       onClick: () => openScheduleEditor({ ctx, item }),
     });
+    focusKey(name, `${item.id}:open`);
     const head = document.createElement('div');
     head.className = 'gantt__head';
     head.append(completeToggle({ ctx, item }), name);

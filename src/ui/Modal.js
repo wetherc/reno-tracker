@@ -3,6 +3,7 @@
 // button, focus restore, and an optional check before a close that the
 // person asked for, so a form with unsaved edits can ask first.
 import { iconButton } from './buttons.js';
+import { currentKey, restoreFocus } from './focusKey.js';
 
 let counter = 0;
 
@@ -77,13 +78,25 @@ export function modal({
     requestClose();
   });
 
+  // A save rebuilds the panel behind the dialog, so the control that
+  // opened it may be gone by the time it closes. Its focus key then finds
+  // the control that took its place.
   /** @type {Element | null} */
   let opener = null;
+  /** @type {string | null} */
+  let openerKey = null;
   el.addEventListener('close', () => {
-    if (opener && 'focus' in opener) {
+    if (opener?.isConnected && 'focus' in opener) {
       /** @type {HTMLElement} */ (opener).focus();
+    } else {
+      // The closed dialog stays in the page until onClose removes it, and
+      // the field that had focus in it still counts as focused.
+      const active = /** @type {HTMLElement | null} */ (document.activeElement);
+      if (active && el.contains(active)) active.blur();
+      restoreFocus(openerKey);
     }
     opener = null;
+    openerKey = null;
     onClose?.();
   });
 
@@ -92,6 +105,7 @@ export function modal({
     body: bodyEl,
     open() {
       opener = document.activeElement;
+      openerKey = currentKey();
       el.showModal();
     },
     close() {

@@ -167,6 +167,14 @@ Every write on the client goes through `ctx.write` in
 `src/app/context.js`, which toasts the failure text or the success
 sentence and then refetches.
 
+Each refetch rebuilds the panel, so the control that had focus is
+replaced. Every control that a rebuild replaces carries a `data-focus`
+key that names its row and role, such as `<item id>:complete`.
+`src/ui/focusKey.js` reads the key of the focused control before the
+rebuild and focuses its match after. A dialog does the same for the
+control that opened it. When the match is gone, as after a delete, the
+panel title takes focus.
+
 The whole project is plain JavaScript with full typechecking. Types live
 in `.ts` files that contain only declarations, and the `.js` files
 reference them through JSDoc comments. `tsconfig.json` sets `allowJs` and

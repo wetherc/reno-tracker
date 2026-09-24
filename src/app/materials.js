@@ -8,6 +8,7 @@ import { formatCents } from '../format/money.js';
 import { bareButton, button } from '../ui/buttons.js';
 import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
+import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { openMaterialEditor } from './materialEditor.js';
 import {
@@ -85,6 +86,7 @@ export function mountMaterials({ ctx, shell }) {
     variant: 'primary',
     onClick: () => openMaterialEditor({ ctx }),
   });
+  focusKey(addButton, 'add-material');
 
   // The sort a person picked outlives the rebuild after each write.
   /** @type {import('../ui/DataTable.js').SortState | null} */
@@ -133,13 +135,16 @@ export function mountMaterials({ ctx, shell }) {
           label: 'Material',
           compare: (a, b) => byText(a.name, b.name),
           cell: (item) =>
-            bareButton({
-              className: 'material-name',
-              children: item.complete
-                ? [icon('check', { label: 'Bought' }), item.name]
-                : [item.name],
-              onClick: () => openMaterialEditor({ ctx, item }),
-            }),
+            focusKey(
+              bareButton({
+                className: 'material-name',
+                children: item.complete
+                  ? [icon('check', { label: 'Bought' }), item.name]
+                  : [item.name],
+                onClick: () => openMaterialEditor({ ctx, item }),
+              }),
+              `${item.id}:open`,
+            ),
         },
         {
           key: 'for',
@@ -226,6 +231,7 @@ export function mountMaterials({ ctx, shell }) {
     box.type = 'checkbox';
     box.className = 'check';
     box.checked = item.complete;
+    focusKey(box, `${item.id}:complete`);
     box.setAttribute(
       'aria-label',
       item.complete ? `Unmark ${item.name}` : `Mark ${item.name} bought`,

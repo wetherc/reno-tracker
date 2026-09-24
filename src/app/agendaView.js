@@ -13,6 +13,7 @@ import { agendaDays, dayFor } from '../schedule/agenda.js';
 import { monthOf, spanDays, todayIso } from '../schedule/dates.js';
 import { bareButton, button } from '../ui/buttons.js';
 import { emptyState } from '../ui/emptyState.js';
+import { focusKey, keepFocus } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { sectionLabel } from '../ui/sectionLabel.js';
 import { completeToggle } from './completeToggle.js';
@@ -49,7 +50,10 @@ export function agendaView({ ctx }) {
     function draw() {
       headings.clear();
       const days = agendaDays(payload.schedule, { hideComplete });
-      root.replaceChildren(toolbar(days.length), ...dayList(days));
+      keepFocus(
+        () => root.replaceChildren(toolbar(days.length), ...dayList(days)),
+        root,
+      );
       if (pending === null) return;
       const day = dayFor(days, pending);
       pending = null;
@@ -72,22 +76,21 @@ export function agendaView({ ctx }) {
       box.type = 'checkbox';
       box.className = 'check';
       box.checked = hideComplete;
+      focusKey(box, 'agenda:hide');
       box.addEventListener('change', () => {
         hideComplete = box.checked;
         draw();
       });
       filter.append(box, 'Hide finished');
-      bar.append(
-        filter,
-        button({
-          label: 'Today',
-          disabled: dayCount === 0,
-          onClick: () => {
-            pending = today;
-            draw();
-          },
-        }),
-      );
+      const jump = button({
+        label: 'Today',
+        disabled: dayCount === 0,
+        onClick: () => {
+          pending = today;
+          draw();
+        },
+      });
+      bar.append(filter, focusKey(jump, 'agenda:today'));
       return bar;
     }
 
@@ -169,6 +172,7 @@ export function agendaView({ ctx }) {
           : [item.title],
         onClick: () => openScheduleEditor({ ctx, item }),
       });
+      focusKey(title, `${item.id}:open`);
       el.append(
         completeToggle({ ctx, item }),
         title,

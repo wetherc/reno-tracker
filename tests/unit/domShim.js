@@ -309,6 +309,22 @@ export class ShimElement {
   querySelector(selector) {
     return this.querySelectorAll(selector)[0] ?? null;
   }
+  /**
+   * @param {string} selector
+   * @returns {ShimElement | null}
+   */
+  closest(selector) {
+    /** @type {ShimElement | null} */
+    let el = this;
+    while (el && !el.matches(selector)) el = el.parentNode;
+    return el;
+  }
+  get isConnected() {
+    /** @type {ShimElement | null} */
+    let el = this;
+    while (el.parentNode) el = el.parentNode;
+    return el === shimDocument.documentElement;
+  }
   /** @param {string} selector */
   matches(selector) {
     const m = /^([a-z]*)?(#[\w-]+)?((?:\.[\w-]+)*)(\[[^\]]+\])?$/i.exec(
@@ -364,6 +380,24 @@ const shimDocument = {
   getElementById(id) {
     return shimDocument.body.querySelector(`#${id}`);
   },
+  /** @param {string} selector */
+  querySelector(selector) {
+    return shimDocument.documentElement.querySelector(selector);
+  },
+  /** @type {ShimElement} keeps the listeners added on the document */
+  events: new ShimElement('document'),
+  /** @param {string} type @param {Function} fn */
+  addEventListener(type, fn) {
+    shimDocument.events.addEventListener(type, fn);
+  },
+  /** @param {string} type @param {Function} fn */
+  removeEventListener(type, fn) {
+    shimDocument.events.removeEventListener(type, fn);
+  },
+  /** @param {{ type: string, [k: string]: unknown }} event */
+  dispatchEvent(event) {
+    return shimDocument.events.dispatchEvent(event);
+  },
 };
 
 /**
@@ -375,6 +409,7 @@ export function installDom() {
   shimDocument.documentElement = new ShimElement('html');
   shimDocument.documentElement.append(shimDocument.body);
   shimDocument.activeElement = null;
+  shimDocument.events = new ShimElement('document');
   Object.defineProperty(globalThis, 'document', {
     value: shimDocument,
     configurable: true,

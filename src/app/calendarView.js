@@ -5,6 +5,7 @@ import { formatDayMonth, formatMonth, formatRange } from '../format/date.js';
 import { MAX_LANES, monthGrid, startingMonth } from '../schedule/calendar.js';
 import { addMonths, monthOf, todayIso, weekday } from '../schedule/dates.js';
 import { bareButton, button, iconButton } from '../ui/buttons.js';
+import { focusKey, keepFocus } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
@@ -31,7 +32,8 @@ export function calendarView({ ctx, onMore }) {
     month ??= startingMonth(payload.schedule, today, payload.project.startDate);
     const root = document.createElement('div');
     root.className = 'cal';
-    const draw = () => root.replaceChildren(...parts(payload, today));
+    const draw = () =>
+      keepFocus(() => root.replaceChildren(...parts(payload, today)), root);
     /** @param {number} step */
     const turn = (step) => {
       month = addMonths(/** @type {string} */ (month), step);
@@ -49,25 +51,34 @@ export function calendarView({ ctx, onMore }) {
       const nav = document.createElement('div');
       nav.className = 'cal__nav';
       nav.append(
-        iconButton({
-          icon: 'chevron-left',
-          label: 'Previous month',
-          onClick: () => turn(-1),
-        }),
+        focusKey(
+          iconButton({
+            icon: 'chevron-left',
+            label: 'Previous month',
+            onClick: () => turn(-1),
+          }),
+          'cal:prev',
+        ),
         title,
-        iconButton({
-          icon: 'chevron-right',
-          label: 'Next month',
-          onClick: () => turn(1),
-        }),
-        button({
-          label: 'Today',
-          disabled: shown === monthOf(today),
-          onClick: () => {
-            month = monthOf(today);
-            draw();
-          },
-        }),
+        focusKey(
+          iconButton({
+            icon: 'chevron-right',
+            label: 'Next month',
+            onClick: () => turn(1),
+          }),
+          'cal:next',
+        ),
+        focusKey(
+          button({
+            label: 'Today',
+            disabled: shown === monthOf(today),
+            onClick: () => {
+              month = monthOf(today);
+              draw();
+            },
+          }),
+          'cal:today',
+        ),
       );
       const head = document.createElement('div');
       head.className = 'cal__weekdays';
@@ -122,6 +133,7 @@ export function calendarView({ ctx, onMore }) {
           : [span('cal-bar__title', item.title)],
         onClick: () => openScheduleEditor({ ctx, item }),
       });
+      focusKey(el, `${item.id}:open`);
       if (item.complete) el.classList.add('cal-bar--complete');
       if (bar.continuesBefore) el.classList.add('cal-bar--before');
       if (bar.continuesAfter) el.classList.add('cal-bar--after');

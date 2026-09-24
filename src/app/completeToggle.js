@@ -2,6 +2,8 @@
 // view that lists items shares it so the label, the disabled state
 // during the write, and the rollback on failure stay the same.
 
+import { focusKey } from '../ui/focusKey.js';
+
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ScheduleItem} ScheduleItem */
 
@@ -14,6 +16,7 @@ export function completeToggle({ ctx, item }) {
   box.type = 'checkbox';
   box.className = 'check';
   box.checked = item.complete;
+  focusKey(box, `${item.id}:complete`);
   box.setAttribute(
     'aria-label',
     item.complete ? `Reopen ${item.title}` : `Mark ${item.title} complete`,

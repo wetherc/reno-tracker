@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
+import { focusKey } from '../../../src/ui/focusKey.js';
 import { modal } from '../../../src/ui/Modal.js';
 import { confirmDialog } from '../../../src/ui/ConfirmDialog.js';
 import { createToaster } from '../../../src/ui/Toast.js';
@@ -37,6 +38,7 @@ test('modal labels itself, opens, and restores focus on close', () => {
   assert.equal(footer.children[0], action);
 
   const opener = document.createElement('button');
+  dom.body.append(...$([opener]));
   opener.focus();
   m.open();
   assert.equal(m.el.open, true);
@@ -44,6 +46,7 @@ test('modal labels itself, opens, and restores focus on close', () => {
   assert.equal(m.el.open, false);
   assert.equal(closed, 1);
   assert.equal(dom.activeElement, opener);
+  opener.remove();
 
   dom.activeElement = null;
   m.open();
@@ -51,6 +54,20 @@ test('modal labels itself, opens, and restores focus on close', () => {
   assert.equal(closed, 2);
   assert.equal(dom.activeElement, null);
   assert.equal(modal({ title: 'Bare' }).el.children.length, 2);
+});
+
+test('modal focuses the control that took the place of a removed opener', () => {
+  const m = modal({ title: 'Edit' });
+  const opener = focusKey(document.createElement('button'), 'row-1:open');
+  dom.body.append(...$([opener]));
+  opener.focus();
+  m.open();
+  const fresh = focusKey(document.createElement('button'), 'row-1:open');
+  opener.replaceWith($(fresh));
+  dom.activeElement = dom.body;
+  m.close();
+  assert.equal(dom.activeElement, fresh);
+  fresh.remove();
 });
 
 test('confirmDialog resolves true on confirm and false otherwise', async () => {

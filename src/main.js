@@ -13,6 +13,7 @@ import { mountTheme } from './app/theme.js';
 import { browserStorage, createPrefs } from './storage/prefs.js';
 import { button } from './ui/buttons.js';
 import { emptyState } from './ui/emptyState.js';
+import { keepFocus, trackFocus } from './ui/focusKey.js';
 import { createToaster } from './ui/Toast.js';
 
 /** @param {string} id */
@@ -22,6 +23,7 @@ function byId(id) {
   return el;
 }
 
+trackFocus(document);
 const storage = browserStorage();
 const prefs = createPrefs(storage);
 const toaster = createToaster(byId('toasts'));
@@ -79,8 +81,11 @@ function render() {
   costs.show();
 }
 
-shell.onSection(render);
-ctx.on('payload', render);
+// Each write rebuilds the panel, so focus goes back to the control that
+// had it.
+const redraw = () => keepFocus(render, shell.el);
+shell.onSection(redraw);
+ctx.on('payload', redraw);
 render();
 
 ctx

@@ -7,6 +7,7 @@ import { formatDate, formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { bareButton } from '../ui/buttons.js';
 import { dataTable } from '../ui/DataTable.js';
+import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { openMaterialEditor } from './materialEditor.js';
 import { openScheduleEditor } from './scheduleEditor.js';
@@ -101,11 +102,14 @@ export function lineItemTable({ ctx, payload, events, sort, onSort }) {
         label: 'Item',
         compare: (a, b) => byText(a.title, b.title),
         cell: (event) =>
-          bareButton({
-            className: 'cost-item',
-            label: event.title,
-            onClick: () => open(event),
-          }),
+          focusKey(
+            bareButton({
+              className: 'cost-item',
+              label: event.title,
+              onClick: () => open(event),
+            }),
+            `${event.id}:open`,
+          ),
       },
       {
         key: 'kind',

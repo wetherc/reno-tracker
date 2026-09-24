@@ -1,5 +1,6 @@
 // The view switcher for the schedule section. One segmented switch picks
 // how the same items are drawn, and the choice is kept between visits.
+import { focusKey } from '../ui/focusKey.js';
 import { segSwitch } from '../ui/SegSwitch.js';
 
 /** @typedef {'table' | 'calendar' | 'gantt' | 'agenda'} ViewId */
@@ -38,6 +39,7 @@ export function mountViews({ prefs, onChange }) {
       onChange(view);
     },
   });
+  VIEWS.forEach((v, i) => focusKey(sw.el.children[i], `view:${v.id}`));
   return {
     el: sw.el,
     get view() {

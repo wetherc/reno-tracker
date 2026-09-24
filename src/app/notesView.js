@@ -6,6 +6,7 @@ import { formatDayLong, formatTime } from '../format/date.js';
 import { notesByDay } from '../notes/byDay.js';
 import { bareButton, button } from '../ui/buttons.js';
 import { emptyState } from '../ui/emptyState.js';
+import { focusKey } from '../ui/focusKey.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -74,6 +75,7 @@ export function mountNotes({ ctx, shell }) {
       children: [item.title],
       onClick: () => openScheduleEditor({ ctx, item, tab: 'notes' }),
     });
+    focusKey(open, `${note.id}:item`);
     meta.append(open);
     if (item.responsibleParty) {
       const party = document.createElement('span');

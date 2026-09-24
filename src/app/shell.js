@@ -1,6 +1,7 @@
 // The section nav in the sidebar and the one panel in the main column.
 // Feature modules fill the panel for the current section.
 import { bareButton } from '../ui/buttons.js';
+import { focusKey, HOME } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 
 /** @typedef {'schedule' | 'notes' | 'materials' | 'costs'} SectionId */
@@ -51,6 +52,9 @@ export function mountShell({ sidebar, main, prefs }) {
   header.className = 'panel__header';
   const title = document.createElement('h1');
   title.className = 'panel__title';
+  // The title takes focus when a rebuild removes the control that had it.
+  title.tabIndex = -1;
+  focusKey(title, HOME);
   const tools = document.createElement('div');
   tools.className = 'panel__tools';
   header.append(title, tools);
@@ -75,6 +79,7 @@ export function mountShell({ sidebar, main, prefs }) {
 
   setSection(current);
   return {
+    el: panel,
     title,
     tools,
     body,

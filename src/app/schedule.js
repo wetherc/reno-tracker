@@ -2,6 +2,7 @@
 // Add button. The body is drawn by whichever view is on.
 import { button } from '../ui/buttons.js';
 import { emptyState } from '../ui/emptyState.js';
+import { focusKey, keepFocus } from '../ui/focusKey.js';
 import { agendaView } from './agendaView.js';
 import { calendarView } from './calendarView.js';
 import { ganttView } from './ganttView.js';
@@ -32,7 +33,11 @@ export function mountSchedule({ ctx, shell }) {
     variant: 'primary',
     onClick: () => openScheduleEditor({ ctx }),
   });
-  const views = mountViews({ prefs: ctx.prefs, onChange: () => show() });
+  focusKey(addButton, 'add-item');
+  const views = mountViews({
+    prefs: ctx.prefs,
+    onChange: () => keepFocus(show, shell.el),
+  });
 
   /** @type {Record<ViewId, View>} */
   const renderers = {

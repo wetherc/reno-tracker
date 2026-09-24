@@ -5,6 +5,7 @@ import { formatCents } from '../format/money.js';
 import { spanDays, todayIso } from '../schedule/dates.js';
 import { bareButton } from '../ui/buttons.js';
 import { dataTable, tableScroll } from '../ui/DataTable.js';
+import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { completeToggle } from './completeToggle.js';
 import { lateBadge } from './lateBadge.js';
@@ -213,13 +214,16 @@ export function scheduleTable({ ctx }) {
     const el = document.createElement('span');
     el.className = 'schedule-title-cell';
     el.append(
-      bareButton({
-        className: 'schedule-title',
-        children: item.complete
-          ? [icon('check', { label: 'Complete' }), item.title]
-          : [item.title],
-        onClick: () => openScheduleEditor({ ctx, item }),
-      }),
+      focusKey(
+        bareButton({
+          className: 'schedule-title',
+          children: item.complete
+            ? [icon('check', { label: 'Complete' }), item.title]
+            : [item.title],
+          onClick: () => openScheduleEditor({ ctx, item }),
+        }),
+        `${item.id}:open`,
+      ),
       ...lateBadge(item, today),
     );
     return el;
@@ -230,12 +234,13 @@ export function scheduleTable({ ctx }) {
 
   /** @param {ScheduleItem} item @param {number} count */
   function notesCell(item, count) {
-    return bareButton({
+    const el = bareButton({
       className: count === 0 ? 'u-num u-muted' : 'u-num',
       label: String(count),
       ariaLabel: `${count} notes on ${item.title}`,
       onClick: () => openScheduleEditor({ ctx, item, tab: 'notes' }),
     });
+    return focusKey(el, `${item.id}:notes`);
   }
 
   return {

@@ -7,6 +7,7 @@ import { validateScheduleItem } from '../entities/scheduleItem.js';
 import { spanDays, todayIso } from '../schedule/dates.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
+import { keepFocus } from '../ui/focusKey.js';
 import {
   dateField,
   form,
@@ -240,7 +241,13 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     if (tabStrip?.current === 'changes') changes?.load();
     const fresh = payload.schedule.find((s) => s.id === item.id);
     if (fresh)
-      completeBox.firstChild?.replaceWith(completeToggle({ ctx, item: fresh }));
+      keepFocus(
+        () =>
+          completeBox.firstChild?.replaceWith(
+            completeToggle({ ctx, item: fresh }),
+          ),
+        dialog.el,
+      );
   });
 
   // The length under the end date follows both dates as they are typed.
