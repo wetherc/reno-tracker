@@ -8,6 +8,8 @@ import {
 } from '../../../src/server/router.js';
 import { badRequest } from '../../../src/server/errors.js';
 
+const JSON_TYPE = { 'content-type': 'application/json' };
+
 /**
  * Starts a server for the router on port 0 and returns a fetch helper.
  * @param {Router} router
@@ -56,11 +58,15 @@ test('handle writes JSON with 200, 201, and 204 by method and result', async () 
     );
     assert.deepEqual(await res.json(), { id: '7' });
 
-    res = await call('/things', { method: 'POST', body: '{"a":1}' });
+    res = await call('/things', {
+      method: 'POST',
+      headers: JSON_TYPE,
+      body: '{"a":1}',
+    });
     assert.equal(res.status, 201);
     assert.deepEqual(await res.json(), { got: { a: 1 } });
 
-    res = await call('/things/1', { method: 'PATCH' });
+    res = await call('/things/1', { method: 'PATCH', headers: JSON_TYPE });
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), {});
 
@@ -72,7 +78,7 @@ test('handle writes JSON with 200, 201, and 204 by method and result', async () 
   }
 });
 
-test('handle maps errors to 400, 404, 405, 413, and 500', async () => {
+test('handle maps errors to 400, 404, 405, 413, 415, and 500', async () => {
   /** @type {unknown[]} */
   const logged = [];
   const router = new Router()
@@ -80,13 +86,18 @@ test('handle maps errors to 400, 404, 405, 413, and 500', async () => {
     .get('/bad', () => {
       throw badRequest('name cannot be blank', 'name');
     })
+    .get('/bad/:id', () => 1)
     .get('/boom', () => {
       throw new Error('secret detail');
     });
   router.onError = (e) => logged.push(e);
   const { call, close } = await serve(router);
   try {
-    let res = await call('/ok', { method: 'POST', body: '{not json' });
+    let res = await call('/ok', {
+      method: 'POST',
+      headers: JSON_TYPE,
+      body: '{not json',
+    });
     assert.equal(res.status, 400);
     assert.deepEqual(await res.json(), { error: 'Body is not valid JSON' });
 
@@ -106,8 +117,24 @@ test('handle maps errors to 400, 404, 405, 413, and 500', async () => {
     assert.equal(res.headers.get('allow'), 'POST');
     assert.deepEqual(await res.json(), { error: '/ok does not accept GET' });
 
-    res = await call('/ok', { method: 'POST', body: 'x'.repeat(1_000_001) });
+    res = await call('/ok', {
+      method: 'POST',
+      headers: JSON_TYPE,
+      body: 'x'.repeat(1_000_001),
+    });
     assert.equal(res.status, 413);
+
+    res = await call('/ok', { method: 'POST', body: '{}' });
+    assert.equal(res.status, 415);
+    assert.deepEqual(await res.json(), {
+      error: 'The body must be sent as application/json',
+    });
+
+    res = await call('/bad/%E0');
+    assert.equal(res.status, 400);
+    assert.deepEqual(await res.json(), {
+      error: 'The request path has a bad percent-encoding',
+    });
 
     res = await call('/boom');
     assert.equal(res.status, 500);
@@ -127,4 +154,25 @@ test('requestTarget reads the method and path and fills a bare request', () => {
     path: '/api/x',
   });
   assert.deepEqual(requestTarget({}), { method: 'GET', path: '/' });
+});
+
+test('requestTarget answers 400 to a target that is not a URL', () => {
+  assert.throws(
+    () => requestTarget({ url: 'http://[/' }),
+    (error) => /** @type {any} */ (error).status === 400,
+  );
+});
+
+test('handle answers 400 to a target that is not a URL', async () => {
+  /** @type {any} */
+  let sent = null;
+  const res = /** @type {any} */ ({
+    writeHead: (/** @type {number} */ status) => (sent = { status }),
+    end: (/** @type {string} */ text) => (sent.body = JSON.parse(text)),
+  });
+  await new Router().handle(/** @type {any} */ ({ url: 'http://[/' }), res);
+  assert.deepEqual(sent, {
+    status: 400,
+    body: { error: 'The request path is not a URL' },
+  });
 });

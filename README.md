@@ -48,6 +48,13 @@ file under `src/server` changes, and `pnpm start` runs it once. `PORT`
 changes the port. The server binds to `127.0.0.1` only, because the app has
 no login.
 
+The bind does not stop a hostile web page. The page can point its own
+name at `127.0.0.1` and then read every answer. The server therefore
+answers 421 to a `Host` header other than `127.0.0.1:<port>` or
+`localhost:<port>`, and 403 to a foreign `Origin` header. A POST or PATCH
+without `Content-Type: application/json` gets 415, because a cross-site
+form can send only other types.
+
 | Script               | Runs                                                    |
 | -------------------- | ------------------------------------------------------- |
 | `pnpm test`          | the unit and server tests                               |

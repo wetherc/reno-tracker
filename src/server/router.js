@@ -2,7 +2,8 @@
 // `/api/schedule/:id` binds `id`. Handlers receive the parsed params and
 // body and return the response body; the router writes JSON. A handler
 // that returns undefined sends 204.
-import { HttpError } from './errors.js';
+import { badRequest, HttpError } from './errors.js';
+import { isJsonType } from './guard.js';
 
 /** @typedef {import('node:http').IncomingMessage} IncomingMessage */
 /** @typedef {import('node:http').ServerResponse} ServerResponse */
@@ -17,15 +18,19 @@ const MAX_BODY_BYTES = 1_000_000;
 
 /**
  * The method and path of a request. Node fills both on a real request;
- * the defaults keep a bare object usable in tests.
+ * the defaults keep a bare object usable in tests. A target that is not
+ * a URL, such as `http://[/`, throws a 400.
  * @param {Pick<IncomingMessage, 'method' | 'url'>} req
  * @returns {{ method: string, path: string }}
  */
 export function requestTarget(req) {
-  return {
-    method: req.method ?? 'GET',
-    path: new URL(req.url ?? '/', 'http://localhost').pathname,
-  };
+  let url;
+  try {
+    url = new URL(req.url ?? '/', 'http://localhost');
+  } catch {
+    throw badRequest('The request path is not a URL');
+  }
+  return { method: req.method ?? 'GET', path: url.pathname };
 }
 
 /**
@@ -99,6 +104,34 @@ export function sendJson(res, status, body) {
   res.end(text);
 }
 
+/**
+ * Writes an HttpError as its JSON body. Any other error goes to onError
+ * and the client gets a 500 that keeps the message out of the body.
+ * @param {ServerResponse} res
+ * @param {unknown} error
+ * @param {(error: unknown) => void} onError
+ */
+export function sendError(res, error, onError) {
+  if (error instanceof HttpError) {
+    sendJson(res, error.status, error.toBody());
+  } else {
+    onError(error);
+    sendJson(res, 500, { error: 'Something went wrong on the server' });
+  }
+}
+
+/**
+ * @param {string} text one path segment
+ * @returns {string}
+ */
+function decodeParam(text) {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    throw badRequest('The request path has a bad percent-encoding');
+  }
+}
+
 export class Router {
   constructor() {
     /** @type {Route[]} */
@@ -136,7 +169,8 @@ export class Router {
 
   /**
    * Finds the route for a request. When the path matches but the method
-   * does not, `allow` lists the methods that would.
+   * does not, `allow` lists the methods that would. A param with a bad
+   * percent-encoding throws a 400.
    * @param {string} method
    * @param {string} path
    * @returns {{ route: Route, params: Record<string, string> } | { allow: string[] } | null}
@@ -154,7 +188,7 @@ export class Router {
       /** @type {Record<string, string>} */
       const params = {};
       route.keys.forEach((key, i) => {
-        params[key] = decodeURIComponent(m[i + 1]);
+        params[key] = decodeParam(m[i + 1]);
       });
       return { route, params };
     }
@@ -167,8 +201,8 @@ export class Router {
    * @param {ServerResponse} res
    */
   async handle(req, res) {
-    const { method, path } = requestTarget(req);
     try {
+      const { method, path } = requestTarget(req);
       const found = this.match(method, path);
       if (found === null) {
         throw new HttpError(404, `No route for ${method} ${path}`);
@@ -177,8 +211,11 @@ export class Router {
         res.setHeader('Allow', found.allow.join(', '));
         throw new HttpError(405, `${path} does not accept ${method}`);
       }
-      const body =
-        method === 'GET' || method === 'DELETE' ? {} : await readJsonBody(req);
+      const hasBody = method !== 'GET' && method !== 'DELETE';
+      if (hasBody && !isJsonType(req.headers['content-type'])) {
+        throw new HttpError(415, 'The body must be sent as application/json');
+      }
+      const body = hasBody ? await readJsonBody(req) : {};
       const result = await found.route.handler({
         params: found.params,
         body,
@@ -190,12 +227,7 @@ export class Router {
         sendJson(res, method === 'POST' ? 201 : 200, result);
       }
     } catch (error) {
-      if (error instanceof HttpError) {
-        sendJson(res, error.status, error.toBody());
-      } else {
-        this.onError(error);
-        sendJson(res, 500, { error: 'Something went wrong on the server' });
-      }
+      sendError(res, error, this.onError);
     }
   }
 }
