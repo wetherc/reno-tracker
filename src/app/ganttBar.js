@@ -302,19 +302,39 @@ function drawPieces(el, paint, start, end, dayWidth) {
  * @param {number} chartWidth
  */
 export function fitLabel(el, chartWidth) {
-  const title = /** @type {HTMLElement} */ (
-    el.querySelector('.gantt-bar__title')
-  );
-  el.classList.remove('gantt-bar--label-after', 'gantt-bar--label-before');
-  const barLeft = parseFloat(el.style.left);
-  const place = labelPlace({
-    fits: title.scrollWidth <= title.clientWidth,
-    labelWidth: title.scrollWidth + LABEL_GAP,
-    barLeft,
-    barRight: barLeft + parseFloat(el.style.width),
-    chartWidth,
+  fitLabels([el], chartWidth);
+}
+
+/**
+ * fitLabel for many bars at once. It clears every class first, then reads
+ * every width, then sets every class, so the browser lays out the page
+ * once rather than once per bar.
+ * @param {Iterable<HTMLElement>} bars
+ * @param {number} chartWidth
+ */
+export function fitLabels(bars, chartWidth) {
+  const all = [...bars];
+  for (const el of all) {
+    el.classList.remove('gantt-bar--label-after', 'gantt-bar--label-before');
+  }
+  const places = all.map((el) => {
+    const title = /** @type {HTMLElement} */ (
+      el.querySelector('.gantt-bar__title')
+    );
+    const scroll = title.scrollWidth;
+    const barLeft = parseFloat(el.style.left);
+    return labelPlace({
+      fits: scroll <= title.clientWidth,
+      labelWidth: scroll + LABEL_GAP,
+      barLeft,
+      barRight: barLeft + parseFloat(el.style.width),
+      chartWidth,
+    });
   });
-  if (place !== 'inside') el.classList.add(`gantt-bar--label-${place}`);
+  all.forEach((el, i) => {
+    if (places[i] !== 'inside')
+      el.classList.add(`gantt-bar--label-${places[i]}`);
+  });
 }
 
 /** @param {string} className @param {string} value */

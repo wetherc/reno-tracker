@@ -4,6 +4,7 @@ import { installDom, press } from '../domShim.js';
 import {
   daysMoved,
   fitLabel,
+  fitLabels,
   KEY_DELAY,
   moveMessage,
 } from '../../../src/app/ganttBar.js';
@@ -439,4 +440,32 @@ test('daysMoved counts the days of the edge that moved', () => {
     1,
   );
   assert.equal(daysMoved(item, {}, 'both'), 0);
+});
+
+test('fitLabels reads every width between one pass of removes and one of adds', () => {
+  /** @type {string[]} */
+  const log = [];
+  /** @param {number} n @param {number} scroll */
+  const fake = (n, scroll) => ({
+    style: { left: '0px', width: '50px' },
+    classList: {
+      remove: () => log.push(`remove ${n}`),
+      add: (/** @type {string} */ c) => log.push(`add ${n} ${c}`),
+    },
+    querySelector: () => ({
+      get scrollWidth() {
+        log.push(`read ${n}`);
+        return scroll;
+      },
+      clientWidth: 40,
+    }),
+  });
+  fitLabels([$(fake(0, 90)), $(fake(1, 10))], 400);
+  assert.deepEqual(log, [
+    'remove 0',
+    'remove 1',
+    'read 0',
+    'read 1',
+    'add 0 gantt-bar--label-after',
+  ]);
 });
