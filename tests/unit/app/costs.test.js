@@ -68,6 +68,8 @@ test('chartRange does not stretch the axis to today when the last cost is in the
 test('summaryTiles names the six numbers and flips the headroom tile when over', () => {
   const done = {
     percentWork: 40,
+    workdaysDone: 2,
+    workdaysAll: 5,
     percentMaterials: 100,
     materialsBought: 2,
     materialsAll: 2,
@@ -102,6 +104,7 @@ test('summaryTiles names the six numbers and flips the headroom tile when over',
     ],
   );
   assert.equal(under[3].note, 'budget minus $120.00 projected');
+  assert.equal(under[4].note, '2 of 5 workdays done');
   assert.equal(under[5].note, '2 of 2 bought, 1 not yet invoiced');
   assert.equal(
     materialsNote({ ...done, materialsUninvoiced: 0 }),
@@ -221,6 +224,7 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
       }),
       itemOf('b', {
         title: 'Tile',
+        startDate: '2026-10-05',
         endDate: '2026-11-20',
         estimatedCents: 250000,
       }),
@@ -246,8 +250,8 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
     tiles[3].querySelector('.cost-tile__value').textContent,
     '$46,360.00',
   );
-  // Demo runs 3 of the 54 schedule days; Grout is not bought.
-  assert.equal(tiles[4].querySelector('.cost-tile__value').textContent, '6%');
+  // Demo runs 2 of the 37 workdays; Grout is not bought.
+  assert.equal(tiles[4].querySelector('.cost-tile__value').textContent, '5%');
   assert.equal(tiles[5].querySelector('.cost-tile__value').textContent, '0%');
 
   const cards = $(root.querySelectorAll('.cost-card'));

@@ -93,7 +93,7 @@ export function summaryTiles(summary, progress) {
     {
       label: 'Work done',
       value: `${progress.percentWork}%`,
-      note: 'of schedule days',
+      note: `${progress.workdaysDone} of ${progress.workdaysAll} workdays done`,
     },
     {
       label: 'Materials bought',

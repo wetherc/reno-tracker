@@ -82,9 +82,10 @@ test('the costs panel sums the project and draws both charts', async ({
   await expect(tiles.nth(2)).toContainText('$2,400.00');
   await expect(tiles.nth(3)).toContainText('Budget headroom');
   await expect(tiles.nth(3)).toContainText('$16,400.00');
-  // Demo spans 3 of the 20 schedule days; no material is bought.
+  // Demo spans 3 of the 17 workdays; no material is bought.
   await expect(tiles.nth(4)).toContainText('Work done');
-  await expect(tiles.nth(4)).toContainText('15%');
+  await expect(tiles.nth(4)).toContainText('18%');
+  await expect(tiles.nth(4)).toContainText('3 of 17 workdays done');
   await expect(tiles.nth(5)).toContainText('Materials bought');
   await expect(tiles.nth(5)).toContainText('0%');
   await expect(tiles.nth(5)).toContainText('0 of 2 bought');
