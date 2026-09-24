@@ -23,6 +23,9 @@ test('parseMoney accepts typed money and rejects junk', () => {
   assert.equal(parseMoney('-'), null);
   assert.equal(parseMoney('12.345'), null);
   assert.equal(parseMoney('abc'), null);
+  assert.equal(parseMoney('1,000,000,000,000'), 100_000_000_000_000);
+  assert.equal(parseMoney('100,000,000,000,000'), null);
+  assert.equal(parseMoney('9'.repeat(400)), null);
 });
 
 test('centsToInput', () => {

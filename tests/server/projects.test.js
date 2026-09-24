@@ -108,3 +108,57 @@ test('unknown api paths answer 404 JSON and static paths fall through', async ()
     await app.close();
   }
 });
+
+test('money above the limit gets 400 on every route, and the project stays readable', async () => {
+  const app = await startApp();
+  try {
+    const project = await app.project();
+    const item = await app.item(project.id, 'Demo');
+    const material = await app.api(
+      'POST',
+      `/api/projects/${project.id}/materials`,
+      { name: 'Tile' },
+    );
+    const huge = 10_000_000_000_000_000;
+    for (const [method, path, body] of [
+      [
+        'POST',
+        '/api/projects',
+        { name: 'X', startDate: '2026-01-01', budgetCents: huge },
+      ],
+      ['PATCH', `/api/projects/${project.id}`, { budgetCents: huge }],
+      [
+        'POST',
+        `/api/projects/${project.id}/schedule`,
+        {
+          title: 'X',
+          startDate: '2026-01-01',
+          endDate: '2026-01-01',
+          estimatedCents: huge,
+        },
+      ],
+      ['PATCH', `/api/schedule/${item.id}`, { actualCents: huge }],
+      [
+        'POST',
+        `/api/projects/${project.id}/materials`,
+        { name: 'X', allowanceCents: huge },
+      ],
+      ['PATCH', `/api/materials/${material.body.id}`, { estimatedCents: huge }],
+    ]) {
+      const res = await app.api(
+        /** @type {string} */ (method),
+        /** @type {string} */ (path),
+        body,
+      );
+      assert.equal(res.status, 400, `${method} ${path}`);
+      assert.match(res.body.error, /must be at most 100000000000 cents/);
+    }
+    assert.equal((await app.api('GET', '/api/projects')).status, 200);
+    assert.equal(
+      (await app.api('GET', `/api/projects/${project.id}`)).status,
+      200,
+    );
+  } finally {
+    await app.close();
+  }
+});

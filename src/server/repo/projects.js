@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { withTransaction } from '../db/open.js';
 import { notFound } from '../errors.js';
 import {
   now,
@@ -43,12 +44,14 @@ export function getProject(db, id) {
  * @returns {Project}
  */
 export function createProject(db, input) {
-  const id = randomUUID();
-  db.prepare(
-    `INSERT INTO projects (id, name, budgetCents, startDate, createdAt)
-     VALUES (?, ?, ?, ?, ?)`,
-  ).run(id, input.name, input.budgetCents, input.startDate, now());
-  return getProject(db, id);
+  return withTransaction(db, () => {
+    const id = randomUUID();
+    db.prepare(
+      `INSERT INTO projects (id, name, budgetCents, startDate, createdAt)
+       VALUES (?, ?, ?, ?, ?)`,
+    ).run(id, input.name, input.budgetCents, input.startDate, now());
+    return getProject(db, id);
+  });
 }
 
 /**
@@ -58,12 +61,17 @@ export function createProject(db, input) {
  * @returns {Project}
  */
 export function patchProject(db, id, patch) {
-  getProject(db, id);
-  const { clause, values } = setClause(patch);
-  if (clause) {
-    db.prepare(`UPDATE projects SET ${clause} WHERE id = ?`).run(...values, id);
-  }
-  return getProject(db, id);
+  return withTransaction(db, () => {
+    getProject(db, id);
+    const { clause, values } = setClause(patch);
+    if (clause) {
+      db.prepare(`UPDATE projects SET ${clause} WHERE id = ?`).run(
+        ...values,
+        id,
+      );
+    }
+    return getProject(db, id);
+  });
 }
 
 /**

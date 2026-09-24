@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { withTransaction } from '../db/open.js';
 import { badRequest, notFound } from '../errors.js';
 import { getProject } from './projects.js';
 import { getScheduleItem, reorderRows } from './schedule.js';
@@ -43,27 +44,29 @@ function checkLink(db, projectId, scheduleItemId) {
  * @returns {MaterialItem}
  */
 export function createMaterialItem(db, projectId, input) {
-  getProject(db, projectId);
-  checkLink(db, projectId, input.scheduleItemId);
-  const id = randomUUID();
-  db.prepare(
-    `INSERT INTO material_items
-       (id, projectId, scheduleItemId, name, allowanceCents, estimatedCents,
-        actualCents, expectedDate, sortOrder)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?,
-       (SELECT coalesce(max(sortOrder) + 1, 0) FROM material_items WHERE projectId = ?))`,
-  ).run(
-    id,
-    projectId,
-    input.scheduleItemId,
-    input.name,
-    input.allowanceCents,
-    input.estimatedCents,
-    input.actualCents,
-    input.expectedDate,
-    projectId,
-  );
-  return getMaterialItem(db, id);
+  return withTransaction(db, () => {
+    getProject(db, projectId);
+    checkLink(db, projectId, input.scheduleItemId);
+    const id = randomUUID();
+    db.prepare(
+      `INSERT INTO material_items
+         (id, projectId, scheduleItemId, name, allowanceCents, estimatedCents,
+          actualCents, expectedDate, sortOrder)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?,
+         (SELECT coalesce(max(sortOrder) + 1, 0) FROM material_items WHERE projectId = ?))`,
+    ).run(
+      id,
+      projectId,
+      input.scheduleItemId,
+      input.name,
+      input.allowanceCents,
+      input.estimatedCents,
+      input.actualCents,
+      input.expectedDate,
+      projectId,
+    );
+    return getMaterialItem(db, id);
+  });
 }
 
 /**
@@ -73,16 +76,18 @@ export function createMaterialItem(db, projectId, input) {
  * @returns {MaterialItem}
  */
 export function patchMaterialItem(db, id, patch) {
-  const before = getMaterialItem(db, id);
-  checkLink(db, before.projectId, patch.scheduleItemId);
-  const { clause, values } = setClause(patch);
-  if (clause) {
-    db.prepare(`UPDATE material_items SET ${clause} WHERE id = ?`).run(
-      ...values,
-      id,
-    );
-  }
-  return getMaterialItem(db, id);
+  return withTransaction(db, () => {
+    const before = getMaterialItem(db, id);
+    checkLink(db, before.projectId, patch.scheduleItemId);
+    const { clause, values } = setClause(patch);
+    if (clause) {
+      db.prepare(`UPDATE material_items SET ${clause} WHERE id = ?`).run(
+        ...values,
+        id,
+      );
+    }
+    return getMaterialItem(db, id);
+  });
 }
 
 /**

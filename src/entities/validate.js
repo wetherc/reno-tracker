@@ -26,8 +26,15 @@ export function checkText(field, value, { min = 0, max = 2000 } = {}) {
   return null;
 }
 
+// The largest money value one field takes: one billion dollars. A sum of
+// 90,000 such values stays below Number.MAX_SAFE_INTEGER, so every total
+// stays exact. node:sqlite throws a RangeError when it reads an integer
+// above that limit, so a larger stored value would make its project
+// unreadable.
+export const MAX_CENTS = 100_000_000_000;
+
 /**
- * Whole cents, zero or more.
+ * Whole cents, from zero to MAX_CENTS.
  * @param {string} field
  * @param {unknown} value
  * @returns {string | null}
@@ -35,6 +42,9 @@ export function checkText(field, value, { min = 0, max = 2000 } = {}) {
 export function checkCents(field, value) {
   if (!Number.isInteger(value) || /** @type {number} */ (value) < 0) {
     return `${field} must be whole cents, zero or more, got ${show(value)}`;
+  }
+  if (/** @type {number} */ (value) > MAX_CENTS) {
+    return `${field} must be at most ${MAX_CENTS} cents, got ${show(value)}`;
   }
   return null;
 }

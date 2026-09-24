@@ -85,6 +85,12 @@ test('projects: list, create, read payload, patch, delete, reorder', async () =>
     /whole cents/,
     'budgetCents',
   );
+  await fails(
+    api.patchProject(p.id, { budgetCents: 10_000_000_000_000_000 }),
+    400,
+    /must be at most 100000000000 cents/,
+    'budgetCents',
+  );
   await fails(api.patchProject('nope', {}), 404, /No project/);
 
   const a = await item(p.id, 'Demo');

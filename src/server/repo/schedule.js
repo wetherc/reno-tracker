@@ -21,34 +21,37 @@ export function getScheduleItem(db, id) {
 }
 
 /**
- * New items go to the end of the list.
+ * New items go to the end of the list. The insert and the read back run
+ * in one transaction, so a row that fails to read is not kept.
  * @param {Database} db
  * @param {string} projectId
  * @param {Required<ScheduleItemInput>} input
  * @returns {ScheduleItem}
  */
 export function createScheduleItem(db, projectId, input) {
-  getProject(db, projectId);
-  const id = randomUUID();
-  db.prepare(
-    `INSERT INTO schedule_items
-       (id, projectId, title, description, startDate, endDate,
-        responsibleParty, estimatedCents, actualCents, sortOrder)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
-       (SELECT coalesce(max(sortOrder) + 1, 0) FROM schedule_items WHERE projectId = ?))`,
-  ).run(
-    id,
-    projectId,
-    input.title,
-    input.description,
-    input.startDate,
-    input.endDate,
-    input.responsibleParty,
-    input.estimatedCents,
-    input.actualCents,
-    projectId,
-  );
-  return getScheduleItem(db, id);
+  return withTransaction(db, () => {
+    getProject(db, projectId);
+    const id = randomUUID();
+    db.prepare(
+      `INSERT INTO schedule_items
+         (id, projectId, title, description, startDate, endDate,
+          responsibleParty, estimatedCents, actualCents, sortOrder)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
+         (SELECT coalesce(max(sortOrder) + 1, 0) FROM schedule_items WHERE projectId = ?))`,
+    ).run(
+      id,
+      projectId,
+      input.title,
+      input.description,
+      input.startDate,
+      input.endDate,
+      input.responsibleParty,
+      input.estimatedCents,
+      input.actualCents,
+      projectId,
+    );
+    return getScheduleItem(db, id);
+  });
 }
 
 /**

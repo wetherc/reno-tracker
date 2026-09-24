@@ -24,14 +24,16 @@ export function openDatabase(path = DEFAULT_DB_PATH) {
 
 /**
  * Runs fn inside one transaction. A thrown error rolls back and rethrows.
- * Nested calls are not supported because SQLite has one transaction per
- * connection; the caller holds the outermost one.
+ * SQLite has one transaction per connection, so a call inside an open
+ * transaction runs fn in that transaction, and the outermost call
+ * commits or rolls back.
  * @template T
  * @param {Database} db
  * @param {() => T} fn
  * @returns {T}
  */
 export function withTransaction(db, fn) {
+  if (db.isTransaction) return fn();
   db.exec('BEGIN');
   try {
     const result = fn();

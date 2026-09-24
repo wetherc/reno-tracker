@@ -6,6 +6,7 @@ import {
   checkDate,
   checkText,
   firstError,
+  MAX_CENTS,
   nullable,
 } from '../../../src/entities/validate.js';
 
@@ -23,7 +24,7 @@ test('checkText reports type, blank, and length', () => {
   );
 });
 
-test('checkCents wants a whole number of zero or more', () => {
+test('checkCents wants a whole number from zero to MAX_CENTS', () => {
   assert.equal(checkCents('budgetCents', 0), null);
   assert.equal(checkCents('budgetCents', 1250), null);
   assert.equal(
@@ -33,6 +34,15 @@ test('checkCents wants a whole number of zero or more', () => {
   assert.equal(
     checkCents('budgetCents', -1),
     'budgetCents must be whole cents, zero or more, got -1',
+  );
+  assert.equal(checkCents('budgetCents', MAX_CENTS), null);
+  assert.equal(
+    checkCents('budgetCents', MAX_CENTS + 1),
+    'budgetCents must be at most 100000000000 cents, got 100000000001',
+  );
+  assert.equal(
+    checkCents('budgetCents', 2 ** 53 + 2),
+    'budgetCents must be at most 100000000000 cents, got 9007199254740994',
   );
   assert.equal(
     checkCents('budgetCents', '100'),

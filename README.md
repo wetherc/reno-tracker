@@ -157,7 +157,9 @@ one transaction, and writes the new version. Every child table declares
 `ON DELETE CASCADE`, so deleting a project removes its rows.
 
 The database stores money as integer cents and dates as `YYYY-MM-DD`
-strings. Date math runs on UTC midnight, so daylight saving cannot shift a
+strings. One money field takes at most one billion dollars, because
+`node:sqlite` throws on a read of an integer above 2^53 and a sum of
+many fields has to stay exact. Date math runs on UTC midnight, so daylight saving cannot shift a
 day. The server makes every id as a UUID.
 
 `GET /api/projects/:id/export` returns the project as one JSON document:

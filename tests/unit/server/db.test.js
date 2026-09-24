@@ -11,6 +11,7 @@ import {
   SCHEMA_PATH,
 } from '../../../src/server/db/migrate.js';
 import { openDatabase, withTransaction } from '../../../src/server/db/open.js';
+import { createProject } from '../../../src/server/repo/projects.js';
 
 const TABLES = [
   'meta',
@@ -129,9 +130,46 @@ test('withTransaction commits on success and rolls back on error', () => {
   db.close();
 });
 
+test('withTransaction inside a transaction joins it, so an inner error rolls back both', () => {
+  const db = openDatabase(':memory:');
+  const insert = db.prepare(
+    `INSERT INTO projects (id, name, startDate, createdAt) VALUES (?, 'p', '2026-01-01', 'now')`,
+  );
+  const count = () => db.prepare('SELECT count(*) n FROM projects').get()?.n;
+  assert.throws(
+    () =>
+      withTransaction(db, () => {
+        insert.run('a');
+        withTransaction(db, () => insert.run('b'));
+        withTransaction(db, () => {
+          throw new Error('stop');
+        });
+      }),
+    /stop/,
+  );
+  assert.equal(count(), 0);
+  assert.equal(db.isTransaction, false);
+  db.close();
+});
+
 test('schemaVersion is 0 when the meta table has no version row', () => {
   const db = new DatabaseSync(':memory:');
   db.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)');
   assert.equal(schemaVersion(db), 0);
+  db.close();
+});
+
+test('a repo write whose read back throws keeps no row', () => {
+  const db = openDatabase(':memory:');
+  assert.throws(
+    () =>
+      createProject(db, {
+        name: 'Big',
+        budgetCents: 2 ** 60,
+        startDate: '2026-01-01',
+      }),
+    RangeError,
+  );
+  assert.equal(db.prepare('SELECT count(*) n FROM projects').get()?.n, 0);
   db.close();
 });
