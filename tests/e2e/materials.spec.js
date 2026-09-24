@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 test('list materials, tie one to the schedule, buy one, read the totals', async ({
   page,

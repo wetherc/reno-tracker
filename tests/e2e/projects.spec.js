@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 test('start, edit, and delete a project from the picker', async ({ page }) => {
   await page.goto('/');

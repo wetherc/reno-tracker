@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 const DESKTOP = { width: 1280, height: 800 };
 // 68rem is 1088px, so 1000px sits under the one breakpoint.

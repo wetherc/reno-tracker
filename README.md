@@ -55,6 +55,13 @@ answers 421 to a `Host` header other than `127.0.0.1:<port>` or
 without `Content-Type: application/json` gets 415, because a cross-site
 form can send only other types.
 
+Every answer sends `Content-Security-Policy` with `frame-ancestors
+'none'`, so no other site can frame the app and steer a click onto
+Delete. The policy loads scripts, styles, and images from the server
+only, plus `data:` images for the select arrow in `base.css`. Every
+answer also sends `X-Content-Type-Options: nosniff`. GitHub Pages cannot
+set response headers, so the static site runs without both.
+
 The server sends only the files that the page loads: `index.html`,
 `style.css`, `favicon.svg`, and the files under `styles/` and `src/`
 outside `src/server/`. Every other path gets 404. The check compares

@@ -2,7 +2,7 @@
 // rest. Kept apart from index.js so tests can mount it on port 0 with an
 // in-memory database.
 import { createServer } from 'node:http';
-import { checkSource } from './guard.js';
+import { checkSource, setSecurityHeaders } from './guard.js';
 import { requestTarget, Router, sendError } from './router.js';
 import { projectRoot, serveStatic } from './static.js';
 import { projectRoutes } from './routes/projects.js';
@@ -40,6 +40,7 @@ export function createApp(db, { root = projectRoot() } = {}) {
   const router = buildRouter(db);
   const files = serveStatic(root);
   return createServer((req, res) => {
+    setSecurityHeaders(res);
     try {
       checkSource(req.headers, req.socket.localPort);
       const { path } = requestTarget(req);

@@ -6,6 +6,23 @@
 // names its page in the Origin header, so a foreign Origin gets 403.
 import { HttpError } from './errors.js';
 
+// Sent on every response. frame-ancestors stops another site from
+// framing the app and steering a click onto Delete. img-src allows data:
+// because the select chevron in base.css is a data URI. nosniff stops a
+// browser from running a JSON or text answer as a script.
+export const SECURITY_HEADERS = Object.freeze({
+  'Content-Security-Policy':
+    "default-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+  'X-Content-Type-Options': 'nosniff',
+});
+
+/** @param {import('node:http').ServerResponse} res */
+export function setSecurityHeaders(res) {
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
+    res.setHeader(name, value);
+  }
+}
+
 const LOCAL_NAMES = ['127.0.0.1', 'localhost'];
 
 /**

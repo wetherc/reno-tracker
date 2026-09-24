@@ -1,15 +1,16 @@
-// Raw requests that fetch cannot make: a foreign Host header and a
-// request target that is not a URL.
+// Raw requests that fetch cannot make, such as a foreign Host header and
+// a request target that is not a URL, and the headers on every answer.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { request } from 'node:http';
 import { connect } from 'node:net';
+import { SECURITY_HEADERS } from '../../src/server/guard.js';
 import { startApp } from './harness.js';
 
 /**
  * @param {number} port
  * @param {{ method?: string, path?: string, headers?: Record<string, string>, body?: string }} options
- * @returns {Promise<{ status: number, body: any }>}
+ * @returns {Promise<{ status: number, body: any, headers: import('node:http').IncomingHttpHeaders }>}
  */
 function raw(port, { method = 'GET', path = '/api/projects', headers, body }) {
   return new Promise((resolve, reject) => {
@@ -19,7 +20,11 @@ function raw(port, { method = 'GET', path = '/api/projects', headers, body }) {
         let text = '';
         res.on('data', (chunk) => (text += chunk));
         res.on('end', () =>
-          resolve({ status: res.statusCode ?? 0, body: JSON.parse(text) }),
+          resolve({
+            status: res.statusCode ?? 0,
+            body: JSON.parse(text),
+            headers: res.headers,
+          }),
         );
       },
     );
@@ -88,6 +93,33 @@ test('a request target that is not a URL gets 400 and the server lives', async (
     });
     assert.match(String(reply), /^HTTP\/1\.1 400 /);
     assert.equal((await app.api('GET', '/api/projects')).status, 200);
+  } finally {
+    await app.close();
+  }
+});
+
+test('every answer sends the security headers', async () => {
+  const app = await startApp();
+  const names = Object.keys(SECURITY_HEADERS);
+  /** @param {Record<string, unknown>} headers lower-case names */
+  const pick = (headers) =>
+    Object.fromEntries(
+      names.map((name) => [name, headers[name.toLowerCase()]]),
+    );
+  try {
+    for (const path of ['/api/projects', '/index.html', '/package.json']) {
+      const res = await fetch(`http://127.0.0.1:${app.port}${path}`);
+      assert.deepEqual(
+        pick(Object.fromEntries(res.headers)),
+        SECURITY_HEADERS,
+        path,
+      );
+    }
+    const foreign = await raw(app.port, {
+      headers: { host: `evil.example:${app.port}` },
+    });
+    assert.equal(foreign.status, 421);
+    assert.deepEqual(pick(foreign.headers), SECURITY_HEADERS);
   } finally {
     await app.close();
   }
