@@ -2,7 +2,7 @@
 // LocalDb. Deleting a project drops every row that belongs to it, which
 // matches the ON DELETE CASCADE rules of the SQLite schema.
 import { badRequest, notFound } from './errors.js';
-import { newId, now } from './store.js';
+import { newId, now, removeRows } from './store.js';
 
 /** @typedef {import('./store.js').LocalDb} LocalDb */
 /** @typedef {import('../types.ts').Project} Project */
@@ -61,15 +61,7 @@ export function patchProject(db, id, patch) {
  */
 export function deleteProject(db, id) {
   getProject(db, id);
-  const items = new Set(
-    db.schedule.filter((s) => s.projectId === id).map((s) => s.id),
-  );
-  db.projects = db.projects.filter((p) => p.id !== id);
-  db.schedule = db.schedule.filter((s) => s.projectId !== id);
-  db.dependencies = db.dependencies.filter((d) => d.projectId !== id);
-  db.materials = db.materials.filter((m) => m.projectId !== id);
-  db.variances = db.variances.filter((v) => !items.has(v.scheduleItemId));
-  db.notes = db.notes.filter((n) => !items.has(n.scheduleItemId));
+  removeRows(db, id);
 }
 
 /**

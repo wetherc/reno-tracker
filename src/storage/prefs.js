@@ -15,16 +15,21 @@ export const PREFIX = 'reno-tracker:';
  */
 
 /**
- * @typedef {Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>} StorageLike
+ * @typedef {Pick<Storage, 'getItem' | 'setItem' | 'removeItem' | 'key' | 'length'>} StorageLike
  */
 
 /** @returns {StorageLike} */
 export function memoryStorage() {
+  /** @type {Map<string, string>} */
   const map = new Map();
   return {
     getItem: (k) => map.get(k) ?? null,
     setItem: (k, v) => void map.set(k, String(v)),
     removeItem: (k) => void map.delete(k),
+    key: (i) => [...map.keys()][i] ?? null,
+    get length() {
+      return map.size;
+    },
   };
 }
 

@@ -25,7 +25,7 @@ function byId(id) {
 const storage = browserStorage();
 const prefs = createPrefs(storage);
 const toaster = createToaster(byId('toasts'));
-const api = createBackend(readBackend(document), storage);
+const api = createBackend(readBackend(document), storage, window);
 const ctx = createContext({ api, prefs, toaster });
 
 mountTheme(byId('theme-toggle'), prefs);

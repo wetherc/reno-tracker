@@ -2,6 +2,8 @@
 // src/api/client.js and runs the same checks the server routes run, so a
 // page served from static hosting with no server behaves the same as a
 // page served by pnpm dev. Data lives in the browser's localStorage.
+// Every result is a copy, so a caller that changes a returned row cannot
+// change the store's memory copy.
 import { checkText } from '../entities/validate.js';
 import { checkBoolean } from '../entities/validate.js';
 import { projectDefaults, validateProject } from '../entities/project.js';
@@ -40,11 +42,12 @@ import {
   patchMaterialItem,
   setMaterialItemComplete,
 } from './materials.js';
-import { createStore } from './store.js';
+import { createStore, projectOf } from './store.js';
 import { exportProject, importProject, readExportFile } from './transfer.js';
 
 /** @typedef {import('../api/client.js').Api} Api */
 /** @typedef {import('./store.js').LocalDb} LocalDb */
+/** @typedef {import('./store.js').RowKind} RowKind */
 /** @typedef {import('../types.ts').ScheduleItemInput} ScheduleItemInput */
 /** @typedef {import('../types.ts').MaterialItemInput} MaterialItemInput */
 /** @typedef {import('../types.ts').ProjectInput} ProjectInput */
@@ -95,58 +98,82 @@ function boolean(value) {
 }
 
 /**
+ * @param {RowKind} kind
+ * @param {string} id
+ * @returns {(db: LocalDb) => string | null}
+ */
+const owner = (kind, id) => (db) => projectOf(db, kind, id);
+
+/**
  * @param {import('../storage/prefs.js').StorageLike} storage
+ * @param {Pick<EventTarget, 'addEventListener'>} [events] the window, whose storage event reports a write from another tab
  * @returns {Api}
  */
-export function createLocalApi(storage) {
+export function createLocalApi(storage, events) {
   const store = createStore(storage);
+  events?.addEventListener('storage', (event) => {
+    store.forget(/** @type {StorageEvent} */ (event).key);
+  });
 
   /**
-   * Reads the document, runs one read, and returns the result.
+   * Runs one read.
    * @template T
    * @param {(db: LocalDb) => T} fn
    * @returns {Promise<T>}
    */
   async function query(fn) {
-    return fn(store.read());
+    return structuredClone(fn(store.read()));
   }
 
   /**
-   * Reads the document, runs one change, and writes the document back.
-   * A thrown check leaves the stored document as it was.
+   * Runs one change to the project that `whose` names and stores that
+   * project. A thrown check leaves the stored project as it was.
    * @template T
+   * @param {(db: LocalDb) => string | null} whose
    * @param {(db: LocalDb) => T} fn
    * @returns {Promise<T>}
    */
-  async function mutate(fn) {
-    const db = store.read();
-    const result = fn(db);
-    store.write(db);
-    return result;
+  async function mutate(whose, fn) {
+    return structuredClone(store.change(whose, fn));
+  }
+
+  /**
+   * Runs one change that makes a new project and stores it.
+   * @template T
+   * @param {(db: LocalDb) => T} fn
+   * @param {(result: T) => string} idOf
+   * @returns {Promise<T>}
+   */
+  async function create(fn, idOf) {
+    return structuredClone(store.create(fn, idOf));
   }
 
   return {
     listProjects: () => query(listProjects),
     createProject: (input) =>
-      mutate((db) => {
-        const body = pick(asObject(input), PROJECT_FIELDS);
-        rejectInvalid(validateProject(body));
-        return createProject(
-          db,
-          projectDefaults(/** @type {ProjectInput} */ (body)),
-        );
-      }),
+      create(
+        (db) => {
+          const body = pick(asObject(input), PROJECT_FIELDS);
+          rejectInvalid(validateProject(body));
+          return createProject(
+            db,
+            projectDefaults(/** @type {ProjectInput} */ (body)),
+          );
+        },
+        (project) => project.id,
+      ),
     getProject: (id) => query((db) => getProjectPayload(db, id)),
     patchProject: (id, input) =>
-      mutate((db) => {
+      mutate(owner('project', id), (db) => {
         const body = pick(asObject(input), PROJECT_FIELDS);
         rejectInvalid(validateProject(body, { partial: true }));
         return patchProject(db, id, /** @type {ProjectInput} */ (body));
       }),
-    deleteProject: (id) => mutate((db) => deleteProject(db, id)),
+    deleteProject: (id) =>
+      mutate(owner('project', id), (db) => deleteProject(db, id)),
 
     createScheduleItem: (projectId, input) =>
-      mutate((db) => {
+      mutate(owner('project', projectId), (db) => {
         const body = pick(asObject(input), SCHEDULE_FIELDS);
         rejectInvalid(validateScheduleItem(body));
         return createScheduleItem(
@@ -156,7 +183,7 @@ export function createLocalApi(storage) {
         );
       }),
     patchScheduleItem: (id, patch) =>
-      mutate((db) => {
+      mutate(owner('schedule', id), (db) => {
         const raw = asObject(patch);
         const current = getScheduleItem(db, id);
         const body = pick(raw, SCHEDULE_FIELDS);
@@ -169,22 +196,25 @@ export function createLocalApi(storage) {
           reason,
         );
       }),
-    deleteScheduleItem: (id) => mutate((db) => deleteScheduleItem(db, id)),
+    deleteScheduleItem: (id) =>
+      mutate(owner('schedule', id), (db) => deleteScheduleItem(db, id)),
     setScheduleComplete: (id, complete) =>
-      mutate((db) => setScheduleItemComplete(db, id, boolean(complete))),
+      mutate(owner('schedule', id), (db) =>
+        setScheduleItemComplete(db, id, boolean(complete)),
+      ),
 
     addNote: (itemId, body) =>
-      mutate((db) =>
+      mutate(owner('schedule', itemId), (db) =>
         createNote(db, itemId, text('body', body, { min: 1, max: 5000 })),
       ),
     patchNote: (id, body) =>
-      mutate((db) =>
+      mutate(owner('notes', id), (db) =>
         patchNote(db, id, text('body', body, { min: 1, max: 5000 })),
       ),
-    deleteNote: (id) => mutate((db) => deleteNote(db, id)),
+    deleteNote: (id) => mutate(owner('notes', id), (db) => deleteNote(db, id)),
 
     addDependency: (projectId, input) =>
-      mutate((db) => {
+      mutate(owner('project', projectId), (db) => {
         const body = asObject(input);
         return createDependency(db, projectId, {
           predecessorId: text('predecessorId', body.predecessorId, {
@@ -197,10 +227,11 @@ export function createLocalApi(storage) {
           }),
         });
       }),
-    deleteDependency: (id) => mutate((db) => deleteDependency(db, id)),
+    deleteDependency: (id) =>
+      mutate(owner('dependencies', id), (db) => deleteDependency(db, id)),
 
     createMaterial: (projectId, input) =>
-      mutate((db) => {
+      mutate(owner('project', projectId), (db) => {
         const body = pick(asObject(input), MATERIAL_FIELDS);
         rejectInvalid(validateMaterialItem(body));
         return createMaterialItem(
@@ -210,7 +241,7 @@ export function createLocalApi(storage) {
         );
       }),
     patchMaterial: (id, input) =>
-      mutate((db) => {
+      mutate(owner('materials', id), (db) => {
         const body = pick(asObject(input), MATERIAL_FIELDS);
         rejectInvalid(validateMaterialItem(body, { partial: true }));
         return patchMaterialItem(
@@ -219,12 +250,15 @@ export function createLocalApi(storage) {
           /** @type {MaterialItemInput} */ (body),
         );
       }),
-    deleteMaterial: (id) => mutate((db) => deleteMaterialItem(db, id)),
+    deleteMaterial: (id) =>
+      mutate(owner('materials', id), (db) => deleteMaterialItem(db, id)),
     setMaterialComplete: (id, complete) =>
-      mutate((db) => setMaterialItemComplete(db, id, boolean(complete))),
+      mutate(owner('materials', id), (db) =>
+        setMaterialItemComplete(db, id, boolean(complete)),
+      ),
 
     reorder: (projectId, kind, ids) =>
-      mutate((db) => {
+      mutate(owner('project', projectId), (db) => {
         if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string')) {
           throw badRequest('ids must be a list of ids', 'ids');
         }
@@ -237,6 +271,9 @@ export function createLocalApi(storage) {
 
     exportProject: (id) => query((db) => exportProject(db, id)),
     importProject: (file) =>
-      mutate((db) => importProject(db, readExportFile(file))),
+      create(
+        (db) => importProject(db, readExportFile(file)),
+        (payload) => payload.project.id,
+      ),
   };
 }

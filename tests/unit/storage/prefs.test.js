@@ -29,6 +29,8 @@ test('prefs swallow storage errors', () => {
     removeItem: () => {
       throw new Error('blocked');
     },
+    key: () => null,
+    length: 0,
   };
   const prefs = createPrefs(broken);
   assert.equal(prefs.read('lastView'), null);

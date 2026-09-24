@@ -1,6 +1,9 @@
 // Schedule items, their variance log, notes, and dependencies in a
 // LocalDb. A patch writes one variance row per tracked field that
-// changed, the same way the server does.
+// changed, the same way the server does. The browser keeps only the
+// newest MAX_CHANGES_PER_ITEM rows of each item, because localStorage
+// holds about 5 MB per site and the log grows with every edit. The
+// server keeps every row.
 import { diffTrackedFields } from '../entities/variance.js';
 import { findCycle } from '../schedule/graph.js';
 import { badRequest, conflict, notFound } from './errors.js';
@@ -57,6 +60,24 @@ export function createScheduleItem(db, projectId, input) {
   return item;
 }
 
+export const MAX_CHANGES_PER_ITEM = 50;
+
+/**
+ * Drops the oldest change rows of one item past MAX_CHANGES_PER_ITEM.
+ * @param {LocalDb} db
+ * @param {string} id
+ */
+function trimChanges(db, id) {
+  const rows = db.variances.filter((v) => v.scheduleItemId === id);
+  if (rows.length <= MAX_CHANGES_PER_ITEM) return;
+  const oldest = new Set(
+    rows
+      .sort((a, b) => a.loggedAt.localeCompare(b.loggedAt))
+      .slice(0, rows.length - MAX_CHANGES_PER_ITEM),
+  );
+  db.variances = db.variances.filter((v) => !oldest.has(v));
+}
+
 /**
  * @param {LocalDb} db
  * @param {string} id
@@ -77,6 +98,7 @@ export function patchScheduleItem(db, id, patch, reason) {
       ...c,
     });
   }
+  trimChanges(db, id);
   Object.assign(item, patch);
   return item;
 }

@@ -19,8 +19,9 @@ export function readBackend(doc) {
 /**
  * @param {Backend} backend
  * @param {import('../storage/prefs.js').StorageLike} storage
+ * @param {Pick<EventTarget, 'addEventListener'>} [events] the window, for the local store
  * @returns {import('./client.js').Api}
  */
-export function createBackend(backend, storage) {
-  return backend === 'local' ? createLocalApi(storage) : createApi();
+export function createBackend(backend, storage, events) {
+  return backend === 'local' ? createLocalApi(storage, events) : createApi();
 }

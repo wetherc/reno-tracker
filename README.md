@@ -85,18 +85,36 @@ unit tests.
 
 GitHub Pages serves files only, so the page cannot reach a Node server
 there. The static build switches the page to a browser-side data store.
-Every project then lives in the browser's `localStorage` under the key
-`reno-tracker:db`, on the device and in the browser profile that wrote it.
-The Save button in the project picker writes a project to a JSON file, and
-Load reads that file back, so a project can move between the static site
-and a local server, or between two browsers.
+Each project then lives in the browser's `localStorage` under its own
+key, `reno-tracker:project:<id>`, on the device and in the browser profile
+that wrote it. The Save button in the project picker writes a project to a
+JSON file, and Load reads that file back, so a project can move between
+the static site and a local server, or between two browsers.
 
-When the text under `reno-tracker:db` does not parse as a JSON object,
-the store copies it to `reno-tracker:db-damaged` and starts empty. The
-next write replaces the damaged text, and the copy stays for recovery by
-hand. When that key already holds a different damaged copy, or the
-browser refuses the copy, every action fails with a message and nothing
-is written.
+The store parses every project once and keeps the rows in memory, so a
+refetch after a write parses nothing. A write stores only the project it
+changed. A `storage` event from another tab drops the memory copy. Before
+each write the store also compares the stored text of the project with
+the text it last saw, and reloads when they differ, so a write in one tab
+does not replace a change from another tab.
+
+The browser holds about 5 MB per site, and the change log grows with
+every edit. The browser store therefore keeps the newest 50 change rows
+of each item and drops older ones. The server keeps every row. Save a
+project to a file to keep its full log.
+
+A document under the key `reno-tracker:db` keeps many projects in one
+key. On load the store moves each of its projects to a key of its own
+and removes `reno-tracker:db`. A project that the browser refuses to
+store stays in `reno-tracker:db` until the next load.
+
+When the text of a project key does not parse as that project, the store
+copies it to `reno-tracker:db-damaged:<id>`, removes the key, and leaves
+the project out. A `reno-tracker:db` document that does not parse as a
+JSON object is copied to `reno-tracker:db-damaged` in the same way. The
+copy stays for recovery by hand. When the copy key already holds a
+different damaged copy, or the browser refuses the copy, every action
+fails with a message and nothing is written.
 
 ```sh
 pnpm build:pages   # writes the site to dist/

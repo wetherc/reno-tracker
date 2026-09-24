@@ -41,12 +41,45 @@ test('the static build keeps a project in the browser', async ({ page }) => {
   });
 
   const stored = await page.evaluate(() =>
-    localStorage.getItem('reno-tracker:db'),
+    Object.keys(localStorage).map((key) => [key, localStorage[key]]),
   );
-  expect(stored).toContain('Pour slab');
+  const projects = stored.filter(([key]) =>
+    key.startsWith('reno-tracker:project:'),
+  );
+  expect(projects).toHaveLength(1);
+  expect(projects[0][1]).toContain('Pour slab');
   expect(apiCalls).toEqual([]);
 
   await page.getByRole('button', { name: 'Delete project' }).click();
   await dialog.getByRole('button', { name: 'Delete' }).click();
   await expect(page.locator('.empty-state')).toContainText('No project open');
+});
+
+test('the static build moves a combined document to one key per project', async ({
+  page,
+}) => {
+  const project = {
+    id: 'p1',
+    name: 'Attic',
+    budgetCents: 0,
+    startDate: '2026-11-02',
+    createdAt: '2026-11-01T00:00:00.000Z',
+  };
+  await page.addInitScript(
+    (doc) => {
+      if (!sessionStorage.getItem('seeded')) {
+        sessionStorage.setItem('seeded', '1');
+        localStorage.setItem('reno-tracker:db', JSON.stringify(doc));
+      }
+    },
+    { projects: [project] },
+  );
+  await page.goto('/');
+  await page.getByRole('combobox').selectOption({ label: 'Attic' });
+  await expect(page.locator('.empty-state')).not.toContainText(
+    'No project open',
+  );
+  const keys = await page.evaluate(() => Object.keys(localStorage).sort());
+  expect(keys).toContain('reno-tracker:project:p1');
+  expect(keys).not.toContain('reno-tracker:db');
 });

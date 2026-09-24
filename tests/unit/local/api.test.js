@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createLocalApi } from '../../../src/local/api.js';
 import { memoryStorage } from '../../../src/storage/prefs.js';
+import { MAX_CHANGES_PER_ITEM } from '../../../src/local/schedule.js';
 
 function setup() {
   const storage = memoryStorage();
@@ -405,4 +406,43 @@ test('a write over a damaged document keeps the damaged text under its own key',
     (await api.listProjects()).map((p) => p.name),
     ['Fresh'],
   );
+});
+
+test('a storage event from another tab shows its writes on the next read', async () => {
+  const storage = memoryStorage();
+  const events = new EventTarget();
+  const api = createLocalApi(storage, events);
+  const other = createLocalApi(storage);
+  assert.deepEqual(await api.listProjects(), []);
+  await other.createProject({ name: 'Theirs', startDate: '2026-01-05' });
+  assert.deepEqual(await api.listProjects(), []);
+  events.dispatchEvent(
+    Object.assign(new Event('storage'), { key: 'reno-tracker:project:x' }),
+  );
+  assert.deepEqual(
+    (await api.listProjects()).map((p) => p.name),
+    ['Theirs'],
+  );
+});
+
+test('a changed result does not change the stored rows', async () => {
+  const { api, project } = setup();
+  const p = await project();
+  p.name = 'Changed';
+  const payload = await api.getProject(p.id);
+  payload.project.name = 'Changed too';
+  assert.equal((await api.getProject(p.id)).project.name, 'Kitchen');
+});
+
+test('the browser keeps the newest change rows of each item', async () => {
+  const { api, project, item } = setup();
+  const p = await project();
+  const a = await item(p.id, 'Demo');
+  for (let i = 0; i <= MAX_CHANGES_PER_ITEM; i += 1) {
+    await api.patchScheduleItem(a.id, { title: `Demo ${i}` });
+  }
+  const { variances } = await api.getProject(p.id);
+  assert.equal(variances.length, MAX_CHANGES_PER_ITEM);
+  assert.equal(variances[0].newValue, 'Demo 1');
+  assert.equal(variances.at(-1)?.newValue, `Demo ${MAX_CHANGES_PER_ITEM}`);
 });
