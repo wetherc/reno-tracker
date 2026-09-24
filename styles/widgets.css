@@ -130,9 +130,12 @@
 }
 
 /* Data table. The wrapper scrolls sideways on a narrow screen so the
-   table never widens the page, and the page keeps its own scroll. */
+   table never widens the page, and the page keeps its own scroll. The
+   wrapper is the containing block of a visually hidden header label,
+   which is absolutely placed and would widen the page from outside it. */
 
 .table-scroll {
+  position: relative;
   overflow-x: auto;
 }
 

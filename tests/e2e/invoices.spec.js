@@ -66,7 +66,9 @@ test('an invoice bills a schedule item and a material and sets their actual cost
       fullPage: true,
     });
     await page.getByRole('radio', { name: 'Dark' }).click();
-    await table.getByRole('button', { name: 'Pinch Plumbing' }).click();
+    await table
+      .getByRole('button', { name: 'Pinch Plumbing', exact: true })
+      .click();
     await page.screenshot({
       path: 'test-results/invoice-editor-dark.png',
       animations: 'disabled',
@@ -92,6 +94,109 @@ test('an invoice bills a schedule item and a material and sets their actual cost
     });
     await dialog.getByRole('button', { name: 'Cancel' }).click();
     await expect(dialog).toBeHidden();
+  } finally {
+    await dropProject(request, project.id);
+  }
+});
+
+test('payments and retainage set what an invoice still owes', async ({
+  page,
+  request,
+}) => {
+  const project = await seedProject(
+    request,
+    { name: 'Payment bath', startDate: '2026-01-05' },
+    [
+      {
+        title: 'Rough plumbing',
+        startDate: '2026-01-05',
+        endDate: '2026-01-09',
+      },
+    ],
+  );
+  const itemId = project.items[0].id;
+  for (const [number, dueDate, cents] of /** @type {const} */ ([
+    ['1043', '2026-02-01', 400_000],
+    ['1044', '2099-03-01', 120_000],
+  ])) {
+    await request.post(`/api/projects/${project.id}/invoices`, {
+      data: {
+        number,
+        party: 'Pinch Plumbing',
+        issuedDate: '2026-01-10',
+        dueDate,
+        retainageCents: number === '1043' ? 40_000 : 0,
+        lines: [{ scheduleItemId: itemId, amountCents: cents }],
+      },
+    });
+  }
+  try {
+    await openProject(page, 'Payment bath');
+    await page.getByRole('button', { name: 'Invoices' }).click();
+    const tiles = page.locator('.invoice-owed');
+    await expect(tiles).toContainText('Owed$5,200.00On 2 invoices');
+    await expect(tiles).toContainText('Overdue$3,600.00');
+    await expect(tiles).toContainText('Held back$400.00');
+
+    const table = page.getByRole('table', {
+      name: 'Invoices for Payment bath',
+    });
+    await table
+      .getByRole('button', { name: 'Pinch Plumbing', exact: true })
+      .first()
+      .click();
+    const dialog = page.getByRole('dialog');
+    const payments = dialog.locator('.payment-list');
+    await expect(payments.locator('.payment-list__empty')).toBeVisible();
+    await payments.getByRole('button', { name: 'Add payment' }).click();
+    const payment = payments.locator('.payment').first();
+    await expect(payment.getByLabel('Amount')).toHaveValue('3600.00');
+    await payment.getByLabel('Paid on').fill('2026-01-20');
+    await payment.getByLabel('Amount').fill('3,600');
+    await payment.getByLabel('Note').fill('Check 1204');
+    await expect(payments.locator('.payment-list__paid')).toHaveText(
+      'Paid $3,600.00 of $4,000.00. $400.00 owed, $400.00 of it held back.',
+    );
+    await page.screenshot({
+      path: 'test-results/invoice-payments.png',
+      animations: 'disabled',
+    });
+    await dialog.getByRole('button', { name: 'Save' }).click();
+    await expect(dialog).toBeHidden();
+
+    const first = table.locator('tbody tr').first();
+    await expect(first).toContainText('$400.00$400.00 held');
+    await expect(first).toContainText('Retainage held');
+    await expect(tiles).not.toContainText('Overdue');
+    await page.screenshot({
+      path: 'test-results/invoices-owed.png',
+      animations: 'disabled',
+      fullPage: true,
+    });
+
+    await first
+      .getByRole('button', {
+        name: 'Mark invoice 1043 from Pinch Plumbing paid',
+      })
+      .click();
+    await expect(page.locator('.toast').last()).toContainText(
+      'Recorded $400.00 paid on invoice 1043 from Pinch Plumbing',
+    );
+    await expect(first).toContainText('Paid');
+    await expect(tiles).toContainText('Owed$1,200.00On 1 invoice');
+    await page.getByRole('radio', { name: 'Dark' }).click();
+    await page.screenshot({
+      path: 'test-results/invoices-owed-dark.png',
+      animations: 'disabled',
+      fullPage: true,
+    });
+    await page.getByRole('radio', { name: 'Auto' }).click();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({
+      path: 'test-results/invoices-owed-narrow.png',
+      animations: 'disabled',
+      fullPage: true,
+    });
   } finally {
     await dropProject(request, project.id);
   }

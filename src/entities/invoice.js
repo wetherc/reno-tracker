@@ -316,6 +316,17 @@ export function invoiceName(invoice) {
 }
 
 /**
+ * An invoice name in the middle of a sentence: "invoice 1043 from Pinch
+ * Plumbing" or "an invoice from Pinch Plumbing".
+ * @param {Pick<Invoice, 'number' | 'party'>} invoice
+ * @returns {string}
+ */
+export function invoiceNameInSentence(invoice) {
+  const name = invoiceName(invoice);
+  return name.charAt(0).toLowerCase() + name.slice(1);
+}
+
+/**
  * @param {Pick<Invoice, 'payments'>} invoice
  * @returns {number} the sum of the payments
  */

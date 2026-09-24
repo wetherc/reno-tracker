@@ -1,9 +1,15 @@
 // The editor for one invoice. The number, the party, and the two days
 // sit at the top. Under them, each line picks the schedule item or
 // material it bills, an amount, and an optional note. A running total
-// follows the amounts as they are typed.
+// follows the amounts as they are typed. The payments and the retainage
+// come last.
 import { ApiError } from '../api/errors.js';
-import { invoiceErrors, invoiceName, MAX_LINES } from '../entities/invoice.js';
+import {
+  invoiceErrors,
+  invoiceName,
+  invoiceNameInSentence as nameInSentence,
+  MAX_LINES,
+} from '../entities/invoice.js';
 import { formatCents } from '../format/money.js';
 import { button, iconButton } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
@@ -17,6 +23,7 @@ import {
 import { modal } from '../ui/Modal.js';
 import { todayIso } from '../schedule/dates.js';
 import { discardGuard } from './discardGuard.js';
+import { PAYMENT_LABELS, paymentList } from './paymentList.js';
 import { showProblems } from './formErrors.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -33,6 +40,7 @@ export const INVOICE_LABELS = {
   dueDate: 'Due',
   amountCents: 'Amount',
   description: 'Note',
+  ...PAYMENT_LABELS,
 };
 
 /** The choice a new line starts on, which bills nothing yet. */
@@ -63,15 +71,6 @@ export function readRow(value) {
     materialItemId: kind === 'material' ? id : null,
   };
 }
-
-/**
- * An invoice name in the middle of a sentence.
- * @param {Pick<Invoice, 'number' | 'party'>} invoice
- */
-const nameInSentence = (invoice) => {
-  const name = invoiceName(invoice);
-  return name.charAt(0).toLowerCase() + name.slice(1);
-};
 
 let counter = 0;
 
@@ -223,10 +222,15 @@ export function openInvoiceEditor({ ctx, invoice }) {
     showTotal();
   }
 
+  const linesTotal = () =>
+    lines.reduce((sum, l) => sum + (l.amount.cents() ?? 0), 0);
+
   function showTotal() {
-    const cents = lines.reduce((sum, l) => sum + (l.amount.cents() ?? 0), 0);
-    total.textContent = `Total ${formatCents(cents)}`;
+    total.textContent = `Total ${formatCents(linesTotal())}`;
+    payments.update();
   }
+
+  const payments = paymentList({ prefix, invoice, total: linesTotal });
 
   for (const line of invoice?.lines ?? [{ amountCents: 0 }]) lineEditor(line);
 
@@ -246,7 +250,14 @@ export function openInvoiceEditor({ ctx, invoice }) {
   });
   formEl.id = `${prefix}-form`;
   formEl.classList.add('form--pairs');
-  formEl.append(number.el, party.el, issuedDate.el, dueDate.el, linesSet);
+  formEl.append(
+    number.el,
+    party.el,
+    issuedDate.el,
+    dueDate.el,
+    linesSet,
+    payments.el,
+  );
 
   const lineText = () =>
     JSON.stringify(
@@ -257,6 +268,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
       ]),
     );
   const initialLines = lineText();
+  const initialPayments = payments.text();
 
   const save = button({
     label: editing ? 'Save' : 'Add invoice',
@@ -284,7 +296,10 @@ export function openInvoiceEditor({ ctx, invoice }) {
     body: [formEl],
     actions,
     wide: true,
-    beforeClose: discardGuard(head, () => lineText() !== initialLines),
+    beforeClose: discardGuard(
+      head,
+      () => lineText() !== initialLines || payments.text() !== initialPayments,
+    ),
     onClose: () => {
       unsubscribe();
       dialog.el.remove();
@@ -309,10 +324,10 @@ export function openInvoiceEditor({ ctx, invoice }) {
       fields[`lines.${i}.amountCents`] = line.amount;
       fields[`lines.${i}.description`] = line.note;
     });
-    return fields;
+    return { ...fields, ...payments.fields() };
   }
 
-  /** @returns {Required<Omit<InvoiceInput, 'retainageCents' | 'payments'>> | null} */
+  /** @returns {Required<InvoiceInput> | null} */
   function readForm() {
     /** @type {import('../entities/validate.js').FieldError[]} */
     const problems = [];
@@ -335,6 +350,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
           description: line.note.input.value.trim(),
         };
       }),
+      ...payments.read(problems),
     };
     problems.push(...invoiceErrors(input));
     return showProblems(allFields(), problems, INVOICE_LABELS) ? null : input;

@@ -77,3 +77,141 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+
+/* The owed tiles over the table. They wrap to as many rows as the
+   panel needs. */
+.invoice-owed {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+
+.invoice-owed__tile {
+  display: flex;
+  flex: 1 1 11rem;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.invoice-owed__label {
+  font-size: var(--text-label);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.invoice-owed__value,
+.invoice-owed__note {
+  margin: 0;
+}
+
+.invoice-owed__value {
+  font-size: var(--text-heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-owed__tile--over .invoice-owed__value {
+  color: var(--danger);
+}
+
+.invoice-owed__note {
+  font-size: var(--text-label);
+}
+
+.invoice-owed-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.invoice-owed-cell__held {
+  font-size: var(--text-label);
+  white-space: nowrap;
+}
+
+.invoice-pay {
+  white-space: nowrap;
+}
+
+/* The payments part of the invoice editor. It reuses the frame of the
+   line list above it. */
+.payment-list {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.payment-list > legend {
+  margin-bottom: var(--space-3);
+  padding: 0;
+}
+
+.payment-list__retainage {
+  max-width: min(100%, 16rem);
+}
+
+.payment-list__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.payment-list__empty {
+  margin: 0;
+  font-style: italic;
+}
+
+/* One payment: its title and remove button on top, then the day beside
+   the amount, then the note across the full width. */
+.payment {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-3);
+  align-items: end;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-sunken);
+}
+
+.payment__title {
+  grid-column: 1 / 3;
+  align-self: center;
+  margin: 0;
+}
+
+.payment__remove {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.payment__note {
+  grid-column: 1 / -1;
+}
+
+.payment-list__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.payment-list__paid {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}

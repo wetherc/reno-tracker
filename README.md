@@ -26,6 +26,16 @@ static site on GitHub Pages, where it keeps its data in the browser.
   line bills keeps the actual price typed on it. A billed row cannot be
   deleted until its lines are gone. An invoice edit writes no row to the
   change log.
+- Payments on each invoice. A payment has a paid day, an amount, and an
+  optional note. A deposit is a payment dated before the issue day. An
+  invoice can also hold back retainage, which stays owed but not due
+  until a payment covers it. The Invoices section shows what is owed:
+  overdue, due next, on invoices with no due day, and held back. Each
+  row shows its open balance and its status. An invoice with no due day
+  reads Unpaid and is never overdue. Mark paid records the open balance
+  as one payment dated today. A payment above the total shows as
+  overpaid, and it does not lower what other invoices owe. Payments do
+  not change a row's actual cost, which stays the sum of its lines.
 - A complete checkbox on every schedule and material row. Every view shares
   it.
 - Four views of the schedule: table, calendar, Gantt, and agenda. A tap

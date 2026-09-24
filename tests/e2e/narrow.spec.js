@@ -43,7 +43,7 @@ test('no section or view scrolls sideways on a 390px phone', async ({
   }
   await nav.getByRole('button', { name: 'Invoices' }).click();
   await page
-    .getByRole('button', { name: 'Pacific Plumbing and Heating' })
+    .getByRole('button', { name: 'Pacific Plumbing and Heating', exact: true })
     .click();
   await expect(page.getByRole('dialog')).toBeVisible();
   expect(await width(), 'invoice editor').toBe(390);
