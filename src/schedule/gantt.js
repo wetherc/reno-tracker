@@ -2,7 +2,14 @@
 // its successors. Bars are placed on a day grid that covers whole weeks,
 // and each dependency becomes one connector path from the end of its
 // predecessor to the start of its successor.
-import { addDays, dayOffset, spanDays, startOfWeek } from './dates.js';
+import {
+  addDays,
+  dayOffset,
+  eachDay,
+  spanDays,
+  startOfWeek,
+  weekday,
+} from './dates.js';
 import { topologicalOrder } from './graph.js';
 
 /** @typedef {import('../types.ts').ScheduleItem} ScheduleItem */
@@ -180,6 +187,34 @@ export function connectorPath(from, to, rowHeight) {
   }
   const step = to.y > from.y ? to.y : to.y + rowHeight;
   return `M${x1} ${y1}H${x1 + ELBOW}V${step}H${x2 - ELBOW}V${y2}H${x2}`;
+}
+
+/** @typedef {{ offset: number, days: number }} GanttPiece offset in days from the item start */
+
+/**
+ * The runs of days a bar paints. A weekend with a weekday on both sides
+ * inside the item is a gap, so a job that runs Wednesday to Tuesday paints
+ * Wednesday to Friday and Monday to Tuesday. A weekend at either end of
+ * the item stays painted, because the item's own dates put work there.
+ * This only draws the bar. The item's dates stay as stored.
+ * @param {string} startDate
+ * @param {string} endDate
+ * @returns {GanttPiece[]}
+ */
+export function workPieces(startDate, endDate) {
+  const days = eachDay(startDate, endDate);
+  const workday = days.map((day) => weekday(day) % 6 !== 0);
+  const first = workday.indexOf(true);
+  const last = workday.lastIndexOf(true);
+  /** @type {GanttPiece[]} */
+  const pieces = [];
+  days.forEach((_, i) => {
+    if (!workday[i] && i > first && i < last) return;
+    const prev = pieces[pieces.length - 1];
+    if (prev && prev.offset + prev.days === i) prev.days++;
+    else pieces.push({ offset: i, days: 1 });
+  });
+  return pieces;
 }
 
 /** @typedef {'start' | 'end' | 'both'} DragEdge */

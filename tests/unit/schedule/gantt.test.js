@@ -5,6 +5,7 @@ import {
   daysDragged,
   ganttLayout,
   moveDates,
+  workPieces,
 } from '../../../src/schedule/gantt.js';
 import { itemOf } from '../app/scheduleFixtures.js';
 
@@ -162,4 +163,34 @@ test('daysDragged rounds to whole days', () => {
   assert.equal(daysDragged(13, 28), 0);
   assert.equal(daysDragged(15, 28), 1);
   assert.equal(daysDragged(-56, 28), -2);
+});
+
+test('workPieces leaves a gap over each weekend inside an item', () => {
+  // Wed Oct 7 to Tue Oct 20 skips two weekends.
+  assert.deepEqual(workPieces('2026-10-07', '2026-10-20'), [
+    { offset: 0, days: 3 },
+    { offset: 5, days: 5 },
+    { offset: 12, days: 2 },
+  ]);
+  // Mon to Fri has no weekend at all.
+  assert.deepEqual(workPieces('2026-10-05', '2026-10-09'), [
+    { offset: 0, days: 5 },
+  ]);
+});
+
+test('workPieces paints a weekend at either end of an item', () => {
+  // Sat Oct 3 to Tue Oct 13: the leading weekend stays, the inner one goes.
+  assert.deepEqual(workPieces('2026-10-03', '2026-10-13'), [
+    { offset: 0, days: 7 },
+    { offset: 9, days: 2 },
+  ]);
+  // Thu Oct 8 to Sun Oct 18 keeps the trailing weekend.
+  assert.deepEqual(workPieces('2026-10-08', '2026-10-18'), [
+    { offset: 0, days: 2 },
+    { offset: 4, days: 7 },
+  ]);
+  // A weekend-only item is one piece.
+  assert.deepEqual(workPieces('2026-10-10', '2026-10-11'), [
+    { offset: 0, days: 2 },
+  ]);
 });

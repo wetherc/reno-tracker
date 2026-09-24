@@ -1,9 +1,11 @@
 // One gantt bar. The middle opens the editor on a click and moves the
 // whole item on a drag. Each end is a handle that moves one date. Every
-// part answers the arrow keys: one day per press, seven with Shift.
+// part answers the arrow keys: one day per press, seven with Shift. The
+// bar paints as one piece per run of workdays, with a gap over each
+// weekend inside the item, and the title sits in the widest piece.
 import { formatDayMonth, formatRange } from '../format/date.js';
 import { dayOffset, spanDays } from '../schedule/dates.js';
-import { daysDragged, moveDates } from '../schedule/gantt.js';
+import { daysDragged, moveDates, workPieces } from '../schedule/gantt.js';
 import { bareButton } from '../ui/buttons.js';
 import { icon } from '../ui/icon.js';
 
@@ -25,8 +27,8 @@ import { icon } from '../ui/icon.js';
 
 const ARROWS = { ArrowLeft: -1, ArrowRight: 1 };
 
-// A bar shorter than this many days cannot hold its title, so the title
-// sits to the right of it instead.
+// A widest piece shorter than this many days cannot hold the title, so
+// the title sits to the right of the bar instead.
 export const NARROW_DAYS = 3;
 
 /**
@@ -57,7 +59,10 @@ export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
   el.style.left = `${row.x}px`;
   el.style.top = `${row.y}px`;
   el.style.width = `${row.width}px`;
-  if (row.width < dayWidth * NARROW_DAYS) el.classList.add('gantt-bar--narrow');
+  const paint = document.createElement('div');
+  paint.className = 'gantt-bar__pieces';
+  paint.setAttribute('aria-hidden', 'true');
+  drawPieces(el, paint, item.startDate, item.endDate, dayWidth);
 
   const range = formatRange(item.startDate, item.endDate);
   const body = bareButton({
@@ -75,7 +80,7 @@ export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
     'end',
     `End of ${item.title}, ${formatDayMonth(item.endDate)}`,
   );
-  el.append(start, body, end);
+  el.append(start, body, end, paint);
 
   wire(start, 'start');
   wire(body, 'both');
@@ -143,6 +148,7 @@ export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
       };
       el.style.left = `${row.x + dayOffset(item.startDate, shown.start) * dayWidth}px`;
       el.style.width = `${spanDays(shown.start, shown.end) * dayWidth}px`;
+      drawPieces(el, paint, shown.start, shown.end, dayWidth);
       onPreview(`${item.title}: ${formatRange(shown.start, shown.end)}`);
     });
     const settle = (/** @type {PointerEvent} */ event) => {
@@ -156,6 +162,7 @@ export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
       else {
         el.style.left = `${row.x}px`;
         el.style.width = `${row.width}px`;
+        drawPieces(el, paint, item.startDate, item.endDate, dayWidth);
       }
       days = 0;
     };
@@ -164,6 +171,36 @@ export function ganttBar({ item, row, dayWidth, onOpen, onMove, onPreview }) {
   }
 
   return el;
+}
+
+/**
+ * Fills the pieces layer for the dates shown and moves the title into the
+ * widest piece. The label insets are distances from the bar's two edges.
+ * @param {HTMLDivElement} el
+ * @param {HTMLDivElement} paint
+ * @param {string} start
+ * @param {string} end
+ * @param {number} dayWidth
+ */
+function drawPieces(el, paint, start, end, dayWidth) {
+  const pieces = workPieces(start, end);
+  paint.replaceChildren(
+    ...pieces.map((piece) => {
+      const part = document.createElement('div');
+      part.className = 'gantt-bar__piece';
+      part.style.left = `${piece.offset * dayWidth}px`;
+      part.style.width = `${piece.days * dayWidth}px`;
+      return part;
+    }),
+  );
+  const widest = pieces.reduce((a, b) => (b.days > a.days ? b : a));
+  const total = spanDays(start, end);
+  el.style.setProperty('--gantt-label-start', `${widest.offset * dayWidth}px`);
+  el.style.setProperty(
+    '--gantt-label-end',
+    `${(total - widest.offset - widest.days) * dayWidth}px`,
+  );
+  el.classList.toggle('gantt-bar--narrow', widest.days < NARROW_DAYS);
 }
 
 /** @param {string} className @param {string} value */

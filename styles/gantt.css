@@ -220,11 +220,44 @@
   height: calc(var(--gantt-row) - 12px);
   margin-top: 6px;
   border-radius: var(--radius-sm);
-  background: var(--accent);
   color: var(--accent-contrast);
-  box-shadow: var(--shadow-1);
   touch-action: none;
   transition: filter var(--transition-fast);
+}
+
+/* The pieces carry the bar's paint, one per run of workdays. The layer
+   sits under the handles and the body inside the bar's stacking context,
+   so the whole bar still takes clicks and drags across a weekend gap. */
+.gantt-bar__pieces {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* A thin line through the middle joins the pieces across a gap, so the
+   runs read as one item rather than as separate short jobs. */
+.gantt-bar__pieces::before {
+  position: absolute;
+  top: calc(50% - 1px);
+  right: 0;
+  left: 0;
+  height: 2px;
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  content: '';
+}
+
+.gantt-bar--complete .gantt-bar__pieces::before {
+  background: var(--border-strong);
+}
+
+.gantt-bar__piece {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  box-shadow: var(--shadow-1);
 }
 
 .gantt-bar:hover {
@@ -233,8 +266,11 @@
 
 .gantt-bar--dragging {
   z-index: 3;
-  box-shadow: var(--shadow-2);
   filter: brightness(1.1);
+}
+
+.gantt-bar--dragging .gantt-bar__piece {
+  box-shadow: var(--shadow-2);
 }
 
 .gantt-bar__body {
@@ -243,7 +279,8 @@
   align-items: center;
   gap: var(--space-1);
   min-width: 0;
-  padding: 0 var(--space-1);
+  padding: 0 calc(var(--gantt-label-end) + var(--space-1)) 0
+    calc(var(--gantt-label-start) + var(--space-1));
   color: inherit;
   font-size: var(--text-label);
   font-weight: 600;
@@ -261,8 +298,9 @@
   white-space: nowrap;
 }
 
-/* A bar under three days wide puts its title beside itself in the page
-   colour, so a one-day inspection still reads by name. */
+/* A bar whose widest piece is under three days wide puts its title
+   beside itself in the page colour, so a one-day inspection still reads
+   by name. */
 .gantt-bar--narrow .gantt-bar__title {
   position: absolute;
   left: 100%;
@@ -305,9 +343,12 @@
 }
 
 .gantt-bar--complete {
+  color: var(--text-muted);
+}
+
+.gantt-bar--complete .gantt-bar__piece {
   border: 1px solid var(--border-strong);
   background: var(--surface-sunken);
-  color: var(--text-muted);
   box-shadow: none;
 }
 

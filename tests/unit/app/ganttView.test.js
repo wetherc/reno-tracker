@@ -118,6 +118,20 @@ test('bars land on their days and a complete bar is marked', async () => {
   assert.equal(start.getAttribute('aria-label'), 'Start of Demo, Oct 1');
   assert.equal(end.getAttribute('aria-label'), 'End of Demo, Oct 3');
   assert.ok(bars[2].classList.contains('gantt-bar--complete'));
+  // Cabinets runs Thu Oct 8 to Sat Oct 17, so the weekend of Oct 10 is a gap
+  // and the title moves into the six-day piece.
+  assert.deepEqual(
+    bars[2]
+      .querySelectorAll('.gantt-bar__piece')
+      .map((/** @type {any} */ p) => [p.style.left, p.style.width]),
+    [
+      ['0px', '56px'],
+      ['112px', '168px'],
+    ],
+  );
+  assert.equal(bars[2].style['--gantt-label-start'], '112px');
+  assert.equal(bars[2].style['--gantt-label-end'], '0px');
+  assert.ok(!bars[2].classList.contains('gantt-bar--narrow'));
   assert.equal(
     bars[2].querySelector('.gantt-bar__body').children[0].tagName,
     'SVG',
