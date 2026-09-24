@@ -55,6 +55,15 @@ answers 421 to a `Host` header other than `127.0.0.1:<port>` or
 without `Content-Type: application/json` gets 415, because a cross-site
 form can send only other types.
 
+The server sends only the files that the page loads: `index.html`,
+`style.css`, `favicon.svg`, and the files under `styles/` and `src/`
+outside `src/server/`. Every other path gets 404. The check compares
+lower-case names, because APFS on macOS opens `src/server/index.js` for
+`/SRC/Server/index.js`. The server then finds the real path of the file
+on disk and checks that path again. This refuses a symlink that points
+outside the allowed files, and a name such as `src/ſerver` that APFS
+folds to `src/server`.
+
 | Script               | Runs                                                    |
 | -------------------- | ------------------------------------------------------- |
 | `pnpm test`          | the unit and server tests                               |

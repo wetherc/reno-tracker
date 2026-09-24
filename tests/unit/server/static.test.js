@@ -1,12 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdtempSync,
+  mkdirSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
   MIME,
   projectRoot,
+  realFile,
   resolveFile,
   serveStatic,
 } from '../../../src/server/static.js';
@@ -66,11 +75,58 @@ test('resolveFile refuses traversal, hidden trees, dotfiles, and unknown types',
       '/package.json',
       '/pnpm-lock.yaml',
       '/eslint.config.js',
+      '/SRC/server/index.js',
+      '/src/Server/index.js',
+      '/Tests/unit/a.js',
+      '/Node_modules/x.js',
+      '/Data/reno.sqlite',
+      '/lib/a.js',
+      '/styles/.Hidden.css',
+      '/src/types.ts',
     ]) {
       assert.equal(resolveFile(root, path), null, path);
     }
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('resolveFile accepts a client path in another case', () => {
+  const root = makeRoot();
+  try {
+    assert.equal(
+      resolveFile(root, '/Styles/base.css'),
+      join(root, 'Styles', 'base.css'),
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('realFile follows links and checks the path on disk again', () => {
+  const root = makeRoot();
+  const outside = mkdtempSync(join(tmpdir(), 'reno-outside-'));
+  try {
+    writeFileSync(join(outside, 'secret.js'), 'x');
+    symlinkSync(join(outside, 'secret.js'), join(root, 'src', 'out.js'));
+    symlinkSync(join(root, 'src', 'server'), join(root, 'src', 'lib'));
+    const real = realpathSync(root);
+    assert.equal(
+      realFile(root, join(root, 'src', 'main.js')),
+      join(real, 'src', 'main.js'),
+    );
+    assert.equal(realFile(root, join(root, 'src', 'out.js')), null);
+    assert.equal(realFile(root, join(root, 'src', 'lib', 'index.js')), null);
+    assert.equal(realFile(root, join(root, 'src', 'missing.js')), null);
+    // APFS folds the long s to s, so this name opens src/server on macOS
+    // and names no file on a case-sensitive disk.
+    assert.equal(
+      realFile(root, join(root, 'src', '\u017Ferver', 'index.js')),
+      null,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
   }
 });
 
@@ -115,11 +171,21 @@ test('serveStatic streams files with the right headers and 404s the rest', async
     res = await call('/styles');
     assert.equal(res.status, 404);
 
+    mkdirSync(join(root, 'styles', 'dir.css'));
+    res = await call('/styles/dir.css');
+    assert.equal(res.status, 404);
+
     res = await call('/data/reno.sqlite');
     assert.equal(res.status, 404);
 
     res = await call('/src/server/index.js');
     assert.equal(res.status, 404);
+
+    res = await call('/SRC/Server/index.js');
+    assert.equal(res.status, 404);
+
+    chmodSync(join(root, 'src', 'main.js'), 0);
+    await assert.rejects(async () => (await call('/src/main.js')).text());
   } finally {
     await new Promise((r) => server.close(() => r(null)));
     rmSync(root, { recursive: true, force: true });

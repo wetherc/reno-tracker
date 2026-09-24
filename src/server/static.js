@@ -1,8 +1,8 @@
 // Serves the client files under the project root. Only the paths the
 // browser needs are visible; server code, the database, tests, and
 // tooling stay hidden even though they sit in the same tree.
-import { createReadStream, statSync } from 'node:fs';
-import { extname, join, normalize, resolve, sep } from 'node:path';
+import { createReadStream, realpathSync, statSync } from 'node:fs';
+import { extname, join, normalize, relative, resolve, sep } from 'node:path';
 import { requestTarget } from './router.js';
 
 /** @typedef {import('node:http').IncomingMessage} IncomingMessage */
@@ -21,20 +21,24 @@ export const MIME = /** @type {Record<string, string>} */ ({
   '.txt': 'text/plain; charset=utf-8',
 });
 
-// Files in the root that the browser may load. Every other root file,
-// such as package.json, stays hidden. Directories under the root are
-// visible unless listed in HIDDEN.
+// The files in the root and the directories under it that the browser
+// may load. Every other path, such as package.json or tests/, stays
+// hidden. The checks compare lower-cased names, because APFS on macOS
+// finds src/server/index.js under /SRC/Server/index.js.
 const ROOT_FILES = new Set(['index.html', 'style.css', 'favicon.svg']);
-const HIDDEN = new Set([
-  'data',
-  'node_modules',
-  'tests',
-  'scripts',
-  'coverage',
-  'test-results',
-  'playwright-report',
-  'dist',
-]);
+const ROOT_DIRS = new Set(['styles', 'src']);
+
+/**
+ * @param {string[]} segments path parts under the root
+ * @returns {boolean} true when the browser may load the path
+ */
+function isVisible(segments) {
+  const names = segments.map((s) => s.toLowerCase());
+  if (names.some((s) => s.startsWith('.'))) return false;
+  if (names.length === 1) return ROOT_FILES.has(names[0]);
+  if (!ROOT_DIRS.has(names[0])) return false;
+  return !(names[0] === 'src' && names[1] === 'server');
+}
 
 /**
  * Maps a URL path to a file path under root, or returns null when the
@@ -51,21 +55,38 @@ export function resolveFile(root, urlPath) {
     return null;
   }
   if (decoded.includes('\0')) return null;
-  const relative = normalize(decoded === '/' ? '/index.html' : decoded).replace(
+  const path = normalize(decoded === '/' ? '/index.html' : decoded).replace(
     /^[/\\]+/,
     '',
   );
-  const segments = relative.split(/[/\\]/);
-  if (segments.some((s) => s.startsWith('.'))) return null;
-  if (HIDDEN.has(segments[0])) return null;
-  if (segments.length === 1 && !ROOT_FILES.has(segments[0])) return null;
-  if (segments[0] === 'src' && segments[1] === 'server') return null;
-  if (!(extname(relative) in MIME)) return null;
-  const file = resolve(root, relative);
+  if (!isVisible(path.split(/[/\\]/))) return null;
+  if (!(extname(path) in MIME)) return null;
+  const file = resolve(root, path);
   // A drive letter in the first segment can leave the root on Windows.
   /* node:coverage ignore next */
   if (!file.startsWith(resolve(root) + sep)) return null;
   return file;
+}
+
+/**
+ * Follows symlinks and case folding to the file on disk, and checks that
+ * path again. A symlink under src/ can point outside the root, and APFS
+ * finds src/server under names such as src/ſerver that no lower-case
+ * compare matches. `realpathSync.native` returns the name as stored.
+ * @param {string} root
+ * @param {string} file a path that resolveFile accepted
+ * @returns {string | null} the real path, or null when it is hidden
+ */
+export function realFile(root, file) {
+  let real;
+  try {
+    real = realpathSync.native(file);
+  } catch {
+    return null;
+  }
+  const path = relative(realpathSync.native(root), real);
+  if (path.startsWith('..') || !isVisible(path.split(sep))) return null;
+  return real;
 }
 
 /**
@@ -75,16 +96,9 @@ export function resolveFile(root, urlPath) {
 export function serveStatic(root) {
   return (req, res) => {
     const { path } = requestTarget(req);
-    const file = resolveFile(root, path);
-    /** @type {import('node:fs').Stats | null} */
-    let stats = null;
-    if (file) {
-      try {
-        stats = statSync(file);
-      } catch {
-        stats = null;
-      }
-    }
+    const found = resolveFile(root, path);
+    const file = found && realFile(root, found);
+    const stats = file && statSync(file, { throwIfNoEntry: false });
     if (!file || !stats || !stats.isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end(`Not found: ${path}`);
@@ -99,7 +113,11 @@ export function serveStatic(root) {
       res.end();
       return;
     }
-    createReadStream(file).pipe(res);
+    // The headers are out, so a read error such as EACCES can only cut
+    // the response short.
+    createReadStream(file)
+      .on('error', () => res.destroy())
+      .pipe(res);
   };
 }
 
