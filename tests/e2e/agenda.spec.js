@@ -70,6 +70,12 @@ test('the agenda lists days, marks today, filters finished work, and lands on a 
   await agenda.getByRole('checkbox', { name: 'Hide finished' }).check();
   await expect(days).toHaveCount(6);
   await expect(agenda.locator('.agenda-row--complete')).toHaveCount(0);
+  // The choice is kept through a reload.
+  await page.reload();
+  await expect(
+    agenda.getByRole('checkbox', { name: 'Hide finished' }),
+  ).toBeChecked();
+  await expect(days).toHaveCount(6);
   await agenda.getByRole('checkbox', { name: 'Hide finished' }).uncheck();
 
   // A title opens the editor.

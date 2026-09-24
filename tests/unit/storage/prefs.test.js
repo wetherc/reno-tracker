@@ -5,7 +5,17 @@ import {
   createPrefs,
   memoryStorage,
   PREFIX,
+  readSort,
+  sortText,
 } from '../../../src/storage/prefs.js';
+
+test('a sort is kept as key and direction and read back', () => {
+  assert.equal(sortText({ key: 'start', dir: 'desc' }), 'start:desc');
+  assert.deepEqual(readSort('start:desc'), { key: 'start', dir: 'desc' });
+  assert.deepEqual(readSort('title:asc'), { key: 'title', dir: 'asc' });
+  assert.equal(readSort(null), null);
+  assert.equal(readSort('start:up'), null);
+});
 
 test('prefs read, write, and clear under the prefix', () => {
   const store = memoryStorage();

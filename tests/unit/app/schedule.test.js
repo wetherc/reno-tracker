@@ -17,9 +17,15 @@ const dom = installDom();
 /** @param {unknown} el */
 const $ = (el) => /** @type {any} */ (el);
 
-/** @param {Parameters<typeof setupSchedule>[0]} [seed] */
-async function setup(seed) {
+/**
+ * @param {Parameters<typeof setupSchedule>[0]} [seed]
+ * @param {Partial<Record<import('../../../src/storage/prefs.js').PrefKey, string>>} [saved] prefs written before the mount
+ */
+async function setup(seed, saved = {}) {
   const fx = setupSchedule(seed);
+  for (const [key, value] of Object.entries(saved)) {
+    fx.ctx.prefs.write(/** @type {any} */ (key), value);
+  }
   const shell = mountShell({
     sidebar: document.createElement('nav'),
     main: document.createElement('main'),
@@ -289,6 +295,27 @@ test('a chosen sort outlives the rebuild after a write', async () => {
       'aria-sort',
     ),
     'ascending',
+  );
+  assert.equal(ctx.prefs.read('scheduleSort'), 'title:asc');
+});
+
+test('a saved sort opens the table in that order', async () => {
+  const schedule = [
+    itemOf('a', { title: 'Apple', startDate: '2026-10-02' }),
+    itemOf('b', { title: 'Zinc', startDate: '2026-10-05' }),
+  ];
+  const { shell } = await setup({ schedule }, { scheduleSort: 'title:desc' });
+  const titles = rows(shell).map(
+    (/** @type {any} */ r) => r.children[1].textContent,
+  );
+  assert.deepEqual(titles, ['Zinc', 'Apple']);
+  // Unreadable text falls back to date order.
+  const fallback = await setup({ schedule }, { scheduleSort: 'title' });
+  assert.deepEqual(
+    rows(fallback.shell).map(
+      (/** @type {any} */ r) => r.children[1].textContent,
+    ),
+    ['Apple', 'Zinc'],
   );
 });
 

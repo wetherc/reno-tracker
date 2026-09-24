@@ -18,8 +18,11 @@ const dom = installDom();
 const $ = (el) => /** @type {any} */ (el);
 
 /** @param {Parameters<typeof setupSchedule>[0]} [seed] */
-async function setup(seed) {
+async function setup(seed, saved = {}) {
   const fx = setupSchedule(seed);
+  for (const [key, value] of Object.entries(saved)) {
+    fx.ctx.prefs.write(/** @type {any} */ (key), value);
+  }
   const shell = mountShell({
     sidebar: document.createElement('nav'),
     main: document.createElement('main'),
@@ -277,4 +280,21 @@ test('the name opens the editor and a chosen sort outlives a write', async () =>
   await ctx.write((api) => api.setMaterialComplete('m1', true));
   assert.deepEqual(names(), ['Adhesive', 'Zinc strip']);
   assert.equal(heads[1].getAttribute('aria-sort'), 'ascending');
+  assert.equal(ctx.prefs.read('materialsSort'), 'name:asc');
+});
+
+test('a saved sort opens the materials in that order', async () => {
+  const { shell } = await setup(
+    {
+      materials: [
+        materialOf('m1', { name: 'Adhesive' }),
+        materialOf('m2', { name: 'Zinc strip' }),
+      ],
+    },
+    { materialsSort: 'name:desc' },
+  );
+  assert.deepEqual(
+    rows(shell).map((/** @type {any} */ r) => r.children[1].textContent),
+    ['Zinc strip', 'Adhesive'],
+  );
 });

@@ -34,8 +34,9 @@ import { openScheduleEditor } from './scheduleEditor.js';
  * }} focus asks the next draw to scroll to the day that covers a date
  */
 export function agendaView({ ctx }) {
-  // Both choices outlive the rebuild after a write.
-  let hideComplete = false;
+  // Both choices outlive the rebuild after a write. Prefs keep the filter
+  // for the next visit.
+  let hideComplete = ctx.prefs.read('agendaHideFinished') === 'true';
   /** @type {string | null} */
   let pending = null;
 
@@ -79,6 +80,7 @@ export function agendaView({ ctx }) {
       focusKey(box, 'agenda:hide');
       box.addEventListener('change', () => {
         hideComplete = box.checked;
+        ctx.prefs.write('agendaHideFinished', String(hideComplete));
         draw();
       });
       filter.append(box, 'Hide finished');

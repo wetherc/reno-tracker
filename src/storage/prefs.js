@@ -4,7 +4,12 @@
 
 export const PREFIX = 'reno-tracker:';
 
-/** @typedef {'theme' | 'lastProject' | 'lastView' | 'lastSection'} PrefKey */
+/**
+ * @typedef {'theme' | 'lastProject' | 'lastView' | 'lastSection'
+ *   | 'scheduleSort' | 'materialsSort' | 'agendaHideFinished'} PrefKey
+ */
+
+/** @typedef {import('../ui/DataTable.js').SortState} SortState */
 
 /**
  * @typedef {{
@@ -61,6 +66,25 @@ export function createPrefs(storage) {
       }
     },
   };
+}
+
+/**
+ * A table sort is kept as "key:dir", such as "start:desc".
+ * @param {SortState} sort
+ * @returns {string}
+ */
+export function sortText({ key, dir }) {
+  return `${key}:${dir}`;
+}
+
+/**
+ * @param {string | null} value text from sortText
+ * @returns {SortState | null} null when the text is missing or unreadable
+ */
+export function readSort(value) {
+  const match = /^([\w-]+):(asc|desc)$/.exec(value ?? '');
+  if (!match) return null;
+  return { key: match[1], dir: match[2] === 'asc' ? 'asc' : 'desc' };
 }
 
 /** @returns {StorageLike} localStorage when usable, else memory */

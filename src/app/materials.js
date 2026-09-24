@@ -5,6 +5,7 @@
 import { landingDate, materialExpected } from '../costs/timeline.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
+import { readSort, sortText } from '../storage/prefs.js';
 import { bareButton, button } from '../ui/buttons.js';
 import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
@@ -88,9 +89,10 @@ export function mountMaterials({ ctx, shell }) {
   });
   focusKey(addButton, 'add-material');
 
-  // The sort a person picked outlives the rebuild after each write.
+  // The sort a person picked outlives the rebuild after each write, and
+  // prefs keep it for the next visit.
   /** @type {import('../ui/DataTable.js').SortState | null} */
-  let sort = null;
+  let sort = readSort(ctx.prefs.read('materialsSort'));
 
   /** @param {ProjectPayload} payload */
   function buildTable(payload) {
@@ -110,7 +112,10 @@ export function mountMaterials({ ctx, shell }) {
       rowKey: (item) => item.id,
       rowClass: (item) => (item.complete ? 'material-row--complete' : ''),
       sort,
-      onSort: (next) => (sort = next),
+      onSort: (next) => {
+        sort = next;
+        ctx.prefs.write('materialsSort', sortText(next));
+      },
       footer: [
         '',
         'Total',

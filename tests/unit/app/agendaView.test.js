@@ -130,6 +130,12 @@ test('the filter hides finished items and says so when none are left', async () 
   box.dispatchEvent({ type: 'change' });
   assert.equal(view.hideComplete, true);
   assert.equal(el.querySelectorAll('.agenda-day').length, 3);
+  // The choice is saved, and the next agenda opens with it.
+  const { ctx } = await setup(items);
+  ctx.prefs.write('agendaHideFinished', 'true');
+  const again = agendaView({ ctx });
+  assert.equal(again.hideComplete, true);
+  assert.equal(filterBox($(again.render($(ctx.payload)))).checked, true);
   assert.equal(el.querySelectorAll('.agenda-row--complete').length, 0);
   const done = await setup([itemOf('a', { complete: true })]);
   const only = filterBox(done.el);

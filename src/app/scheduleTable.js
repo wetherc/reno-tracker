@@ -3,6 +3,7 @@
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { spanDays, todayIso } from '../schedule/dates.js';
+import { readSort, sortText } from '../storage/prefs.js';
 import { bareButton } from '../ui/buttons.js';
 import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { focusKey } from '../ui/focusKey.js';
@@ -91,9 +92,12 @@ const byText = (a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' });
  */
 export function scheduleTable({ ctx }) {
   // The table opens in date order. The sort a person picks outlives the
-  // rebuild after each write.
+  // rebuild after each write, and prefs keep it for the next visit.
   /** @type {import('../ui/DataTable.js').SortState} */
-  let sort = { key: 'start', dir: 'asc' };
+  let sort = readSort(ctx.prefs.read('scheduleSort')) ?? {
+    key: 'start',
+    dir: 'asc',
+  };
 
   /** @param {ProjectPayload} payload */
   function noteCounts(payload) {
@@ -119,7 +123,10 @@ export function scheduleTable({ ctx }) {
       rowKey: (item) => item.id,
       rowClass: (item) => (item.complete ? 'schedule-row--complete' : ''),
       sort,
-      onSort: (next) => (sort = next),
+      onSort: (next) => {
+        sort = next;
+        ctx.prefs.write('scheduleSort', sortText(next));
+      },
       footer: [
         '',
         'Total',
