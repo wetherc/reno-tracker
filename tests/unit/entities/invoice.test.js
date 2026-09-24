@@ -162,16 +162,7 @@ test('names and totals', () => {
   );
   assert.equal(
     invoiceTotal({
-      lines: [
-        { ...line, id: '1', materialItemId: null, description: '' },
-        {
-          ...line,
-          id: '2',
-          materialItemId: null,
-          description: '',
-          amountCents: 250,
-        },
-      ],
+      lines: [line, { ...line, amountCents: 250 }],
       markupBasisPoints: 0,
     }),
     750,

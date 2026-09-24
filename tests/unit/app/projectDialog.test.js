@@ -23,10 +23,10 @@ const project = {
 /** @param {import('../../../src/ui/Modal.js').ModalHandle} dialog */
 function parts(dialog) {
   const formEl = $(dialog.body.children[0]);
-  const [name, start, budget] = formEl.querySelectorAll('input');
+  const [name, start, budget, markup] = formEl.querySelectorAll('input');
   const [cancel, save] = $(dialog.el.children[2]).children;
   const submit = () => formEl.dispatchEvent({ type: 'submit' });
-  return { formEl, name, start, budget, cancel, save, submit };
+  return { formEl, name, start, budget, markup, cancel, save, submit };
 }
 
 test('a new project dialog defaults to today and a zero budget', () => {
@@ -197,4 +197,35 @@ test('a server field error lands on the field; other errors leave it open', asyn
   await Promise.resolve();
   assert.equal(dialog.el.open, true);
   dialog.close();
+});
+
+test('the markup field reads a percent and keeps its hint linked', async () => {
+  /** @type {any[]} */
+  const saved = [];
+  const dialog = openProjectDialog({
+    project: { ...project, markupBasisPoints: 1500 },
+    async onSave(input) {
+      saved.push(input);
+      return { ok: true, result: undefined };
+    },
+  });
+  const { markup, submit } = parts(dialog);
+  const hint = markup.getAttribute('aria-describedby');
+  assert.equal(markup.value, '15');
+  assert.match(markup.parentNode.textContent, /Added to every estimate/);
+  markup.value = 'lots';
+  submit();
+  await Promise.resolve();
+  const error = markup.parentNode.querySelector('.form__error');
+  assert.equal(
+    error.textContent,
+    'Markup must be a percent from 0 to 100, like 15 or 12.5',
+  );
+  assert.equal(markup.getAttribute('aria-describedby'), `${error.id} ${hint}`);
+  assert.equal(saved.length, 0);
+  markup.value = '12.5';
+  submit();
+  await Promise.resolve();
+  assert.equal(markup.getAttribute('aria-describedby'), hint);
+  assert.equal(saved[0].markupBasisPoints, 1250);
 });

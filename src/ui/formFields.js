@@ -2,6 +2,7 @@
 // element, the control, and setError, which links the message through
 // aria-describedby so a screen reader hears it with the field.
 import { centsToInput, parseMoney } from '../format/money.js';
+import { parsePercent, percentToInput } from '../format/percent.js';
 import { MAX_DATE, MIN_DATE } from '../schedule/dates.js';
 
 /**
@@ -44,6 +45,17 @@ function fieldRow({ id, label, required = false, wide = false }, input) {
   error.id = `${id}-error`;
   error.hidden = true;
   el.append(labelEl, input, error);
+  // A hint that the caller links through aria-describedby stays linked
+  // when the error comes and goes.
+  const hints = () =>
+    (input.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .filter((ref) => ref && ref !== error.id);
+  /** @param {string[]} refs */
+  const describe = (refs) =>
+    refs.length
+      ? input.setAttribute('aria-describedby', refs.join(' '))
+      : input.removeAttribute('aria-describedby');
   return {
     el,
     input,
@@ -52,12 +64,12 @@ function fieldRow({ id, label, required = false, wide = false }, input) {
         error.textContent = message;
         error.hidden = false;
         input.setAttribute('aria-invalid', 'true');
-        input.setAttribute('aria-describedby', error.id);
+        describe([error.id, ...hints()]);
       } else {
         error.textContent = '';
         error.hidden = true;
         input.removeAttribute('aria-invalid');
-        input.removeAttribute('aria-describedby');
+        describe(hints());
       }
     },
   };
@@ -140,6 +152,25 @@ export function moneyField(options) {
       return parseMoney(input.value);
     },
   };
+}
+
+/**
+ * A percent typed as text, such as 12.5. `basisPoints()` reads the value
+ * as whole basis points, or null when the text is not a percent from 0
+ * to 100. A blank field reads as zero.
+ * @param {Omit<FieldOptions, 'value'> & { basisPoints?: number }} options
+ * @returns {FieldHandle & { basisPoints(): number | null }}
+ */
+export function percentField(options) {
+  const input = inputOf('text', {
+    ...options,
+    value: percentToInput(options.basisPoints ?? 0),
+    placeholder: options.placeholder ?? '0',
+  });
+  input.classList.add('form__number');
+  input.setAttribute('inputmode', 'decimal');
+  const handle = fieldRow(options, input);
+  return { ...handle, basisPoints: () => parsePercent(input.value) };
 }
 
 /**

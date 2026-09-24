@@ -5,6 +5,7 @@ import {
   openInvoiceEditor,
   readRow,
   rowValue,
+  totalText,
 } from '../../../src/app/invoiceEditor.js';
 import { MAX_LINES } from '../../../src/entities/invoice.js';
 import { todayIso } from '../../../src/schedule/dates.js';
@@ -334,4 +335,91 @@ test('a changed line asks before the editor closes', async () => {
   $(dom.body.children[1]).children[2].children[1].click();
   await tick();
   assert.equal(again.el.open, false);
+});
+
+test('totalText names the markup only when the rate is above zero', () => {
+  assert.equal(
+    totalText({ subtotalCents: 100, markupCents: 0, markupBasisPoints: 0 }),
+    'Total $1.00',
+  );
+  assert.equal(
+    totalText({
+      subtotalCents: 10_000,
+      markupCents: 1_250,
+      markupBasisPoints: 1_250,
+    }),
+    'Lines $100.00 + 12.5% markup $12.50 = total $112.50',
+  );
+});
+
+test('a new invoice starts at the project markup and saves the typed rate', async () => {
+  const fx = setupSchedule({
+    schedule: [itemOf('a', { title: 'Demo' })],
+    markupBasisPoints: 1500,
+  });
+  await fx.ctx.openProject('p1');
+  const dialog = openInvoiceEditor({ ctx: fx.ctx });
+  const form = $(dialog.el).querySelector('form');
+  const markup = form
+    .querySelector('.invoice-lines__markup')
+    .querySelector('input');
+  const total = form.querySelector('.invoice-lines__total');
+  assert.equal(markup.value, '15');
+  form.querySelectorAll('[type="text"]')[1].value = 'Pinch';
+  const line = parts(lineEls(form)[0]);
+  line.row.value = 'schedule:a';
+  line.amount.value = '1,000';
+  line.amount.dispatchEvent({ type: 'input' });
+  assert.equal(
+    total.textContent,
+    'Lines $1,000.00 + 15% markup $150.00 = total $1,150.00',
+  );
+  markup.value = 'lots';
+  markup.dispatchEvent({ type: 'input' });
+  assert.equal(total.textContent, 'Total $1,000.00');
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.deepEqual(shownErrors(form), [
+    'Markup must be a percent from 0 to 100, like 15 or 12.5',
+  ]);
+  markup.value = '10';
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(fx.invoices()[0].markupBasisPoints, 1000);
+});
+
+test('an invoice opens on its own rate, not the project rate', async () => {
+  const fx = setupSchedule({
+    schedule: [itemOf('a')],
+    invoices: [
+      invoiceOf('i1', {
+        markupBasisPoints: 500,
+        lines: [
+          {
+            id: 'l',
+            scheduleItemId: 'a',
+            materialItemId: null,
+            description: '',
+            amountCents: 2_000,
+          },
+        ],
+      }),
+    ],
+    markupBasisPoints: 1500,
+  });
+  await fx.ctx.openProject('p1');
+  const dialog = openInvoiceEditor({
+    ctx: fx.ctx,
+    invoice: /** @type {any} */ (fx.ctx.payload).invoices[0],
+  });
+  const form = $(dialog.el).querySelector('form');
+  assert.equal(
+    form.querySelector('.invoice-lines__markup').querySelector('input').value,
+    '5',
+  );
+  assert.match(
+    form.querySelector('.payment-list__paid').textContent,
+    /of \$21\.00/,
+  );
+  dialog.close();
 });

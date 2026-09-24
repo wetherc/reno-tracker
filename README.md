@@ -21,8 +21,11 @@ static site on GitHub Pages, where it keeps its data in the browser.
   no estimate counts its allowance as its expected cost.
 - Invoices. Each invoice has a number, the party that sent it, an issue
   day, an optional due day, and one or more lines. Each line bills one
-  schedule item or one material. A billed row's actual cost is the sum
-  of its lines, and its editor shows that sum read only. A row that no
+  schedule item or one material. Each invoice also has a markup rate,
+  the project manager's margin, which starts at the rate set on the
+  project. Its total is the sum of the lines plus that rate, and the
+  editor shows both parts as the lines are typed. A billed row's actual
+  cost is the sum of its lines, and its editor shows that sum read only. A row that no
   line bills keeps the actual price typed on it. A billed row cannot be
   deleted until its lines are gone. An invoice edit writes no row to the
   change log.

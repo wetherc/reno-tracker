@@ -7,6 +7,7 @@ import {
   formActions,
   moneyField,
   numberField,
+  percentField,
   selectField,
   textArea,
   textField,
@@ -88,6 +89,17 @@ test('dateField and numberField set input types and limits', () => {
   assert.equal(num.input.className, 'form__number field');
   const open = numberField({ id: 'n', label: 'N' });
   assert.equal(open.input.getAttribute('min'), null);
+});
+
+test('percentField reads basis points and flags junk', () => {
+  const field = percentField({ id: 'm', label: 'Markup', basisPoints: 1250 });
+  assert.equal($(field.input).value, '12.5');
+  assert.equal($(field.input).placeholder, '0');
+  assert.equal(field.input.getAttribute('inputmode'), 'decimal');
+  assert.equal(field.basisPoints(), 1250);
+  $(field.input).value = '101';
+  assert.equal(field.basisPoints(), null);
+  assert.equal($(percentField({ id: 'n', label: 'Markup' }).input).value, '0');
 });
 
 test('moneyField reads cents and flags junk', () => {

@@ -64,15 +64,26 @@
   grid-column: 2 / -1;
 }
 
+/* Add line on the left, then the markup rate and the running total.
+   Every part sits on the bottom edge of the rate's input, and the total
+   takes the height of a control, so its text lines up with the input
+   text. On a narrow screen the total wraps under the rest. */
 .invoice-lines__footer {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-end;
   gap: var(--space-3);
 }
 
+.invoice-lines__markup {
+  flex: 0 0 7rem;
+  margin-inline-start: auto;
+}
+
 .invoice-lines__total {
+  display: flex;
+  align-items: center;
+  min-height: 2.25rem;
   margin: 0;
   font-weight: 600;
   font-variant-numeric: tabular-nums;

@@ -1,22 +1,26 @@
 // The editor for one invoice. The number, the party, and the two days
 // sit at the top. Under them, each line picks the schedule item or
-// material it bills, an amount, and an optional note. A running total
-// follows the amounts as they are typed. The payments and the retainage
-// come last.
+// material it bills, an amount, and an optional note. The markup rate
+// starts at the project rate. A running total follows the amounts and
+// the rate as they are typed. The payments and the retainage come last.
 import { ApiError } from '../api/errors.js';
 import {
   invoiceErrors,
   invoiceName,
   invoiceNameInSentence as nameInSentence,
+  invoiceMarkup,
+  invoiceSubtotal,
   MAX_LINES,
 } from '../entities/invoice.js';
 import { formatCents } from '../format/money.js';
+import { formatPercent } from '../format/percent.js';
 import { button, iconButton } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
 import {
   dateField,
   form,
   moneyField,
+  percentField,
   selectField,
   textField,
 } from '../ui/formFields.js';
@@ -25,6 +29,7 @@ import { todayIso } from '../schedule/dates.js';
 import { discardGuard } from './discardGuard.js';
 import { PAYMENT_LABELS, paymentList } from './paymentList.js';
 import { showProblems } from './formErrors.js';
+import { MARKUP_MESSAGE } from './projectDialog.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').Invoice} Invoice */
@@ -38,10 +43,23 @@ export const INVOICE_LABELS = {
   party: 'From',
   issuedDate: 'Issued',
   dueDate: 'Due',
+  markupBasisPoints: 'Markup',
   amountCents: 'Amount',
   description: 'Note',
   ...PAYMENT_LABELS,
 };
+
+/**
+ * The running total under the lines. With no markup it names the total
+ * only.
+ * @param {{ subtotalCents: number, markupCents: number, markupBasisPoints: number }} sums
+ * @returns {string}
+ */
+export function totalText({ subtotalCents, markupCents, markupBasisPoints }) {
+  const total = `Total ${formatCents(subtotalCents + markupCents)}`;
+  if (markupBasisPoints === 0) return total;
+  return `Lines ${formatCents(subtotalCents)} + ${formatPercent(markupBasisPoints)} markup ${formatCents(markupCents)} = ${total.toLowerCase()}`;
+}
 
 /** The choice a new line starts on, which bills nothing yet. */
 export const NO_ROW = '';
@@ -116,6 +134,14 @@ export function openInvoiceEditor({ ctx, invoice }) {
     value: invoice?.dueDate ?? '',
   });
   const head = { number, party, issuedDate, dueDate };
+  const markup = percentField({
+    id: `${prefix}-markup`,
+    label: 'Markup (%)',
+    basisPoints:
+      invoice?.markupBasisPoints ?? payload.project.markupBasisPoints,
+    onInput: () => showTotal(),
+  });
+  markup.el.classList.add('invoice-lines__markup');
 
   /**
    * @typedef {{
@@ -222,11 +248,23 @@ export function openInvoiceEditor({ ctx, invoice }) {
     showTotal();
   }
 
-  const linesTotal = () =>
-    lines.reduce((sum, l) => sum + (l.amount.cents() ?? 0), 0);
+  /** The lines and rate as typed, with junk read as zero. */
+  const typed = () => ({
+    markupBasisPoints: markup.basisPoints() ?? 0,
+    lines: lines.map((l) => ({ amountCents: l.amount.cents() ?? 0 })),
+  });
+  const linesTotal = () => {
+    const bill = typed();
+    return invoiceSubtotal(bill) + invoiceMarkup(bill);
+  };
 
   function showTotal() {
-    total.textContent = `Total ${formatCents(linesTotal())}`;
+    const bill = typed();
+    total.textContent = totalText({
+      subtotalCents: invoiceSubtotal(bill),
+      markupCents: invoiceMarkup(bill),
+      markupBasisPoints: bill.markupBasisPoints,
+    });
     payments.update();
   }
 
@@ -241,7 +279,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
   legend.textContent = 'Lines';
   const footer = document.createElement('div');
   footer.className = 'invoice-lines__footer';
-  footer.append(addLine, total);
+  footer.append(addLine, markup.el, total);
   linesSet.append(legend, list, footer);
 
   const formEl = form({
@@ -297,7 +335,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
     actions,
     wide: true,
     beforeClose: discardGuard(
-      head,
+      { ...head, markup },
       () => lineText() !== initialLines || payments.text() !== initialPayments,
     ),
     onClose: () => {
@@ -324,6 +362,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
       fields[`lines.${i}.amountCents`] = line.amount;
       fields[`lines.${i}.description`] = line.note;
     });
+    fields.markupBasisPoints = markup;
     return { ...fields, ...payments.fields() };
   }
 
@@ -336,8 +375,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
       party: party.input.value.trim(),
       issuedDate: issuedDate.input.value,
       dueDate: dueDate.input.value || null,
-      markupBasisPoints:
-        invoice?.markupBasisPoints ?? payload.project.markupBasisPoints,
+      markupBasisPoints: markup.basisPoints() ?? 0,
       lines: lines.map((line, i) => {
         const cents = line.amount.cents();
         if (cents === null) {
@@ -354,6 +392,9 @@ export function openInvoiceEditor({ ctx, invoice }) {
       }),
       ...payments.read(problems),
     };
+    if (markup.basisPoints() === null) {
+      problems.push({ field: 'markupBasisPoints', message: MARKUP_MESSAGE });
+    }
     problems.push(...invoiceErrors(input));
     return showProblems(allFields(), problems, INVOICE_LABELS) ? null : input;
   }

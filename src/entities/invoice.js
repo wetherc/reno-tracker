@@ -21,6 +21,8 @@ import {
 /** @typedef {import('../types.ts').NewInvoice} NewInvoice */
 /** @typedef {import('../types.ts').PaymentInput} PaymentInput */
 /** @typedef {import('./validate.js').FieldError} FieldError */
+/** @typedef {{ lines: { amountCents: number }[] }} Lined */
+/** @typedef {Lined & Pick<Invoice, 'markupBasisPoints'>} Priced */
 
 /** The most lines one invoice takes. */
 export const MAX_LINES = 100;
@@ -356,7 +358,7 @@ export function markupOf(cents, basisPoints) {
  * the running sum through it less that of the lines before it, so the
  * shares add up to the invoice markup and each share is within a cent
  * of the exact rate.
- * @param {Pick<Invoice, 'lines' | 'markupBasisPoints'>} invoice
+ * @param {Priced} invoice
  * @returns {number[]}
  */
 export function lineMarkups(invoice) {
@@ -372,7 +374,7 @@ export function lineMarkups(invoice) {
 }
 
 /**
- * @param {Pick<Invoice, 'lines'>} invoice
+ * @param {Lined} invoice
  * @returns {number} the sum of the lines, before markup
  */
 export function invoiceSubtotal(invoice) {
@@ -380,7 +382,7 @@ export function invoiceSubtotal(invoice) {
 }
 
 /**
- * @param {Pick<Invoice, 'lines' | 'markupBasisPoints'>} invoice
+ * @param {Priced} invoice
  * @returns {number} the markup on the sum of the lines
  */
 export function invoiceMarkup(invoice) {
@@ -388,7 +390,7 @@ export function invoiceMarkup(invoice) {
 }
 
 /**
- * @param {Pick<Invoice, 'lines' | 'markupBasisPoints'>} invoice
+ * @param {Priced} invoice
  * @returns {number} the sum of the lines plus the markup
  */
 export function invoiceTotal(invoice) {

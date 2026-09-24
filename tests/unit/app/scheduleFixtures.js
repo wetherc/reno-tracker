@@ -79,7 +79,7 @@ export function invoiceOf(id, extra = {}) {
 }
 
 /**
- * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[], materials?: MaterialItem[], invoices?: Invoice[] }} [seed]
+ * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[], materials?: MaterialItem[], invoices?: Invoice[], markupBasisPoints?: number }} [seed]
  */
 export function setupSchedule({
   schedule = [],
@@ -88,6 +88,7 @@ export function setupSchedule({
   dependencies = [],
   materials = [],
   invoices = [],
+  markupBasisPoints = 0,
 } = {}) {
   let bills = invoices;
   let items = schedule;
@@ -282,6 +283,7 @@ export function setupSchedule({
     id: 'p1',
     name: 'Kitchen',
     budgetCents: 5000000,
+    markupBasisPoints,
     startDate: '2026-09-01',
     createdAt: '',
   };
