@@ -28,6 +28,24 @@
   color: var(--success);
 }
 
+.schedule-notes {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  min-width: 2rem;
+  min-height: 2rem;
+  margin: calc(-1 * var(--space-1)) 0;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
+}
+
+.schedule-notes:hover {
+  background: var(--surface-sunken);
+  color: var(--accent);
+}
+
 .schedule-title__days {
   white-space: nowrap;
 }

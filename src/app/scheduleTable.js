@@ -239,12 +239,17 @@ export function scheduleTable({ ctx }) {
   /** @param {ScheduleItem} item */
   const days = (item) => spanDays(item.startDate, item.endDate);
 
-  /** @param {ScheduleItem} item @param {number} count */
+  /**
+   * The note count opens the editor on its Notes tab. The button is at
+   * least 32px square, over the 24px target size in WCAG 2.5.8.
+   * @param {ScheduleItem} item @param {number} count
+   */
   function notesCell(item, count) {
     const el = bareButton({
-      className: count === 0 ? 'u-num u-muted' : 'u-num',
-      label: String(count),
-      ariaLabel: `${count} notes on ${item.title}`,
+      className:
+        count === 0 ? 'schedule-notes u-num u-muted' : 'schedule-notes u-num',
+      children: [icon('note'), String(count)],
+      ariaLabel: `${count} ${count === 1 ? 'note' : 'notes'} on ${item.title}`,
       onClick: () => openScheduleEditor({ ctx, item, tab: 'notes' }),
     });
     return focusKey(el, `${item.id}:notes`);

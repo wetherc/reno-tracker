@@ -135,7 +135,7 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
   );
   await dialog.getByRole('button', { name: 'Close' }).click();
   await expect(
-    table.getByRole('button', { name: '1 notes on Rough plumbing' }),
+    table.getByRole('button', { name: '1 note on Rough plumbing' }),
   ).toBeVisible();
 
   // Mark Demo complete.

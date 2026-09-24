@@ -167,11 +167,13 @@ test('the table has one row per item with the planned columns', async () => {
     cabinets.children[9].children[0].getAttribute('aria-label'),
     '2 notes on Cabinets',
   );
-  assert.equal(cabinets.children[9].children[0].className, 'btn-bare u-num');
-  assert.equal(
-    demo.children[9].children[0].className,
-    'btn-bare u-num u-muted',
-  );
+  const count = cabinets.children[9].children[0];
+  assert.equal(count.className, 'btn-bare schedule-notes u-num');
+  assert.equal(count.children[0].tagName, 'SVG');
+  assert.equal(count.textContent, '2');
+  const none = demo.children[9].children[0];
+  assert.equal(none.className, 'btn-bare schedule-notes u-num u-muted');
+  assert.equal(none.getAttribute('aria-label'), '0 notes on Demo');
   assert.equal(
     demo.children[3].className,
     'data-table__td data-table__td--nowrap',
@@ -332,4 +334,23 @@ test('an open item past its end date is marked late', async () => {
       tr.children[1].querySelector('.badge')?.textContent,
   );
   assert.deepEqual(badges, ['Late', undefined, undefined]);
+});
+
+test('one note reads in the singular', async () => {
+  const { shell } = await setup({
+    schedule: [itemOf('a', { title: 'Demo' })],
+    notes: [
+      {
+        id: 'n1',
+        scheduleItemId: 'a',
+        body: 'x',
+        createdAt: '',
+        updatedAt: '',
+      },
+    ],
+  });
+  assert.equal(
+    rows(shell)[0].children[9].children[0].getAttribute('aria-label'),
+    '1 note on Demo',
+  );
 });
