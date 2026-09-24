@@ -95,6 +95,41 @@ test('editing swaps the body for a form and saves', async () => {
   const fresh = ul.children[0];
   assert.equal(fresh.children[1].textContent, 'Newest');
   assert.match(fresh.children[0].children[0].textContent, /edited$/);
+  assert.equal(document.activeElement, fresh.children[0].children[1]);
+});
+
+test('a refetch keeps an open edit and its text', async () => {
+  const { ul, list, ctx } = await setup();
+  const li = ul.children[1];
+  li.children[0].children[1].click();
+  const area = li.children[1].querySelector('textarea');
+  assert.equal(list.dirty(), false);
+  area.value = 'Older, with more';
+  assert.equal(list.dirty(), true);
+  const composer = $(list.el.children[0]);
+  composer.querySelector('textarea').value = 'Grout picked';
+  composer.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(ul.children.length, 3);
+  assert.equal(ul.children[2], li);
+  assert.equal(area.value, 'Older, with more');
+  assert.equal(list.dirty(), true);
+  // An edit whose note is gone is dropped on the next redraw.
+  await ctx.write((api) => api.deleteNote('n1'));
+  assert.equal(ul.children.length, 2);
+  assert.equal(list.dirty(), false);
+  // Its Cancel, clicked late, sends focus to the new-note box.
+  li.children[1].querySelectorAll('button')[0].click();
+  assert.equal(document.activeElement, composer.querySelector('textarea'));
+});
+
+test('a draft in the composer counts as unsaved', async () => {
+  const { list } = await setup();
+  const draft = $(list.el.children[0]).querySelector('textarea');
+  draft.value = '   ';
+  assert.equal(list.dirty(), false);
+  draft.value = 'Call the plumber';
+  assert.equal(list.dirty(), true);
 });
 
 test('cancel restores the body without a write', async () => {
@@ -105,8 +140,10 @@ test('cancel restores the body without a write', async () => {
   const cancel = editor.querySelectorAll('button')[0];
   assert.equal(cancel.textContent, 'Cancel');
   cancel.click();
-  assert.equal(li.children[1].tagName, 'P');
-  assert.equal(li.children[0].hidden, false);
+  const again = ul.children[1];
+  assert.equal(again.children[1].tagName, 'P');
+  assert.equal(again.children[0].hidden, false);
+  assert.equal(document.activeElement, again.children[0].children[1]);
   assert.deepEqual(log, []);
 });
 

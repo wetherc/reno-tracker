@@ -257,3 +257,23 @@ test('closing the project closes an open editor', async () => {
   fx.ctx.closeProject();
   assert.equal(el.open, false);
 });
+
+test('a note draft asks before the editor closes', async () => {
+  const fx = setupSchedule({ schedule: [itemOf('a', { title: 'Demo' })] });
+  await fx.ctx.openProject('p1');
+  const dialog = openScheduleEditor({
+    ctx: fx.ctx,
+    item: fx.items()[0],
+    tab: 'notes',
+  });
+  const el = $(dialog.el);
+  el.querySelector('.notes').querySelector('textarea').value = 'Tile is late';
+  el.children[0].children[1].click();
+  await tick();
+  assert.equal(el.open, true);
+  const ask = $(dom.body.children[1]);
+  assert.equal(ask.children[1].textContent, 'Some edits here are not saved.');
+  ask.children[2].children[1].click();
+  await tick();
+  assert.equal(el.open, false);
+});

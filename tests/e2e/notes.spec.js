@@ -96,9 +96,36 @@ test('the notes section reads every note by day and opens the item', async ({
     .getByRole('dialog', { name: 'Delete this note?' })
     .getByRole('button', { name: 'Delete' })
     .click();
+
+  // An open note edit keeps its text through another write, and Escape
+  // asks before the draft is thrown away.
+  await editor.getByLabel('New note').fill('Inspector booked for the 15th.');
+  await editor.getByRole('button', { name: 'Add note' }).click();
+  await editor.getByRole('button', { name: 'Edit note' }).click();
+  await editor
+    .getByRole('textbox', { name: 'Edit note' })
+    .fill('Inspector moved to the 16th.');
+  await editor.getByLabel('New note').fill('Permit posted.');
+  await editor.getByRole('button', { name: 'Add note' }).click();
+  await expect(editor.locator('.note__body')).toHaveText(['Permit posted.']);
+  await expect(editor.getByRole('textbox', { name: 'Edit note' })).toHaveValue(
+    'Inspector moved to the 16th.',
+  );
+  await page.screenshot({
+    path: 'test-results/notes-open-edit.png',
+    animations: 'disabled',
+  });
+  await page.keyboard.press('Escape');
+  const ask = page.getByRole('dialog', { name: 'Discard changes?' });
+  await ask.getByRole('button', { name: 'Keep editing' }).click();
+  await expect(editor).toBeVisible();
+  await editor.getByRole('button', { name: 'Cancel' }).click();
+  await expect(editor.getByRole('button', { name: 'Edit note' })).toHaveCount(
+    2,
+  );
   await editor.getByRole('button', { name: 'Close' }).click();
   await expect(editor).toBeHidden();
-  await expect(list.locator('.note__body')).toHaveCount(2);
+  await expect(list.locator('.note__body')).toHaveCount(4);
 
   await page.getByRole('radio', { name: 'Dark' }).click();
   await page.screenshot({

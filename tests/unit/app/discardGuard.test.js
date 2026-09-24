@@ -35,3 +35,14 @@ test('an edited form asks, and the answer decides', async () => {
   name.input.value = 'Kitchen';
   assert.equal(await guard(), true);
 });
+
+test('text outside the form counts as an edit', async () => {
+  const name = textField({ id: 'n', label: 'Name', value: 'Kitchen' });
+  let draft = true;
+  const guard = discardGuard({ name }, () => draft);
+  const pending = guard();
+  $(dom.body.children[0]).children[2].children[0].click();
+  assert.equal(await pending, false);
+  draft = false;
+  assert.equal(await guard(), true);
+});

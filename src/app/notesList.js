@@ -1,10 +1,13 @@
 // Notes on one schedule item: a box to write a new one, then the list
 // with edit and delete on each. An edit swaps the body for a textarea in
-// place so the other notes stay in view.
+// place so the other notes stay in view. A refetch redraws the list but
+// keeps the element of each open edit, so another write does not wipe
+// the text being typed.
 import { formatMoment } from '../format/date.js';
 import { button, iconButton } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
 import { emptyState } from '../ui/emptyState.js';
+import { focusKey, keepFocus } from '../ui/focusKey.js';
 import { form, formActions, textArea } from '../ui/formFields.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -13,8 +16,15 @@ import { form, formActions, textArea } from '../ui/formFields.js';
 let counter = 0;
 
 /**
+ * @typedef {object} NotesListHandle
+ * @property {HTMLDivElement} el
+ * @property {(notes: Note[]) => void} update redraws from a new payload
+ * @property {() => boolean} dirty true when a draft or an open edit is unsaved
+ */
+
+/**
  * @param {{ ctx: AppContext, itemId: string, notes: Note[] }} config
- * @returns {{ el: HTMLDivElement, update(notes: Note[]): void }}
+ * @returns {NotesListHandle}
  */
 export function notesList({ ctx, itemId, notes }) {
   const prefix = `notes-${++counter}`;
@@ -34,6 +44,11 @@ export function notesList({ ctx, itemId, notes }) {
   list.className = 'notes__list';
   list.setAttribute('aria-label', 'Notes');
   el.append(composer, list);
+
+  /** @type {Note[]} */
+  let latest = [];
+  /** @type {Map<string, { li: HTMLLIElement, note: Note, text: () => string }>} */
+  const edits = new Map();
 
   async function submitDraft() {
     const body = draft.input.value.trim();
@@ -68,11 +83,14 @@ export function notesList({ ctx, itemId, notes }) {
     body.className = 'note__body';
     body.append(note.body);
 
-    const edit = iconButton({
-      icon: 'pencil',
-      label: 'Edit note',
-      onClick: () => startEdit(li, note, body, meta),
-    });
+    const edit = focusKey(
+      iconButton({
+        icon: 'pencil',
+        label: 'Edit note',
+        onClick: () => startEdit(li, note, body, meta),
+      }),
+      `${note.id}:edit-note`,
+    );
     const remove = iconButton({
       icon: 'trash',
       label: 'Delete note',
@@ -104,6 +122,7 @@ export function notesList({ ctx, itemId, notes }) {
       label: 'Edit note',
       value: note.body,
     });
+    focusKey(field.input, `${note.id}:note-text`);
     const save = button({ label: 'Save', variant: 'primary', type: 'submit' });
     const cancel = button({ label: 'Cancel', onClick: () => restore() });
     const editor = form({
@@ -125,26 +144,54 @@ export function notesList({ ctx, itemId, notes }) {
     editor.append(field.el, formActions([cancel, save]));
     meta.hidden = true;
     body.replaceWith(editor);
+    edits.set(note.id, { li, note, text: () => field.input.value });
     field.input.focus();
 
+    // The list redraws from the newest payload when the edit closes, and
+    // focus goes back to the note's edit button.
     function restore() {
-      editor.replaceWith(body);
-      meta.hidden = false;
+      edits.delete(note.id);
+      draw();
+      const again = /** @type {HTMLElement | null} */ (
+        list.querySelector(`[data-focus="${note.id}:edit-note"]`)
+      );
+      (again ?? draft.input).focus();
     }
   }
 
-  /** @param {Note[]} next */
-  function update(next) {
-    const mine = next.filter((n) => n.scheduleItemId === itemId);
+  function draw() {
+    const mine = latest.filter((n) => n.scheduleItemId === itemId);
     const newestFirst = [...mine].sort((a, b) =>
       b.createdAt.localeCompare(a.createdAt),
     );
-    list.replaceChildren(...newestFirst.map(renderNote));
+    for (const id of edits.keys()) {
+      if (!mine.some((n) => n.id === id)) edits.delete(id);
+    }
+    keepFocus(
+      () =>
+        list.replaceChildren(
+          ...newestFirst.map((n) => edits.get(n.id)?.li ?? renderNote(n)),
+        ),
+      el,
+    );
     list.hidden = mine.length === 0;
     el.querySelector('.empty-state')?.remove();
     if (mine.length === 0) el.append(emptyState('No notes on this item yet.'));
   }
 
+  /** @param {Note[]} next */
+  function update(next) {
+    latest = next;
+    draw();
+  }
+
+  function dirty() {
+    return (
+      draft.input.value.trim() !== '' ||
+      [...edits.values()].some((e) => e.text() !== e.note.body)
+    );
+  }
+
   update(notes);
-  return { el, update };
+  return { el, update, dirty };
 }

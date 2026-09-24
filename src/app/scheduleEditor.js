@@ -220,7 +220,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     body,
     actions,
     wide: editing,
-    beforeClose: discardGuard(fields),
+    beforeClose: discardGuard(fields, () => notes?.dirty() ?? false),
     onClose: () => {
       unsubscribe();
       dialog.el.remove();
