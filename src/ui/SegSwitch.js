@@ -35,7 +35,10 @@ export function segSwitch({ label, options, value, onChange }) {
     btn.setAttribute('role', 'radio');
     if (option.title) btn.title = option.title;
     if (option.icon) btn.append(icon(option.icon));
-    btn.append(option.label);
+    const text = document.createElement('span');
+    text.className = 'seg-switch__text';
+    text.textContent = option.label;
+    btn.append(text);
     btn.addEventListener('click', () => set(option.value));
     btn.addEventListener('keydown', (event) => {
       const step =

@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import { mountViews, readView, VIEWS } from '../../../src/app/views.js';
+import {
+  isNarrow,
+  mountViews,
+  NARROW_QUERY,
+  readView,
+  VIEWS,
+} from '../../../src/app/views.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 
 installDom();
@@ -10,6 +16,38 @@ test('readView falls back to the table', () => {
   assert.equal(readView(null), 'table');
   assert.equal(readView('nope'), 'table');
   assert.equal(readView('gantt'), 'gantt');
+  assert.equal(readView(null, 'agenda'), 'agenda');
+});
+
+test('a narrow screen with no saved view opens the agenda', () => {
+  const prefs = createPrefs(memoryStorage());
+  const onChange = () => {};
+  assert.equal(mountViews({ prefs, narrow: true, onChange }).view, 'agenda');
+  assert.equal(mountViews({ prefs, narrow: false, onChange }).view, 'table');
+  prefs.write('lastView', 'gantt');
+  assert.equal(mountViews({ prefs, narrow: true, onChange }).view, 'gantt');
+});
+
+test('isNarrow asks matchMedia for the breakpoint, and is false without it', () => {
+  const g = /** @type {any} */ (globalThis);
+  assert.equal(g.matchMedia, undefined);
+  assert.equal(isNarrow(), false);
+  /** @type {string[]} */
+  const asked = [];
+  g.matchMedia = (/** @type {string} */ q) => (
+    asked.push(q),
+    { matches: true }
+  );
+  try {
+    assert.equal(isNarrow(), true);
+    assert.equal(
+      mountViews({ prefs: createPrefs(memoryStorage()), onChange() {} }).view,
+      'agenda',
+    );
+    assert.deepEqual(asked, [NARROW_QUERY, NARROW_QUERY]);
+  } finally {
+    delete g.matchMedia;
+  }
 });
 
 test('the switch starts on the saved view and remembers a change', () => {

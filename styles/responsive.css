@@ -16,6 +16,27 @@
     padding: var(--space-3) var(--space-4);
   }
 
+  /* The theme switch shares the brand's line as three icons, and the
+     project picker takes the next line on its own. The words stay for
+     screen readers. */
+  .app__theme {
+    margin-left: auto;
+  }
+
+  .app__picker {
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  .app__theme .seg-switch__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
   .app__sidebar {
     flex-direction: row;
     flex-wrap: wrap;
