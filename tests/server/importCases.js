@@ -130,6 +130,21 @@ export const REFUSED = [
     'schedule',
   ],
   [
+    'a year past the last date',
+    file({
+      schedule: [
+        {
+          id: 'a',
+          title: 'Demo',
+          startDate: '2026-01-05',
+          endDate: '9999-12-31',
+        },
+      ],
+    }),
+    'schedule row 1: endDate must be from 1900-01-01 to 2200-12-31, got "9999-12-31"',
+    'schedule',
+  ],
+  [
     'an end before the start',
     file({
       schedule: [

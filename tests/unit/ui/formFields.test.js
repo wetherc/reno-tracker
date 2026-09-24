@@ -78,6 +78,8 @@ test('textArea is wide by default and reports input', () => {
 test('dateField and numberField set input types and limits', () => {
   const date = dateField({ id: 'start', label: 'Start' });
   assert.equal($(date.input).type, 'date');
+  assert.equal(date.input.getAttribute('min'), '1900-01-01');
+  assert.equal(date.input.getAttribute('max'), '2200-12-31');
   const num = numberField({ id: 'days', label: 'Days', min: 1, max: 30 });
   assert.equal($(num.input).type, 'number');
   assert.equal(num.input.getAttribute('min'), '1');

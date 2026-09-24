@@ -1,7 +1,7 @@
 // Field checks shared by every entity. Each check returns an error
 // message naming the field and the offending value, or null when the
 // value is fine. Routes turn the first message into a 400.
-import { isIsoDate } from '../schedule/dates.js';
+import { isIsoDate, MAX_DATE, MIN_DATE } from '../schedule/dates.js';
 
 /**
  * The value as a message quotes it.
@@ -58,6 +58,9 @@ export function checkCents(field, value) {
 export function checkDate(field, value) {
   if (!isIsoDate(value)) {
     return `${field} must be a date like 2026-03-14, got ${show(value)}`;
+  }
+  if (value < MIN_DATE || value > MAX_DATE) {
+    return `${field} must be from ${MIN_DATE} to ${MAX_DATE}, got ${show(value)}`;
   }
   return null;
 }

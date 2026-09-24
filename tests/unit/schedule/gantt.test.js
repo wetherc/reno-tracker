@@ -144,6 +144,7 @@ test('connectorPath steps down the row boundary when going back', () => {
 test('moveDates keeps one day and returns only changed fields', () => {
   const item = itemOf('a', { startDate: '2026-10-06', endDate: '2026-10-10' });
   assert.deepEqual(moveDates(item, 0, 'both'), {});
+  assert.deepEqual(moveDates(item, 0, 'start'), {});
   assert.deepEqual(moveDates(item, 2, 'both'), {
     startDate: '2026-10-08',
     endDate: '2026-10-12',
@@ -158,6 +159,24 @@ test('moveDates keeps one day and returns only changed fields', () => {
   });
   assert.deepEqual(moveDates(oneDay, 1, 'start'), {});
   assert.deepEqual(moveDates(oneDay, -1, 'end'), {});
+});
+
+test('moveDates stops at the first and last day a date field takes', () => {
+  const late = itemOf('a', { startDate: '2200-12-20', endDate: '2200-12-29' });
+  assert.deepEqual(moveDates(late, 7, 'both'), {
+    startDate: '2200-12-22',
+    endDate: '2200-12-31',
+  });
+  assert.deepEqual(moveDates(late, 7, 'end'), { endDate: '2200-12-31' });
+  const last = itemOf('b', { startDate: '2200-12-25', endDate: '2200-12-31' });
+  assert.deepEqual(moveDates(last, 1, 'both'), {});
+  assert.deepEqual(moveDates(last, 1, 'end'), {});
+  const early = itemOf('c', { startDate: '1900-01-03', endDate: '1900-01-05' });
+  assert.deepEqual(moveDates(early, -7, 'both'), {
+    startDate: '1900-01-01',
+    endDate: '1900-01-03',
+  });
+  assert.deepEqual(moveDates(early, -7, 'start'), { startDate: '1900-01-01' });
 });
 
 test('daysDragged rounds to whole days', () => {

@@ -3,6 +3,22 @@
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
+// The earliest and latest day a date field takes. addDays past 9999-12-31
+// writes a six-digit year that parseDate cannot read, and an item that
+// spans centuries makes eachDay build millions of days.
+export const MIN_DATE = '1900-01-01';
+export const MAX_DATE = '2200-12-31';
+
+/**
+ * The date, moved to MIN_DATE or MAX_DATE when it falls outside them.
+ * @param {string} iso
+ * @returns {string}
+ */
+export function limitDate(iso) {
+  if (iso < MIN_DATE) return MIN_DATE;
+  return iso > MAX_DATE ? MAX_DATE : iso;
+}
+
 /**
  * True when the string is a real calendar date written as YYYY-MM-DD.
  * @param {unknown} value

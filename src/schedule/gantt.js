@@ -6,6 +6,9 @@ import {
   addDays,
   dayOffset,
   eachDay,
+  limitDate,
+  MAX_DATE,
+  MIN_DATE,
   spanDays,
   startOfWeek,
   weekday,
@@ -254,7 +257,9 @@ export function labelPlace({
 /**
  * The date fields that change when one edge of a bar, or the whole bar,
  * moves by a number of days. A single edge never crosses the other one,
- * so an item keeps at least one day. Unchanged fields are left out.
+ * so an item keeps at least one day. No date moves past MIN_DATE or
+ * MAX_DATE, and a whole bar stops when either end reaches one. Unchanged
+ * fields are left out.
  * @param {ScheduleItem} item
  * @param {number} days
  * @param {DragEdge} edge
@@ -263,19 +268,23 @@ export function labelPlace({
 export function moveDates(item, days, edge) {
   /** @type {{ startDate?: string, endDate?: string }} */
   const patch = {};
-  if (days === 0) return patch;
   if (edge === 'both') {
-    patch.startDate = addDays(item.startDate, days);
-    patch.endDate = addDays(item.endDate, days);
+    const least = dayOffset(item.startDate, MIN_DATE);
+    const most = dayOffset(item.endDate, MAX_DATE);
+    const shift = Math.min(Math.max(days, least), most);
+    if (shift === 0) return patch;
+    patch.startDate = addDays(item.startDate, shift);
+    patch.endDate = addDays(item.endDate, shift);
     return patch;
   }
+  if (days === 0) return patch;
   if (edge === 'start') {
-    const moved = addDays(item.startDate, days);
+    const moved = limitDate(addDays(item.startDate, days));
     const next = moved > item.endDate ? item.endDate : moved;
     if (next !== item.startDate) patch.startDate = next;
     return patch;
   }
-  const moved = addDays(item.endDate, days);
+  const moved = limitDate(addDays(item.endDate, days));
   const next = moved < item.startDate ? item.startDate : moved;
   if (next !== item.endDate) patch.endDate = next;
   return patch;

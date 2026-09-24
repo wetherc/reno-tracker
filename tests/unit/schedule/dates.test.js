@@ -7,6 +7,9 @@ import {
   eachDay,
   gapDays,
   isIsoDate,
+  limitDate,
+  MAX_DATE,
+  MIN_DATE,
   monthBounds,
   monthOf,
   parseDate,
@@ -125,4 +128,10 @@ test('sharedDays returns the overlap or null', () => {
     sharedDays({ start: '2026-10-01', end: '2026-10-03' }, week),
     null,
   );
+});
+
+test('limitDate keeps a date between MIN_DATE and MAX_DATE', () => {
+  assert.equal(limitDate('2026-03-14'), '2026-03-14');
+  assert.equal(limitDate('1899-12-31'), MIN_DATE);
+  assert.equal(limitDate('2201-01-01'), MAX_DATE);
 });

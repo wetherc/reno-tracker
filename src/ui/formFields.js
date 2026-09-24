@@ -2,6 +2,7 @@
 // element, the control, and setError, which links the message through
 // aria-describedby so a screen reader hears it with the field.
 import { centsToInput, parseMoney } from '../format/money.js';
+import { MAX_DATE, MIN_DATE } from '../schedule/dates.js';
 
 /**
  * @typedef {{
@@ -95,7 +96,10 @@ export function textArea(options) {
 
 /** @param {FieldOptions} options @returns {FieldHandle} */
 export function dateField(options) {
-  return fieldRow(options, inputOf('date', options));
+  const input = inputOf('date', options);
+  input.setAttribute('min', MIN_DATE);
+  input.setAttribute('max', MAX_DATE);
+  return fieldRow(options, input);
 }
 
 /**

@@ -53,6 +53,16 @@ test('checkCents wants a whole number from zero to MAX_CENTS', () => {
 
 test('checkDate shows the offending value', () => {
   assert.equal(checkDate('startDate', '2026-03-14'), null);
+  assert.equal(checkDate('startDate', '1900-01-01'), null);
+  assert.equal(checkDate('startDate', '2200-12-31'), null);
+  assert.equal(
+    checkDate('startDate', '9999-12-31'),
+    'startDate must be from 1900-01-01 to 2200-12-31, got "9999-12-31"',
+  );
+  assert.equal(
+    checkDate('startDate', '1899-12-31'),
+    'startDate must be from 1900-01-01 to 2200-12-31, got "1899-12-31"',
+  );
   assert.equal(
     checkDate('startDate', '2026-3-14'),
     'startDate must be a date like 2026-03-14, got "2026-3-14"',
