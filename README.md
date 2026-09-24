@@ -62,6 +62,12 @@ static site on GitHub Pages, where it keeps its data in the browser.
   a dot on the line or a bar in the week chart opens a callout with the
   rows that land that day and the running totals, and drops a line from
   the dot to the axis.
+- A markup rate on the project, for the project manager's margin. The
+  schedule, the materials, and each row's editor show base cost. The
+  costs panel adds the markup to every amount. A billed row takes its
+  share of the markup on its invoices, at each invoice's rate, and every
+  other price takes the project rate. A Markup tile shows the margin in
+  the projected total and the base cost under it.
 - Save of a project to a JSON file, and load of that file as a new project.
   A loaded project whose name is taken gets the load day in its name, such
   as "Kitchen (loaded Sep 24)". The picker lists projects by name.
@@ -203,7 +209,9 @@ write while it is open. Export still includes the whole log.
 
 `ctx.openProject` passes each fetched payload through
 `withInvoiceActuals` in `src/costs/invoiced.js`, which sets the actual
-price of every billed row to the sum of its invoice lines. Every view,
+price of every billed row to the sum of its invoice lines. That sum is
+base cost. `costEvents` in `src/costs/timeline.js` adds the markup for
+the costs panel only. Every view,
 chart, and total reads that sum with no code of its own. An editor
 leaves `actualCents` out of the save for a row that is billed when it
 opens or when it saves, so the typed price stays in storage and the

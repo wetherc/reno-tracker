@@ -7,10 +7,15 @@ import {
   landingDate,
   materialExpected,
 } from '../../../src/costs/timeline.js';
-import { itemOf, materialOf } from '../app/scheduleFixtures.js';
+import { invoiceOf, itemOf, materialOf } from '../app/scheduleFixtures.js';
 
 const payload = /** @type {any} */ ({
-  project: { startDate: '2026-09-01', budgetCents: 100000 },
+  project: {
+    startDate: '2026-09-01',
+    budgetCents: 100000,
+    markupBasisPoints: 0,
+  },
+  invoices: [],
   schedule: [
     itemOf('b', {
       endDate: '2026-10-20',
@@ -150,4 +155,48 @@ test('byWeek fills the empty weeks between the first and the last', () => {
     actualCents: 0,
   });
   assert.deepEqual(byWeek([]), []);
+});
+
+test('costEvents adds the invoice rate to billed rows and the project rate elsewhere', () => {
+  const events = costEvents({
+    ...payload,
+    project: { ...payload.project, markupBasisPoints: 1000 },
+    schedule: [
+      itemOf('a', { estimatedCents: 10_000, actualCents: 1, complete: true }),
+      itemOf('b', { endDate: '2026-10-09', estimatedCents: 5_000 }),
+      itemOf('c', { endDate: '2026-10-10', actualCents: 2_000 }),
+    ],
+    materials: [],
+    invoices: [
+      invoiceOf('i', {
+        markupBasisPoints: 2000,
+        lines: [
+          {
+            id: 'l',
+            scheduleItemId: 'a',
+            materialItemId: null,
+            description: '',
+            amountCents: 9_000,
+          },
+        ],
+      }),
+    ],
+  });
+  assert.deepEqual(
+    events.map((e) => [
+      e.id,
+      e.expectedCents,
+      e.expectedMarkupCents,
+      e.actualCents,
+      e.billedCents,
+      e.billedMarkupCents,
+    ]),
+    [
+      // Billed: base from the line, markup at the invoice's 20%.
+      ['a', 11_000, 1_000, 10_800, 10_800, 1_800],
+      ['b', 5_500, 500, null, null, null],
+      // A typed price takes the project rate.
+      ['c', 11_000, 1_000, null, 2_200, 200],
+    ],
+  );
 });

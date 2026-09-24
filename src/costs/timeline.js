@@ -8,7 +8,14 @@
 // "Actual" is the actual price, and only a row marked complete counts
 // toward it. "Billed" is the actual price on any row, complete or not,
 // and the projected total uses it.
+// Every amount here adds the project manager's markup to the base cost
+// that the row keeps. A billed row adds its share of the markup on its
+// invoices, at each invoice's rate. Every other price adds the project
+// rate, so an estimate compares with the budget the same way an invoice
+// does.
+import { markupOf } from '../entities/invoice.js';
 import { addDays, startOfWeek } from '../schedule/dates.js';
+import { billings } from './invoiced.js';
 
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
@@ -20,9 +27,11 @@ import { addDays, startOfWeek } from '../schedule/dates.js';
  * @property {string} title
  * @property {string} date YYYY-MM-DD, the day the cost lands
  * @property {boolean} complete
- * @property {number} expectedCents the estimate
- * @property {number | null} actualCents the price paid, once the row is complete
- * @property {number | null} billedCents the price entered, complete or not
+ * @property {number} expectedCents the estimate, with markup
+ * @property {number} expectedMarkupCents the markup part of expectedCents
+ * @property {number | null} actualCents the price paid with markup, once the row is complete
+ * @property {number | null} billedCents the price entered with markup, complete or not
+ * @property {number | null} billedMarkupCents the markup part of billedCents
  */
 
 /** @typedef {{ date: string, cents: number }} SeriesPoint */
@@ -62,6 +71,33 @@ export function landingDate(item, payload) {
  * @returns {CostEvent[]}
  */
 export function costEvents(payload) {
+  const rate = payload.project.markupBasisPoints;
+  const byRow = billings(payload.invoices);
+  /**
+   * The price fields of one row, with markup.
+   * @param {{ id: string, complete: boolean, actualCents: number | null }} row
+   * @param {number} expected the base estimate
+   */
+  const prices = (row, expected) => {
+    const expectedMarkupCents = markupOf(expected, rate);
+    const billing = byRow.get(row.id);
+    const base = billing ? billing.cents : row.actualCents;
+    const billedMarkupCents = billing
+      ? billing.markupCents
+      : base === null
+        ? null
+        : markupOf(base, rate);
+    const billedCents =
+      base === null ? null : base + /** @type {number} */ (billedMarkupCents);
+    return {
+      complete: row.complete,
+      expectedCents: expected + expectedMarkupCents,
+      expectedMarkupCents,
+      actualCents: row.complete ? billedCents : null,
+      billedCents,
+      billedMarkupCents,
+    };
+  };
   /** @type {CostEvent[]} */
   const events = [];
   for (const item of payload.schedule) {
@@ -70,10 +106,7 @@ export function costEvents(payload) {
       source: 'schedule',
       title: item.title,
       date: item.endDate,
-      complete: item.complete,
-      expectedCents: item.estimatedCents,
-      actualCents: item.complete ? item.actualCents : null,
-      billedCents: item.actualCents,
+      ...prices(item, item.estimatedCents),
     });
   }
   for (const item of payload.materials) {
@@ -82,10 +115,7 @@ export function costEvents(payload) {
       source: 'material',
       title: item.name,
       date: landingDate(item, payload).date,
-      complete: item.complete,
-      expectedCents: materialExpected(item),
-      actualCents: item.complete ? item.actualCents : null,
-      billedCents: item.actualCents,
+      ...prices(item, materialExpected(item)),
     });
   }
   return events.sort((a, b) => a.date.localeCompare(b.date));

@@ -7,7 +7,9 @@
 // budget less the projected total, so it goes negative when the project
 // is set to run over. Accrued is the estimate on every complete row that
 // has no actual price yet: work done or goods received, but no invoice
-// entered, so the money is owed but not counted in Spent.
+// entered, so the money is owed but not counted in Spent. Every number
+// includes the markup. Markup is the part of the projected total that is
+// the project manager's margin, and the rest is base cost.
 
 /** @typedef {import('./timeline.js').CostEvent} CostEvent */
 
@@ -20,6 +22,7 @@
  * @property {number} headroomCents budget less projected, negative when over
  * @property {number} accruedCents estimates on complete rows with no actual price
  * @property {number} accruedCount how many rows make up accruedCents
+ * @property {number} markupCents the markup part of projectedCents
  */
 
 /**
@@ -33,10 +36,12 @@ export function costSummary(events, budgetCents) {
   let projectedCents = 0;
   let accruedCents = 0;
   let accruedCount = 0;
+  let markupCents = 0;
   for (const event of events) {
     committedCents += event.expectedCents;
     if (event.actualCents !== null) spentCents += event.actualCents;
     projectedCents += event.billedCents ?? event.expectedCents;
+    markupCents += event.billedMarkupCents ?? event.expectedMarkupCents;
     if (event.complete && event.actualCents === null) {
       accruedCents += event.expectedCents;
       accruedCount += 1;
@@ -50,5 +55,6 @@ export function costSummary(events, budgetCents) {
     headroomCents: budgetCents - projectedCents,
     accruedCents,
     accruedCount,
+    markupCents,
   };
 }

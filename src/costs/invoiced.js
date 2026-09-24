@@ -2,7 +2,11 @@
 // item or material that some line bills costs the sum of its lines. A
 // row that no line bills keeps the actual price typed on it. The client
 // applies this once to each payload it fetches, so every table, chart,
-// and total reads the billed sum as the row's actual price.
+// and total reads the billed sum as the row's actual price. That price
+// is base cost. Each row's share of its invoices' markup is kept apart,
+// and only the costs panel adds it.
+import { lineMarkups } from '../entities/invoice.js';
+import { formatCents } from '../format/money.js';
 
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /** @typedef {import('../types.ts').Invoice} Invoice */
@@ -10,6 +14,7 @@
 /**
  * @typedef {object} Billing
  * @property {number} cents the sum of the lines
+ * @property {number} markupCents the row's share of the markup on those lines
  * @property {number} lines how many lines bill the row
  * @property {Invoice} first the invoice with the earliest issue day
  */
@@ -27,18 +32,25 @@ export function billings(invoices) {
     a.issuedDate.localeCompare(b.issuedDate),
   );
   for (const invoice of ordered) {
-    for (const line of invoice.lines) {
+    const markups = lineMarkups(invoice);
+    invoice.lines.forEach((line, i) => {
       const id = /** @type {string} */ (
         line.scheduleItemId ?? line.materialItemId
       );
       const seen = byRow.get(id);
       if (seen) {
         seen.cents += line.amountCents;
+        seen.markupCents += markups[i];
         seen.lines += 1;
       } else {
-        byRow.set(id, { cents: line.amountCents, lines: 1, first: invoice });
+        byRow.set(id, {
+          cents: line.amountCents,
+          markupCents: markups[i],
+          lines: 1,
+          first: invoice,
+        });
       }
-    }
+    });
   }
   return byRow;
 }
@@ -74,7 +86,11 @@ export function withInvoiceActuals(payload) {
  * @returns {string}
  */
 export function billedHint(billing) {
-  return billing.lines === 1
-    ? 'The sum of 1 invoice line'
-    : `The sum of ${billing.lines} invoice lines`;
+  const sum =
+    billing.lines === 1
+      ? 'The sum of 1 invoice line'
+      : `The sum of ${billing.lines} invoice lines`;
+  return billing.markupCents === 0
+    ? sum
+    : `${sum}, before ${formatCents(billing.markupCents)} markup`;
 }

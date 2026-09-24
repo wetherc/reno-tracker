@@ -13,8 +13,10 @@ const event = (extra) => ({
   date: '2026-10-01',
   complete: false,
   expectedCents: 1000,
+  expectedMarkupCents: 0,
   actualCents: null,
   billedCents: null,
+  billedMarkupCents: null,
   ...extra,
 });
 
@@ -40,6 +42,7 @@ test('costSummary adds up committed, spent, projected, and headroom', () => {
     headroomCents: 7300,
     accruedCents: 700,
     accruedCount: 1,
+    markupCents: 0,
   });
 });
 
@@ -57,6 +60,7 @@ test('costSummary on an empty project is all zero but the budget', () => {
     headroomCents: 50000,
     accruedCents: 0,
     accruedCount: 0,
+    markupCents: 0,
   });
 });
 
@@ -68,4 +72,21 @@ test('costSummary projects an entered price on a row not marked complete', () =>
   assert.equal(summary.spentCents, 0);
   assert.equal(summary.projectedCents, 500000);
   assert.equal(summary.headroomCents, 500000);
+});
+
+test('costSummary counts the billed markup where billed, else the estimated one', () => {
+  const summary = costSummary(
+    [
+      event({
+        expectedCents: 1_100,
+        expectedMarkupCents: 100,
+        billedCents: 1_380,
+        billedMarkupCents: 180,
+      }),
+      event({ expectedCents: 550, expectedMarkupCents: 50 }),
+    ],
+    0,
+  );
+  assert.equal(summary.projectedCents, 1_930);
+  assert.equal(summary.markupCents, 230);
 });

@@ -85,8 +85,10 @@ test('summaryTiles names the six numbers and flips the headroom tile when over',
           date: '2026-10-01',
           complete: true,
           expectedCents: 10000,
+          expectedMarkupCents: 0,
           actualCents: 12000,
           billedCents: 12000,
+          billedMarkupCents: 0,
         },
       ],
       50000,
@@ -111,6 +113,15 @@ test('summaryTiles names the six numbers and flips the headroom tile when over',
     materialsNote({ ...done, materialsUninvoiced: 0 }),
     '2 of 2 bought',
   );
+  const marked = summaryTiles(
+    { ...costSummary([], 0), projectedCents: 11_500, markupCents: 1_500 },
+    done,
+  );
+  assert.deepEqual(
+    [marked[4].label, marked[4].value, marked[4].note],
+    ['Markup', '$15.00', 'in the projected total, on $100.00 base cost'],
+  );
+  assert.equal(marked.length, 7);
   const over = summaryTiles(costSummary([], -5000), done);
   assert.equal(over[3].label, 'Over budget');
   assert.equal(over[3].value, '$50.00');
@@ -396,4 +407,30 @@ test('mountCosts sums the finished rows that have no actual price yet', async ()
       '1 finished row with no actual yet' +
       '$3,525.00',
   );
+});
+
+test('mountCosts adds the project markup and says so under the line items', async () => {
+  const { shell } = await setup({
+    schedule: [itemOf('a', { title: 'Demo', estimatedCents: 100000 })],
+    markupBasisPoints: 1500,
+  });
+  const tile = $(shell.body)
+    .querySelectorAll('.cost-tile')
+    .map((/** @type {any} */ t) => t.textContent)
+    .find((/** @type {string} */ t) => t.startsWith('Markup'));
+  assert.equal(
+    tile,
+    'Markup$150.00in the projected total, on $1,000.00 base cost',
+  );
+  assert.match(
+    $(shell.body.querySelector('.cost-markup-note')).textContent,
+    /^Every estimate and actual here includes the markup/,
+  );
+});
+
+test('mountCosts has no markup tile or note with no markup', async () => {
+  const { shell } = await setup({
+    schedule: [itemOf('a', { estimatedCents: 100000 })],
+  });
+  assert.equal(shell.body.querySelector('.cost-markup-note'), null);
 });

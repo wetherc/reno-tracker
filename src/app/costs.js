@@ -1,5 +1,6 @@
 // The costs section: six summary tiles over two charts and the list
-// of every line item. The tiles are also the legend. Budget, Committed,
+// of every line item, plus a Markup tile when the project has any
+// markup. The tiles are also the legend. Budget, Committed,
 // and Spent each show the mark of the line that draws them, so the
 // chart needs no key of its own. The line items table is the data
 // behind the cumulative chart, and the week chart has a visually
@@ -90,6 +91,15 @@ export function summaryTiles(summary, progress) {
       note: `budget minus ${formatCents(summary.projectedCents)} projected`,
       over,
     },
+    ...(summary.markupCents > 0
+      ? [
+          {
+            label: 'Markup',
+            value: formatCents(summary.markupCents),
+            note: `in the projected total, on ${formatCents(summary.projectedCents - summary.markupCents)} base cost`,
+          },
+        ]
+      : []),
     {
       label: 'Work done',
       value: `${progress.percentWork}%`,
@@ -289,7 +299,7 @@ export function mountCosts({ ctx, shell }) {
         weekTable(weeks),
         weekLegend(),
       ),
-      listCard('Line items', items.el, accruedLine(summary)),
+      listCard('Line items', items.el, accruedLine(summary), summary),
     );
     shell.setBody(root);
   }
@@ -384,14 +394,22 @@ function chartCard(heading, svg, targets, twin, legend) {
 /**
  * @param {string} heading
  * @param {HTMLTableElement} table
- * @param {HTMLElement} summary a line under the table
+ * @param {HTMLElement} line a line under the table
+ * @param {CostSummary} summary
  */
-function listCard(heading, table, summary) {
+function listCard(heading, table, line, summary) {
   const card = document.createElement('section');
   card.className = 'card cost-card cost-card--list';
   const title = document.createElement('h2');
   title.className = 'card__title';
   title.textContent = heading;
-  card.append(title, tableScroll(table), summary);
+  card.append(title, tableScroll(table), line);
+  if (summary.markupCents > 0) {
+    const note = document.createElement('p');
+    note.className = 'cost-markup-note u-muted';
+    note.textContent =
+      'Every estimate and actual here includes the markup. The schedule and materials show base cost.';
+    card.append(note);
+  }
   return card;
 }

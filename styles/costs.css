@@ -457,6 +457,12 @@
   font-size: var(--text-label);
 }
 
+.cost-markup-note {
+  margin: var(--space-2) 0 0;
+  padding: 0 var(--space-3);
+  font-size: var(--text-label);
+}
+
 .cost-item {
   font-weight: 600;
   text-align: left;
