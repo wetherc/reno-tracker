@@ -147,6 +147,17 @@ export interface ExportFile {
   materials: MaterialItem[];
 }
 
+// The rows of an export file after the import check. Ids are the ones
+// the file uses. Each backend swaps them for fresh ids as it inserts.
+export interface ImportRows {
+  project: Pick<Project, 'name' | 'budgetCents' | 'startDate'>;
+  schedule: Omit<ScheduleItem, 'projectId'>[];
+  dependencies: Pick<Dependency, 'predecessorId' | 'successorId'>[];
+  variances: Omit<Variance, 'id'>[];
+  notes: Omit<Note, 'id'>[];
+  materials: Omit<MaterialItem, 'id' | 'projectId'>[];
+}
+
 export interface ApiErrorBody {
   error: string;
   field?: string;

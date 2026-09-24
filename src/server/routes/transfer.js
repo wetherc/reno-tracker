@@ -1,18 +1,18 @@
-// Export writes one project as a JSON file. Import reads that file and
-// creates a new project with fresh ids, so a file can be loaded twice
-// without colliding with the project it came from.
+// Export writes one project as a JSON file. Import checks that file
+// through checkImport and creates a new project with fresh ids, so a
+// file can be loaded twice without colliding with the project it came
+// from.
 import { randomUUID } from 'node:crypto';
 import { withTransaction } from '../db/open.js';
 import { badRequest } from '../errors.js';
 import { createProject, getProjectPayload } from '../repo/projects.js';
 import { now } from '../repo/rows.js';
-import { asObject } from './input.js';
+import { checkImport, EXPORT_FORMAT } from '../../entities/importFile.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
 /** @typedef {import('../router.js').Router} Router */
 /** @typedef {import('../../types.ts').ExportFile} ExportFile */
-
-export const EXPORT_FORMAT = 'reno-tracker/1';
+/** @typedef {import('../../types.ts').ImportRows} ImportRows */
 
 /**
  * @param {Database} db
@@ -28,80 +28,40 @@ export function exportProject(db, id) {
 }
 
 /**
- * @param {unknown} body
- * @returns {ExportFile}
- */
-function readExportFile(body) {
-  const input = asObject(body);
-  if (input.format !== EXPORT_FORMAT) {
-    throw badRequest(`format must be "${EXPORT_FORMAT}"`, 'format');
-  }
-  const project = asObject(input.project);
-  if (
-    typeof project.name !== 'string' ||
-    typeof project.startDate !== 'string'
-  ) {
-    throw badRequest('project needs a name and a startDate', 'project');
-  }
-  for (const key of [
-    'schedule',
-    'dependencies',
-    'variances',
-    'notes',
-    'materials',
-  ]) {
-    if (!Array.isArray(input[key]))
-      throw badRequest(`${key} must be a list`, key);
-  }
-  return /** @type {ExportFile} */ (/** @type {unknown} */ (input));
-}
-
-/**
- * Inserts every row of the file under a new project id. Row ids are
- * remapped through one table so links between rows stay intact.
+ * Inserts the checked rows under a new project id. Row ids are remapped
+ * through one table so links between rows stay intact.
  * @param {Database} db
- * @param {ExportFile} file
+ * @param {ImportRows} file
  * @returns {import('../../types.ts').ProjectPayload}
  */
 export function importProject(db, file) {
   return withTransaction(db, () => {
-    const project = createProject(db, {
-      name: file.project.name,
-      budgetCents: Number(file.project.budgetCents) || 0,
-      startDate: file.project.startDate,
-    });
+    const project = createProject(db, file.project);
     /** @type {Map<string, string>} */
-    const ids = new Map();
+    const ids = new Map(file.schedule.map((s) => [s.id, randomUUID()]));
     /** @param {string} old */
-    const fresh = (old) => {
-      const id = randomUUID();
-      ids.set(old, id);
-      return id;
-    };
-    /** @param {string | null} old */
-    const mapped = (old) =>
-      old === null || old === undefined ? null : (ids.get(old) ?? null);
+    const mapped = (old) => /** @type {string} */ (ids.get(old));
 
     const item = db.prepare(
       `INSERT INTO schedule_items (id, projectId, title, description, startDate, endDate,
          responsibleParty, estimatedCents, actualCents, complete, sortOrder)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-    file.schedule.forEach((s, i) =>
+    for (const s of file.schedule) {
       item.run(
-        fresh(s.id),
+        mapped(s.id),
         project.id,
         s.title,
-        s.description ?? '',
+        s.description,
         s.startDate,
         s.endDate,
-        s.responsibleParty ?? '',
-        s.estimatedCents ?? 0,
-        s.actualCents ?? null,
-        Number(Boolean(s.complete)),
-        s.sortOrder ?? i,
-      ),
-    );
+        s.responsibleParty,
+        s.estimatedCents,
+        s.actualCents,
+        Number(s.complete),
+        s.sortOrder,
+      );
+    }
     const dep = db.prepare(
       'INSERT INTO dependencies (id, projectId, predecessorId, successorId) VALUES (?, ?, ?, ?)',
     );
@@ -123,9 +83,9 @@ export function importProject(db, file) {
         mapped(v.scheduleItemId),
         v.kind,
         v.field,
-        v.oldValue ?? null,
-        v.newValue ?? null,
-        v.reason ?? '',
+        v.oldValue,
+        v.newValue,
+        v.reason,
         v.loggedAt,
       );
     }
@@ -146,22 +106,27 @@ export function importProject(db, file) {
          estimatedCents, actualCents, complete, expectedDate, sortOrder)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-    file.materials.forEach((m, i) =>
+    for (const m of file.materials) {
       material.run(
         randomUUID(),
         project.id,
-        mapped(m.scheduleItemId),
+        m.scheduleItemId === null ? null : mapped(m.scheduleItemId),
         m.name,
-        m.allowanceCents ?? 0,
-        m.estimatedCents ?? 0,
-        m.actualCents ?? null,
-        Number(Boolean(m.complete)),
-        m.expectedDate ?? null,
-        m.sortOrder ?? i,
-      ),
-    );
+        m.allowanceCents,
+        m.estimatedCents,
+        m.actualCents,
+        Number(m.complete),
+        m.expectedDate,
+        m.sortOrder,
+      );
+    }
     return getProjectPayload(db, project.id);
   });
+}
+
+/** @type {import('../../entities/importFile.js').Fail} */
+function fail(error) {
+  throw badRequest(error.message, error.field || undefined);
 }
 
 /**
@@ -173,6 +138,6 @@ export function transferRoutes(router, db) {
     exportProject(db, params.id),
   );
   router.post('/api/projects/import', ({ body }) =>
-    importProject(db, readExportFile(body)),
+    importProject(db, checkImport(body, fail)),
   );
 }

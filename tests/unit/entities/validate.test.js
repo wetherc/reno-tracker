@@ -5,6 +5,7 @@ import {
   checkCents,
   checkDate,
   checkText,
+  checkTimestamp,
   firstError,
   MAX_CENTS,
   nullable,
@@ -84,4 +85,17 @@ test('firstError skips absent optional fields and demands required ones', () => 
     field: 'a',
     message: 'a must be whole cents, zero or more, got -1',
   });
+});
+
+test('checkTimestamp wants a full ISO time with a zone', () => {
+  assert.equal(checkTimestamp('loggedAt', '2026-03-14T09:30:00.000Z'), null);
+  assert.equal(checkTimestamp('loggedAt', '2026-03-14T09:30-05:00'), null);
+  for (const bad of [
+    '2026-03-14',
+    '2026-03-14T09:30:00',
+    '2026-02-30T25:00Z',
+    5,
+  ]) {
+    assert.match(checkTimestamp('loggedAt', bad) ?? '', /must be a time like/);
+  }
 });

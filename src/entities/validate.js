@@ -4,10 +4,11 @@
 import { isIsoDate } from '../schedule/dates.js';
 
 /**
+ * The value as a message quotes it.
  * @param {unknown} value
  * @returns {string}
  */
-function show(value) {
+export function show(value) {
   return JSON.stringify(value) ?? String(value);
 }
 
@@ -57,6 +58,26 @@ export function checkCents(field, value) {
 export function checkDate(field, value) {
   if (!isIsoDate(value)) {
     return `${field} must be a date like 2026-03-14, got ${show(value)}`;
+  }
+  return null;
+}
+
+const ISO_TIMESTAMP =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * A full ISO 8601 time with a zone, as toISOString writes it.
+ * @param {string} field
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+export function checkTimestamp(field, value) {
+  if (
+    typeof value !== 'string' ||
+    !ISO_TIMESTAMP.test(value) ||
+    Number.isNaN(Date.parse(value))
+  ) {
+    return `${field} must be a time like 2026-03-14T09:30:00.000Z, got ${show(value)}`;
   }
   return null;
 }
