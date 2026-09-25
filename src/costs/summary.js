@@ -1,9 +1,11 @@
 // The money numbers at the top of the costs panel. Committed is every
 // estimate added up. Spent is every actual price on a complete row.
-// Projected is the total the project is heading for: the actual price
-// where one is entered, on a complete row or not, and the estimate
-// everywhere else. An invoice entered before the box is ticked already
-// fixes that cost. Headroom is the
+// Projected is the total the project is heading for. A complete row
+// counts its actual price when one is entered. An open row counts the
+// larger of its actual price and its estimate, because a first invoice
+// on an open row is often a deposit or a part payment, and the rest of
+// the estimate is still to come. A price above the estimate counts at
+// once, so an overrun shows before the box is ticked. Headroom is the
 // budget less the projected total, so it goes negative when the project
 // is set to run over. Accrued is the estimate on every complete row that
 // has no actual price yet: work done or goods received, but no invoice
@@ -18,7 +20,7 @@
  * @property {number} budgetCents
  * @property {number} committedCents every estimate added up
  * @property {number} spentCents every actual price on a complete row
- * @property {number} projectedCents billed price where entered, else estimate
+ * @property {number} projectedCents billed price on a complete row, the larger of billed and estimate on an open one
  * @property {number} headroomCents budget less projected, negative when over
  * @property {number} accruedCents estimates on complete rows with no actual price
  * @property {number} accruedCount how many rows make up accruedCents
@@ -40,8 +42,9 @@ export function costSummary(events, budgetCents) {
   for (const event of events) {
     committedCents += event.expectedCents;
     if (event.actualCents !== null) spentCents += event.actualCents;
-    projectedCents += event.billedCents ?? event.expectedCents;
-    markupCents += event.billedMarkupCents ?? event.expectedMarkupCents;
+    const counted = projected(event);
+    projectedCents += counted.cents;
+    markupCents += counted.markupCents;
     if (event.complete && event.actualCents === null) {
       accruedCents += event.expectedCents;
       accruedCount += 1;
@@ -57,4 +60,24 @@ export function costSummary(events, budgetCents) {
     accruedCount,
     markupCents,
   };
+}
+
+/**
+ * The amount one row adds to the projected total, and its markup part.
+ * @param {CostEvent} event
+ * @returns {{ cents: number, markupCents: number }}
+ */
+function projected(event) {
+  const { billedCents, billedMarkupCents } = event;
+  if (
+    billedCents === null ||
+    billedMarkupCents === null ||
+    (!event.complete && billedCents < event.expectedCents)
+  ) {
+    return {
+      cents: event.expectedCents,
+      markupCents: event.expectedMarkupCents,
+    };
+  }
+  return { cents: billedCents, markupCents: billedMarkupCents };
 }

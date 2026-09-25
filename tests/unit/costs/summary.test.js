@@ -27,6 +27,7 @@ test('costSummary adds up committed, spent, projected, and headroom', () => {
         expectedCents: 10000,
         actualCents: 12000,
         billedCents: 12000,
+        billedMarkupCents: 0,
         complete: true,
       }),
       event({ expectedCents: 30000 }),
@@ -66,12 +67,43 @@ test('costSummary on an empty project is all zero but the budget', () => {
 
 test('costSummary projects an entered price on a row not marked complete', () => {
   const summary = costSummary(
-    [event({ expectedCents: 300000, billedCents: 500000 })],
+    [
+      event({
+        expectedCents: 300000,
+        billedCents: 500000,
+        billedMarkupCents: 0,
+      }),
+    ],
     1000000,
   );
   assert.equal(summary.spentCents, 0);
   assert.equal(summary.projectedCents, 500000);
   assert.equal(summary.headroomCents, 500000);
+});
+
+test('costSummary keeps the estimate on an open row billed below it', () => {
+  const summary = costSummary(
+    [
+      event({
+        expectedCents: 5_000,
+        expectedMarkupCents: 1_000,
+        billedCents: 1_250,
+        billedMarkupCents: 250,
+      }),
+      event({
+        complete: true,
+        expectedCents: 5_000,
+        expectedMarkupCents: 1_000,
+        actualCents: 1_250,
+        billedCents: 1_250,
+        billedMarkupCents: 250,
+      }),
+    ],
+    20_000,
+  );
+  assert.equal(summary.projectedCents, 6_250);
+  assert.equal(summary.markupCents, 1_250);
+  assert.equal(summary.headroomCents, 13_750);
 });
 
 test('costSummary counts the billed markup where billed, else the estimated one', () => {
