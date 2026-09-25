@@ -1,6 +1,7 @@
-// The costs section: six summary tiles over two charts and the list
-// of every line item, plus a Markup tile when the project has any
-// markup. The tiles are also the legend. Budget, Committed,
+// The costs section: seven summary tiles over two charts and the list
+// of every line item. Budget less Projected is the headroom, and the
+// Projected tile splits its total into base cost and markup, so the
+// tiles add up. The tiles are also the legend. Budget, Committed,
 // and Spent each show the mark of the line that draws them, so the
 // chart needs no key of its own. The line items table is the data
 // behind the cumulative chart, and the week chart has a visually
@@ -76,7 +77,7 @@ export function summaryTiles(summary, progress) {
     {
       label: 'Committed',
       value: formatCents(summary.committedCents),
-      note: 'every estimate',
+      note: 'every estimate, before invoices',
       mark: 'expected',
     },
     {
@@ -86,20 +87,19 @@ export function summaryTiles(summary, progress) {
       mark: 'actual',
     },
     {
+      label: 'Projected',
+      value: formatCents(summary.projectedCents),
+      note:
+        summary.markupCents > 0
+          ? `${formatCents(summary.projectedCents - summary.markupCents)} base + ${formatCents(summary.markupCents)} markup`
+          : 'invoiced price, else estimate',
+    },
+    {
       label: over ? 'Over budget' : 'Budget headroom',
       value: formatCents(Math.abs(summary.headroomCents)),
-      note: `budget minus ${formatCents(summary.projectedCents)} projected`,
+      note: 'budget minus projected',
       over,
     },
-    ...(summary.markupCents > 0
-      ? [
-          {
-            label: 'Markup',
-            value: formatCents(summary.markupCents),
-            note: `in the projected total, on ${formatCents(summary.projectedCents - summary.markupCents)} base cost`,
-          },
-        ]
-      : []),
     {
       label: 'Work done',
       value: `${progress.percentWork}%`,

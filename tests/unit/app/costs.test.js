@@ -65,7 +65,7 @@ test('chartRange does not stretch the axis to today when the last cost is in the
   });
 });
 
-test('summaryTiles names the six numbers and flips the headroom tile when over', () => {
+test('summaryTiles names the seven numbers and flips the headroom tile when over', () => {
   const done = {
     percentWork: 40,
     workdaysDone: 2,
@@ -101,14 +101,17 @@ test('summaryTiles names the six numbers and flips the headroom tile when over',
       ['Budget', '$500.00', 'budget', false],
       ['Committed', '$100.00', 'expected', false],
       ['Spent', '$120.00', 'actual', false],
+      ['Projected', '$120.00', null, false],
       ['Budget headroom', '$380.00', null, false],
       ['Work done', '40%', null, false],
       ['Materials bought', '100%', null, false],
     ],
   );
-  assert.equal(under[3].note, 'budget minus $120.00 projected');
-  assert.equal(under[4].note, '2 of 5 workdays done');
-  assert.equal(under[5].note, '2 of 2 bought, 1 not yet invoiced');
+  assert.equal(under[1].note, 'every estimate, before invoices');
+  assert.equal(under[3].note, 'invoiced price, else estimate');
+  assert.equal(under[4].note, 'budget minus projected');
+  assert.equal(under[5].note, '2 of 5 workdays done');
+  assert.equal(under[6].note, '2 of 2 bought, 1 not yet invoiced');
   assert.equal(
     materialsNote({ ...done, materialsUninvoiced: 0 }),
     '2 of 2 bought',
@@ -118,14 +121,14 @@ test('summaryTiles names the six numbers and flips the headroom tile when over',
     done,
   );
   assert.deepEqual(
-    [marked[4].label, marked[4].value, marked[4].note],
-    ['Markup', '$15.00', 'in the projected total, on $100.00 base cost'],
+    [marked[3].label, marked[3].value, marked[3].note],
+    ['Projected', '$115.00', '$100.00 base + $15.00 markup'],
   );
   assert.equal(marked.length, 7);
   const over = summaryTiles(costSummary([], -5000), done);
-  assert.equal(over[3].label, 'Over budget');
-  assert.equal(over[3].value, '$50.00');
-  assert.equal(over[3].over, true);
+  assert.equal(over[4].label, 'Over budget');
+  assert.equal(over[4].value, '$50.00');
+  assert.equal(over[4].over, true);
 });
 
 test('describeMarker and describeMonth read one mark out in words', () => {
@@ -252,19 +255,19 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   const root = shell.body.children[0];
   assert.equal(root.className, 'costs');
   const tiles = $(root.querySelectorAll('.cost-tile'));
-  assert.equal(tiles.length, 6);
+  assert.equal(tiles.length, 7);
   assert.equal(tiles[0].textContent, 'Budget$50,000.00');
   assert.equal(
     tiles[1].querySelector('.cost-tile__mark').className,
     'cost-tile__mark cost-tile__mark--expected',
   );
   assert.equal(
-    tiles[3].querySelector('.cost-tile__value').textContent,
+    tiles[4].querySelector('.cost-tile__value').textContent,
     '$46,360.00',
   );
   // Demo runs 2 of the 37 workdays; Grout is not bought.
-  assert.equal(tiles[4].querySelector('.cost-tile__value').textContent, '5%');
-  assert.equal(tiles[5].querySelector('.cost-tile__value').textContent, '0%');
+  assert.equal(tiles[5].querySelector('.cost-tile__value').textContent, '5%');
+  assert.equal(tiles[6].querySelector('.cost-tile__value').textContent, '0%');
 
   const cards = $(root.querySelectorAll('.cost-card'));
   assert.equal(cards.length, 3);
@@ -417,18 +420,15 @@ test('mountCosts adds the project markup and says so under the line items', asyn
   const tile = $(shell.body)
     .querySelectorAll('.cost-tile')
     .map((/** @type {any} */ t) => t.textContent)
-    .find((/** @type {string} */ t) => t.startsWith('Markup'));
-  assert.equal(
-    tile,
-    'Markup$150.00in the projected total, on $1,000.00 base cost',
-  );
+    .find((/** @type {string} */ t) => t.startsWith('Projected'));
+  assert.equal(tile, 'Projected$1,150.00$1,000.00 base + $150.00 markup');
   assert.match(
     $(shell.body.querySelector('.cost-markup-note')).textContent,
     /^Every estimate and actual here includes the markup/,
   );
 });
 
-test('mountCosts has no markup tile or note with no markup', async () => {
+test('mountCosts has no markup note with no markup', async () => {
   const { shell } = await setup({
     schedule: [itemOf('a', { estimatedCents: 100000 })],
   });

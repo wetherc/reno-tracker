@@ -76,19 +76,21 @@ test('the costs panel sums the project and draws both charts', async ({
 
   await page.getByRole('button', { name: 'Costs' }).click();
   const tiles = page.locator('.cost-tile');
-  await expect(tiles).toHaveCount(6);
+  await expect(tiles).toHaveCount(7);
   await expect(tiles.nth(0)).toContainText('$50,000.00');
   await expect(tiles.nth(1)).toContainText('$33,200.00');
   await expect(tiles.nth(2)).toContainText('$2,400.00');
-  await expect(tiles.nth(3)).toContainText('Budget headroom');
-  await expect(tiles.nth(3)).toContainText('$16,400.00');
+  await expect(tiles.nth(3)).toContainText('Projected');
+  await expect(tiles.nth(3)).toContainText('$33,600.00');
+  await expect(tiles.nth(4)).toContainText('Budget headroom');
+  await expect(tiles.nth(4)).toContainText('$16,400.00');
   // Demo spans 3 of the 17 workdays; no material is bought.
-  await expect(tiles.nth(4)).toContainText('Work done');
-  await expect(tiles.nth(4)).toContainText('18%');
-  await expect(tiles.nth(4)).toContainText('3 of 17 workdays done');
-  await expect(tiles.nth(5)).toContainText('Materials bought');
-  await expect(tiles.nth(5)).toContainText('0%');
-  await expect(tiles.nth(5)).toContainText('0 of 2 bought');
+  await expect(tiles.nth(5)).toContainText('Work done');
+  await expect(tiles.nth(5)).toContainText('18%');
+  await expect(tiles.nth(5)).toContainText('3 of 17 workdays done');
+  await expect(tiles.nth(6)).toContainText('Materials bought');
+  await expect(tiles.nth(6)).toContainText('0%');
+  await expect(tiles.nth(6)).toContainText('0 of 2 bought');
 
   const items = page.getByRole('table', { name: 'Line items in Kitchen' });
   await expect(items.locator('tbody tr')).toHaveCount(5);
@@ -210,9 +212,9 @@ test('the costs panel sums the project and draws both charts', async ({
     estimate: '20,000',
   });
   await page.getByRole('button', { name: 'Costs' }).click();
-  await expect(tiles.nth(3)).toContainText('Over budget');
-  await expect(tiles.nth(3)).toContainText('$3,600.00');
-  await expect(tiles.nth(3)).toHaveClass(/cost-tile--over/);
+  await expect(tiles.nth(4)).toContainText('Over budget');
+  await expect(tiles.nth(4)).toContainText('$3,600.00');
+  await expect(tiles.nth(4)).toHaveClass(/cost-tile--over/);
 
   await page.getByRole('button', { name: 'Delete project' }).click();
   await page
