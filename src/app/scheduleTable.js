@@ -1,5 +1,7 @@
 // The table view of the schedule: one row per item, a checkbox per row
-// that marks the work done, and a title that opens the editor.
+// that marks the work done, and a title that opens the editor. Estimate
+// and Actual are raw cost. Blended is what the costs panel counts for
+// the row, with its margin.
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { spanDays, todayIso } from '../schedule/dates.js';
@@ -10,6 +12,7 @@ import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { completeToggle } from './completeToggle.js';
 import { lateBadge } from './lateBadge.js';
+import { blendedColumn, projections } from './rowMarkup.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
@@ -117,6 +120,7 @@ export function scheduleTable({ ctx }) {
     const counts = noteCounts(payload);
     const totals = scheduleTotals(payload.schedule);
     const today = todayIso();
+    const blended = blendedColumn(projections(payload), payload.schedule);
     return dataTable({
       caption: `Schedule for ${payload.project.name}`,
       rows: payload.schedule,
@@ -137,6 +141,7 @@ export function scheduleTable({ ctx }) {
         formatCents(totals.estimatedCents),
         formatCents(totals.actualCents),
         varianceCell(totalCostVariance(payload.schedule)),
+        blended.footer,
         '',
       ],
       columns: [
@@ -202,6 +207,7 @@ export function scheduleTable({ ctx }) {
             (costVariance(a) ?? -Infinity) - (costVariance(b) ?? -Infinity),
           cell: (item) => varianceCell(costVariance(item)),
         },
+        blended.column,
         {
           key: 'notes',
           label: 'Notes',

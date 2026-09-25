@@ -50,6 +50,8 @@ export function actualField({ ctx, id, label, rowId, cents, placeholder }) {
     // True when the editor opened on a billed row. Its field then stays
     // out of the checks and the discard guard.
     billed: billing !== undefined,
+    // The invoice lines of the row when the editor opened.
+    billing,
     // True when a save sends the typed price: the row was not billed
     // when the editor opened and is not billed now.
     sends: () => billing === undefined && billingOf(ctx, rowId) === undefined,

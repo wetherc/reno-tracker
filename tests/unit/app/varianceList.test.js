@@ -66,7 +66,7 @@ test('entries are newest first with old, new, and reason', () => {
     '2026-09-15T10:00:00Z',
   );
   const change = first.children[1];
-  assert.equal(change.children[0].textContent, 'Actual');
+  assert.equal(change.children[0].textContent, 'Raw actual');
   assert.equal(change.children[1].tagName, 'S');
   assert.equal(change.children[1].textContent, 'blank');
   assert.equal(change.children[2].textContent, '$999.00');

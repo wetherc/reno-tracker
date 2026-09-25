@@ -62,9 +62,13 @@ static site on GitHub Pages, where it keeps its data in the browser.
   a dot on the line or a bar in the week chart opens a callout with the
   rows that land that day and the running totals, and drops a line from
   the dot to the axis.
-- A markup rate on the project, for the project manager's margin. The
-  schedule, the materials, and each row's editor show base cost. The
-  costs panel adds the markup to every amount. A billed row takes its
+- A markup rate on the project, for the project manager's margin. Each
+  schedule item and material can have a rate of its own, and a blank
+  rate takes the project rate. The editors ask for raw cost, before
+  markup, and a line under the prices shows the raw cost, the margin,
+  and the blended total as they are typed. The schedule and materials
+  tables show raw cost, plus a Blended column with the margin under
+  each total. The costs panel adds the markup to every amount. A billed row takes its
   share of the markup on its invoices, at each invoice's rate, and every
   other price takes the row's own rate, or the project rate when the row
   has none. A Projected tile shows the total

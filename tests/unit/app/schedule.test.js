@@ -132,6 +132,7 @@ test('the table has one row per item with the planned columns', async () => {
       'Estimate',
       'Actual',
       'Variance',
+      'Blended',
       'Notes',
     ],
   );
@@ -146,6 +147,7 @@ test('the table has one row per item with the planned columns', async () => {
     '$100.00',
     '$90.00',
     '−$10.00',
+    '$90.00$0.00 margin',
     '0',
   ]);
   const box = demo.children[0].children[0];
@@ -164,14 +166,14 @@ test('the table has one row per item with the planned columns', async () => {
   assert.equal(cabinets.children[5].textContent, '7');
   assert.equal(cabinets.children[8].textContent, '—');
   assert.equal(
-    cabinets.children[9].children[0].getAttribute('aria-label'),
+    cabinets.children[10].children[0].getAttribute('aria-label'),
     '2 notes on Cabinets',
   );
-  const count = cabinets.children[9].children[0];
+  const count = cabinets.children[10].children[0];
   assert.equal(count.className, 'btn-bare schedule-notes u-num');
   assert.equal(count.children[0].tagName, 'SVG');
   assert.equal(count.textContent, '2');
-  const none = demo.children[9].children[0];
+  const none = demo.children[10].children[0];
   assert.equal(none.className, 'btn-bare schedule-notes u-num u-muted');
   assert.equal(none.getAttribute('aria-label'), '0 notes on Demo');
   assert.equal(
@@ -181,7 +183,19 @@ test('the table has one row per item with the planned columns', async () => {
   const total = $(table(shell).children[3]).children[0];
   assert.deepEqual(
     total.children.map((/** @type {any} */ td) => td.textContent),
-    ['', 'Total', '', '', '', '10', '$200.00', '$90.00', '−$10.00', ''],
+    [
+      '',
+      'Total',
+      '',
+      '',
+      '',
+      '10',
+      '$200.00',
+      '$90.00',
+      '−$10.00',
+      '$190.00$0.00 margin',
+      '',
+    ],
   );
 });
 
@@ -239,7 +253,7 @@ test('title and notes count open the editor on the right tab', async () => {
     'true',
   );
   dialog.close();
-  demo.children[9].children[0].click();
+  demo.children[10].children[0].click();
   dialog = $(dom.body.children[0]);
   assert.equal(
     dialog.querySelectorAll('[role="tab"]')[2].getAttribute('aria-selected'),
@@ -351,7 +365,7 @@ test('one note reads in the singular', async () => {
     ],
   });
   assert.equal(
-    rows(shell)[0].children[9].children[0].getAttribute('aria-label'),
+    rows(shell)[0].children[10].children[0].getAttribute('aria-label'),
     '1 note on Demo',
   );
 });

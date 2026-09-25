@@ -64,10 +64,11 @@ export function costSummary(events, budgetCents) {
 
 /**
  * The amount one row adds to the projected total, and its markup part.
- * @param {CostEvent} event
+ * The tables and editors show the same amount per row.
+ * @param {import('./timeline.js').RowPrices} event
  * @returns {{ cents: number, markupCents: number }}
  */
-function projected(event) {
+export function projected(event) {
   const { billedCents, billedMarkupCents } = event;
   if (
     billedCents === null ||

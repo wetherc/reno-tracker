@@ -20,8 +20,8 @@ export const FIELD_LABELS = {
   startDate: 'Start',
   endDate: 'End',
   responsibleParty: 'Responsible party',
-  estimatedCents: 'Estimate',
-  actualCents: 'Actual',
+  estimatedCents: 'Raw estimate',
+  actualCents: 'Raw actual',
   markupBasisPoints: 'Markup',
 };
 

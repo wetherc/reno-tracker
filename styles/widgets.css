@@ -228,3 +228,15 @@
   border-bottom: 0;
   font-weight: 600;
 }
+
+/* A blended total in a table cell, with its margin in small type under
+   it. The schedule and materials tables both use it. */
+.blended {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.data-table .blended__margin {
+  font-size: var(--text-label);
+}

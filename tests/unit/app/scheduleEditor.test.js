@@ -99,6 +99,64 @@ test('bad money text marks the field and blocks the save', async () => {
   assert.equal(fx.items()[0].estimatedCents, 125000);
 });
 
+test('the markup field sets a rate of the row and the line under the form follows it', async () => {
+  const fx = setupSchedule({
+    schedule: [itemOf('a', { title: 'Demo', estimatedCents: 10000 })],
+    markupBasisPoints: 1000,
+  });
+  await fx.ctx.openProject('p1');
+  const el = $(openScheduleEditor({ ctx: fx.ctx, item: fx.items()[0] }).el);
+  const form = el.querySelector('form');
+  const rate = form.querySelectorAll('input')[6];
+  const line = form.querySelector('.editor__projection');
+  assert.equal(rate.value, '');
+  assert.equal(rate.placeholder, '10');
+  assert.equal(
+    line.textContent,
+    'Projected $100.00 raw + $10.00 margin = $110.00 blended',
+  );
+  rate.value = '25';
+  form.dispatchEvent({ type: 'input' });
+  assert.equal(
+    line.textContent,
+    'Projected $100.00 raw + $25.00 margin = $125.00 blended',
+  );
+  rate.value = 'lots';
+  form.dispatchEvent({ type: 'input' });
+  assert.equal(line.textContent, '');
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(rate.getAttribute('aria-invalid'), 'true');
+  assert.deepEqual(fx.log, []);
+  rate.value = '25';
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(fx.items()[0].markupBasisPoints, 2500);
+});
+
+test('the projection line clears while a price does not parse', async () => {
+  const fx = setupSchedule();
+  await fx.ctx.openProject('p1');
+  const el = $(openScheduleEditor({ ctx: fx.ctx }).el);
+  const form = el.querySelector('form');
+  const line = form.querySelector('.editor__projection');
+  const [, , , , estimate, actual] = form.querySelectorAll('input');
+  actual.value = 'some';
+  form.dispatchEvent({ type: 'input' });
+  assert.equal(line.textContent, '');
+  actual.value = '50';
+  estimate.value = 'lots';
+  form.dispatchEvent({ type: 'input' });
+  assert.equal(line.textContent, '');
+  estimate.value = '100';
+  form.dispatchEvent({ type: 'input' });
+  assert.equal(
+    line.textContent,
+    'Projected $100.00 raw + $0.00 margin = $100.00 blended',
+  );
+  el.close();
+});
+
 test('a failed create keeps the dialog open and reports', async () => {
   const fx = setupSchedule();
   await fx.ctx.openProject('p1');
@@ -176,7 +234,7 @@ test('editing shows tabs, logs a reason, and follows the payload', async () => {
   again.querySelectorAll('[role="tab"]')[3].click();
   await tick();
   const entry = again.querySelector('.variance-entry');
-  assert.equal(entry.children[1].children[0].textContent, 'Estimate');
+  assert.equal(entry.children[1].children[0].textContent, 'Raw estimate');
   assert.equal(entry.children[1].children[1].textContent, '$500.00');
   assert.equal(entry.children[1].children[2].textContent, '$650.00');
   assert.equal(entry.children[2].textContent, 'Plumber quote came in higher');

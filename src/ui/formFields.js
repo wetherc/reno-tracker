@@ -157,20 +157,28 @@ export function moneyField(options) {
 /**
  * A percent typed as text, such as 12.5. `basisPoints()` reads the value
  * as whole basis points, or null when the text is not a percent from 0
- * to 100. A blank field reads as zero.
- * @param {Omit<FieldOptions, 'value'> & { basisPoints?: number }} options
+ * to 100. A blank field reads as zero, or as null when `blankIsNull` is
+ * set.
+ * @param {Omit<FieldOptions, 'value'> & { basisPoints?: number | null, blankIsNull?: boolean }} options
  * @returns {FieldHandle & { basisPoints(): number | null }}
  */
 export function percentField(options) {
+  const { basisPoints = 0 } = options;
   const input = inputOf('text', {
     ...options,
-    value: percentToInput(options.basisPoints ?? 0),
+    value: basisPoints === null ? '' : percentToInput(basisPoints),
     placeholder: options.placeholder ?? '0',
   });
   input.classList.add('form__number');
   input.setAttribute('inputmode', 'decimal');
   const handle = fieldRow(options, input);
-  return { ...handle, basisPoints: () => parsePercent(input.value) };
+  return {
+    ...handle,
+    basisPoints() {
+      if (options.blankIsNull && input.value.trim() === '') return null;
+      return parsePercent(input.value);
+    },
+  };
 }
 
 /**

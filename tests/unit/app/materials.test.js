@@ -159,6 +159,7 @@ test('the table has one row per material, a totals row, and the planned columns'
       'Actual',
       'Vs estimate',
       'Vs allowance',
+      'Blended',
     ],
   );
   const [tile, faucet] = rows(shell);
@@ -172,6 +173,7 @@ test('the table has one row per material, a totals row, and the planned columns'
     '$90.00',
     '−$30.00',
     '−$10.00',
+    '$90.00$0.00 margin',
   ]);
   const expected = tile.children[3].children[0];
   assert.equal(expected.className, 'material-standin u-muted');
@@ -212,6 +214,7 @@ test('the table has one row per material, a totals row, and the planned columns'
     '$90.00',
     '−$30.00',
     '−$60.00',
+    '$340.00$0.00 margin',
   ]);
 });
 

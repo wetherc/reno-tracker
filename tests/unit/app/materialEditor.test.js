@@ -56,8 +56,8 @@ test('a new material lists schedule items by start and saves', async () => {
   form.dispatchEvent({ type: 'submit' });
   await tick();
   assert.deepEqual(shownErrors(form), [
-    'Estimate must be dollars and cents, like 1,250.00',
-    'Actual must be dollars and cents, or blank',
+    'Raw estimate must be dollars and cents, like 1,250.00',
+    'Raw actual must be dollars and cents, or blank',
   ]);
   money[1].value = '3,400.50';
   money[2].value = '';
@@ -108,7 +108,7 @@ test('editing fills the form, patches, and closes when the row is gone', async (
   const money = form.querySelectorAll('[inputmode="decimal"]');
   assert.deepEqual(
     money.map((/** @type {any} */ m) => m.value),
-    ['100.00', '120.00', '99.00'],
+    ['100.00', '120.00', '99.00', ''],
   );
   const buttons = el.children[2].children;
   assert.equal(buttons[0].textContent, 'Delete');
@@ -227,4 +227,45 @@ test('a material billed while its editor is open keeps the invoice sum', async (
   await tick();
   assert.equal('actualCents' in patches[0], false);
   assert.equal(fx.ctx.payload?.materials[0].actualCents, 9);
+});
+
+test('the projection line counts the allowance with no estimate and the invoice sum once it passes the estimate', async () => {
+  const fx = setupSchedule({
+    materials: [
+      materialOf('m1', { allowanceCents: 10000, estimatedCents: 0 }),
+      materialOf('m2', { estimatedCents: 5000 }),
+    ],
+    invoices: [
+      invoiceOf('i1', {
+        markupBasisPoints: 2000,
+        lines: [billsMaterial('m2', 6000)],
+      }),
+    ],
+    markupBasisPoints: 1000,
+  });
+  await fx.ctx.openProject('p1');
+  const [first, second] = /** @type {any} */ (fx.ctx.payload).materials;
+  const dialog = openMaterialEditor({ ctx: fx.ctx, item: first });
+  const form = $(dialog.el).querySelector('form');
+  const line = form.querySelector('.editor__projection');
+  assert.equal(
+    line.textContent,
+    'Projected $100.00 raw + $10.00 margin = $110.00 blended',
+  );
+  const [allowance, , , rate] = form.querySelectorAll('[inputmode="decimal"]');
+  rate.value = 'lots';
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(rate.getAttribute('aria-invalid'), 'true');
+  allowance.value = 'x';
+  form.dispatchEvent({ type: 'input' });
+  assert.equal(line.textContent, '');
+  $(dialog.el).close();
+
+  const billed = openMaterialEditor({ ctx: fx.ctx, item: second });
+  assert.equal(
+    $(billed.el).querySelector('.editor__projection').textContent,
+    'Projected $60.00 raw + $12.00 margin = $72.00 blended',
+  );
+  $(billed.el).close();
 });

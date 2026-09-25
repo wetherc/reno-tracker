@@ -71,6 +71,21 @@
   cursor: pointer;
 }
 
+/* The raw cost, margin, and blended total of the row, under the price
+   fields and across the whole form. */
+.editor__projection {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  font-size: var(--text-label);
+}
+
+.editor__projection:empty {
+  display: none;
+}
+
 .editor__reason {
   padding-top: var(--space-3);
   border-top: 1px dashed var(--border);

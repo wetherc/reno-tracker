@@ -1,7 +1,8 @@
 // The materials section: the bill of materials for the open project as a
 // table with a totals row, an Add button in the panel header, and a
 // checkbox per row that marks the material bought. The name opens the
-// editor.
+// editor. Allowance, Estimate, and Actual are raw cost. Blended is
+// what the costs panel counts for the row, with its margin.
 import { landingDate, materialExpected } from '../costs/timeline.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
@@ -12,6 +13,7 @@ import { emptyState } from '../ui/emptyState.js';
 import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { openMaterialEditor } from './materialEditor.js';
+import { blendedColumn, projections } from './rowMarkup.js';
 import {
   costVariance,
   totalCostVariance,
@@ -106,6 +108,7 @@ export function mountMaterials({ ctx, shell }) {
       (sum, item) => sum + allowanceVariance(item),
       0,
     );
+    const blended = blendedColumn(projections(payload), payload.materials);
     return dataTable({
       caption: `Materials for ${payload.project.name}`,
       rows: payload.materials,
@@ -126,6 +129,7 @@ export function mountMaterials({ ctx, shell }) {
         formatCents(totals.actualCents),
         varianceCell(totalCostVariance(payload.materials.map(expectedRow))),
         varianceCell(overall),
+        blended.footer,
       ],
       columns: [
         {
@@ -201,6 +205,7 @@ export function mountMaterials({ ctx, shell }) {
           compare: (a, b) => allowanceVariance(a) - allowanceVariance(b),
           cell: (item) => varianceCell(allowanceVariance(item)),
         },
+        blended.column,
       ],
     });
   }

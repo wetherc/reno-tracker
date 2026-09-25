@@ -102,6 +102,19 @@ test('percentField reads basis points and flags junk', () => {
   assert.equal($(percentField({ id: 'n', label: 'Markup' }).input).value, '0');
 });
 
+test('percentField with blankIsNull reads a blank field as null', () => {
+  const field = percentField({
+    id: 'r',
+    label: 'Markup',
+    basisPoints: null,
+    blankIsNull: true,
+  });
+  assert.equal($(field.input).value, '');
+  assert.equal(field.basisPoints(), null);
+  $(field.input).value = '25';
+  assert.equal(field.basisPoints(), 2500);
+});
+
 test('moneyField reads cents and flags junk', () => {
   const field = moneyField({ id: 'est', label: 'Estimated', cents: 123456 });
   assert.equal($(field.input).value, '1234.56');

@@ -41,7 +41,7 @@ import { billings } from './invoiced.js';
 /**
  * The expected cost of a material: the estimate when one is entered,
  * else the allowance. A zero estimate means none was entered.
- * @param {MaterialItem} item
+ * @param {Pick<MaterialItem, 'estimatedCents' | 'allowanceCents'>} item
  * @returns {number}
  */
 export function materialExpected(item) {
@@ -65,40 +65,58 @@ export function landingDate(item, payload) {
 }
 
 /**
+ * @typedef {Pick<CostEvent, 'complete' | 'expectedCents' | 'expectedMarkupCents' | 'actualCents' | 'billedCents' | 'billedMarkupCents'>} RowPrices
+ */
+
+/**
+ * The price fields of one row, with markup. The editors call this on
+ * the values a person types, so their totals match the costs panel.
+ * @param {{ complete: boolean, actualCents: number | null, markupBasisPoints: number | null }} row
+ * @param {number} expected the base estimate
+ * @param {number} projectRate the rate of a row with none of its own
+ * @param {{ cents: number, markupCents: number }} [billing] the row's invoice lines, if any
+ * @returns {RowPrices}
+ */
+export function rowPrices(row, expected, projectRate, billing) {
+  const rate = row.markupBasisPoints ?? projectRate;
+  const expectedMarkupCents = markupOf(expected, rate);
+  const base = billing ? billing.cents : row.actualCents;
+  const billedMarkupCents = billing
+    ? billing.markupCents
+    : base === null
+      ? null
+      : markupOf(base, rate);
+  const billedCents =
+    base === null ? null : base + /** @type {number} */ (billedMarkupCents);
+  return {
+    complete: row.complete,
+    expectedCents: expected + expectedMarkupCents,
+    expectedMarkupCents,
+    actualCents: row.complete ? billedCents : null,
+    billedCents,
+    billedMarkupCents,
+  };
+}
+
+/**
  * One event per schedule item and material, sorted by landing day.
  * Ties keep schedule items before materials, then follow sort order.
  * @param {ProjectPayload} payload
  * @returns {CostEvent[]}
  */
 export function costEvents(payload) {
-  const projectRate = payload.project.markupBasisPoints;
   const byRow = billings(payload.invoices);
   /**
-   * The price fields of one row, with markup.
    * @param {{ id: string, complete: boolean, actualCents: number | null, markupBasisPoints: number | null }} row
    * @param {number} expected the base estimate
    */
-  const prices = (row, expected) => {
-    const rate = row.markupBasisPoints ?? projectRate;
-    const expectedMarkupCents = markupOf(expected, rate);
-    const billing = byRow.get(row.id);
-    const base = billing ? billing.cents : row.actualCents;
-    const billedMarkupCents = billing
-      ? billing.markupCents
-      : base === null
-        ? null
-        : markupOf(base, rate);
-    const billedCents =
-      base === null ? null : base + /** @type {number} */ (billedMarkupCents);
-    return {
-      complete: row.complete,
-      expectedCents: expected + expectedMarkupCents,
-      expectedMarkupCents,
-      actualCents: row.complete ? billedCents : null,
-      billedCents,
-      billedMarkupCents,
-    };
-  };
+  const prices = (row, expected) =>
+    rowPrices(
+      row,
+      expected,
+      payload.project.markupBasisPoints,
+      byRow.get(row.id),
+    );
   /** @type {CostEvent[]} */
   const events = [];
   for (const item of payload.schedule) {

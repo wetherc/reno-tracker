@@ -21,6 +21,8 @@ import { actualField, refuseBilled } from './billing.js';
 import { completeToggle } from './completeToggle.js';
 import { dependencyLinks } from './dependencies.js';
 import { discardGuard } from './discardGuard.js';
+import { MARKUP_MESSAGE } from './projectDialog.js';
+import { isBlank, markupRateField, projectionLine } from './rowMarkup.js';
 import { showProblems } from './formErrors.js';
 import { notesList } from './notesList.js';
 import { changesPanel, FIELD_LABELS } from './varianceList.js';
@@ -101,6 +103,13 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     placeholder: 'Blank until billed',
   });
   const actualCents = actual.field;
+  const projectRate = ctx.payload?.project.markupBasisPoints ?? 0;
+  const markupBasisPoints = markupRateField({
+    id: `${prefix}-markup`,
+    label: `${FIELD_LABELS.markupBasisPoints} (%)`,
+    basisPoints: item?.markupBasisPoints ?? null,
+    projectRate,
+  });
   const description = textArea({
     id: `${prefix}-description`,
     label: FIELD_LABELS.description,
@@ -121,9 +130,27 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     endDate,
     estimatedCents,
     ...(!actual.billed && { actualCents }),
+    markupBasisPoints,
     description,
     reason,
   };
+
+  const projection = projectionLine(() => {
+    const expected = estimatedCents.cents();
+    const rate = markupBasisPoints.basisPoints();
+    const typed = actualCents.cents();
+    if (expected === null) return null;
+    if (rate === null && !isBlank(markupBasisPoints)) return null;
+    if (typed === null && !isBlank(actualCents)) return null;
+    return {
+      complete: item?.complete ?? false,
+      expected,
+      actualCents: typed,
+      markupBasisPoints: rate,
+      projectRate,
+      billing: actual.billing,
+    };
+  });
 
   const formEl = form({
     ariaLabel: editing ? 'Edit schedule item' : 'New schedule item',
@@ -138,9 +165,12 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     endDate.el,
     estimatedCents.el,
     actualCents.el,
+    markupBasisPoints.el,
+    projection.el,
     description.el,
   );
   if (editing) formEl.append(reason.el);
+  formEl.addEventListener('input', projection.update);
 
   const save = button({
     label: editing ? 'Save' : 'Add to schedule',
@@ -264,19 +294,23 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
   function readForm() {
     const estimate = estimatedCents.cents();
     const typed = actualCents.cents();
+    const rate = markupBasisPoints.basisPoints();
     /** @type {import('../entities/validate.js').FieldError[]} */
     const problems = [];
     if (estimate === null) {
       problems.push({
         field: 'estimatedCents',
-        message: 'Estimate must be dollars and cents, like 1,250.00',
+        message: 'Raw estimate must be dollars and cents, like 1,250.00',
       });
     }
     if (typed === null && actualCents.input.value.trim() !== '') {
       problems.push({
         field: 'actualCents',
-        message: 'Actual must be dollars and cents, or blank',
+        message: 'Raw actual must be dollars and cents, or blank',
       });
+    }
+    if (rate === null && !isBlank(markupBasisPoints)) {
+      problems.push({ field: 'markupBasisPoints', message: MARKUP_MESSAGE });
     }
     const input = {
       title: title.input.value.trim(),
@@ -286,6 +320,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
       responsibleParty: responsibleParty.input.value.trim(),
       estimatedCents: estimate ?? 0,
       actualCents: typed,
+      markupBasisPoints: rate,
     };
     // A money field that does not parse keeps its own message.
     problems.push(...scheduleItemErrors(input));

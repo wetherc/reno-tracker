@@ -1,7 +1,9 @@
 // The editor for one material. Name, the schedule item it is for, the
-// day it is expected, and three prices: the allowance the budget set
-// aside, the estimate, and the actual price once bought.
+// day it is expected, three raw prices (the allowance the budget set
+// aside, the estimate, and the actual price once bought), and the
+// markup rate of the row.
 import { ApiError } from '../api/errors.js';
+import { materialExpected } from '../costs/timeline.js';
 import { materialItemErrors } from '../entities/materialItem.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
@@ -16,6 +18,8 @@ import { modal } from '../ui/Modal.js';
 import { actualField, refuseBilled } from './billing.js';
 import { discardGuard } from './discardGuard.js';
 import { showProblems } from './formErrors.js';
+import { MARKUP_MESSAGE } from './projectDialog.js';
+import { isBlank, markupRateField, projectionLine } from './rowMarkup.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
@@ -25,9 +29,10 @@ export const MATERIAL_LABELS = {
   name: 'Material',
   scheduleItemId: 'For',
   expectedDate: 'Expected',
-  allowanceCents: 'Allowance',
-  estimatedCents: 'Estimate',
-  actualCents: 'Actual',
+  allowanceCents: 'Raw allowance',
+  estimatedCents: 'Raw estimate',
+  actualCents: 'Raw actual',
+  markupBasisPoints: 'Markup',
 };
 
 /** The option that leaves a material off the schedule. */
@@ -89,6 +94,13 @@ export function openMaterialEditor({ ctx, item }) {
     placeholder: 'Blank until bought',
   });
   const actualCents = actual.field;
+  const projectRate = ctx.payload?.project.markupBasisPoints ?? 0;
+  const markupBasisPoints = markupRateField({
+    id: `${prefix}-markup`,
+    label: `${MATERIAL_LABELS.markupBasisPoints} (%)`,
+    basisPoints: item?.markupBasisPoints ?? null,
+    projectRate,
+  });
   const fields = {
     name,
     scheduleItemId,
@@ -96,7 +108,29 @@ export function openMaterialEditor({ ctx, item }) {
     allowanceCents,
     estimatedCents,
     ...(!actual.billed && { actualCents }),
+    markupBasisPoints,
   };
+
+  const projection = projectionLine(() => {
+    const allowance = allowanceCents.cents();
+    const estimate = estimatedCents.cents();
+    const rate = markupBasisPoints.basisPoints();
+    const typed = actualCents.cents();
+    if (allowance === null || estimate === null) return null;
+    if (rate === null && !isBlank(markupBasisPoints)) return null;
+    if (typed === null && !isBlank(actualCents)) return null;
+    return {
+      complete: item?.complete ?? false,
+      expected: materialExpected({
+        allowanceCents: allowance,
+        estimatedCents: estimate,
+      }),
+      actualCents: typed,
+      markupBasisPoints: rate,
+      projectRate,
+      billing: actual.billing,
+    };
+  });
 
   const formEl = form({
     ariaLabel: editing ? 'Edit material' : 'New material',
@@ -110,7 +144,10 @@ export function openMaterialEditor({ ctx, item }) {
     allowanceCents.el,
     estimatedCents.el,
     actualCents.el,
+    markupBasisPoints.el,
+    projection.el,
   );
+  formEl.addEventListener('input', projection.update);
 
   const save = button({
     label: editing ? 'Save' : 'Add to materials',
@@ -160,6 +197,7 @@ export function openMaterialEditor({ ctx, item }) {
       estimatedCents: estimatedCents.cents(),
       actualCents: actualCents.cents(),
     };
+    const rate = markupBasisPoints.basisPoints();
     /** @type {import('../entities/validate.js').FieldError[]} */
     const problems = [];
     for (const key of /** @type {const} */ ([
@@ -176,8 +214,11 @@ export function openMaterialEditor({ ctx, item }) {
     if (money.actualCents === null && actualCents.input.value.trim() !== '') {
       problems.push({
         field: 'actualCents',
-        message: 'Actual must be dollars and cents, or blank',
+        message: 'Raw actual must be dollars and cents, or blank',
       });
+    }
+    if (rate === null && !isBlank(markupBasisPoints)) {
+      problems.push({ field: 'markupBasisPoints', message: MARKUP_MESSAGE });
     }
     const input = {
       name: name.input.value.trim(),
@@ -186,6 +227,7 @@ export function openMaterialEditor({ ctx, item }) {
       allowanceCents: money.allowanceCents ?? 0,
       estimatedCents: money.estimatedCents ?? 0,
       actualCents: money.actualCents,
+      markupBasisPoints: rate,
     };
     problems.push(...materialItemErrors(input));
     if (showProblems(fields, problems, MATERIAL_LABELS)) return null;
