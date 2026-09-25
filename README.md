@@ -63,19 +63,19 @@ static site on GitHub Pages, where it keeps its data in the browser.
   rows that land that day and the running totals, and drops a line from
   the dot to the axis.
 - A markup rate on the project, for the project manager's margin. Each
-  schedule item and material can have a rate of its own, and a blank
-  rate takes the project rate. The editors ask for raw cost, before
-  markup, and a line under the prices shows the raw cost, the margin,
-  and the blended total as they are typed. The schedule and materials
-  tables show raw cost, plus a Blended column with the margin under
-  each total. The costs panel adds the markup to every amount. A billed row takes its
-  share of the markup on its invoices, at each invoice's rate, and every
-  other price takes the row's own rate, or the project rate when the row
-  has none. A Projected tile shows the total
-  the project is heading for, split into base cost and markup, and the
-  headroom tile is the budget less that total. An open row counts the
-  larger of its invoiced sum and its estimate, because a first invoice
-  is often a deposit. A complete row counts its invoiced sum.
+  schedule item and material can have a rate of its own, and a blank rate
+  takes the project rate. The editors ask for raw cost, before markup, and
+  a line under the prices shows the raw cost, the margin, and the blended
+  total as they are typed. The schedule and materials tables show raw
+  cost, plus a Blended column with the margin under each total. The costs
+  panel adds the markup to every amount. A billed row takes its share of
+  the markup on its invoices, at each invoice's rate, and every other
+  price takes the row's own rate, or the project rate when the row has
+  none. A Projected tile shows the total the project is heading for, split
+  into base cost and markup, and the headroom tile is the budget less that
+  total. An open row counts the larger of its invoiced sum and its
+  estimate, because a first invoice is often a deposit. A complete row
+  counts its invoiced sum.
 - Save of a project to a JSON file, and load of that file as a new project.
   A loaded project whose name is taken gets the load day in its name, such
   as "Kitchen (loaded Sep 24)". The picker lists projects by name.
