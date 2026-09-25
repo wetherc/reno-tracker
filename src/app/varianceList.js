@@ -6,6 +6,7 @@
 import { describeFailure } from '../api/errors.js';
 import { formatDate, formatMoment } from '../format/date.js';
 import { formatCents } from '../format/money.js';
+import { formatPercent } from '../format/percent.js';
 import { emptyState } from '../ui/emptyState.js';
 
 /** @typedef {import('../types.ts').Variance} Variance */
@@ -21,6 +22,7 @@ export const FIELD_LABELS = {
   responsibleParty: 'Responsible party',
   estimatedCents: 'Estimate',
   actualCents: 'Actual',
+  markupBasisPoints: 'Markup',
 };
 
 /**
@@ -29,6 +31,9 @@ export const FIELD_LABELS = {
  * @returns {string}
  */
 export function showValue(field, value) {
+  if (field === 'markupBasisPoints') {
+    return value === null ? 'project rate' : formatPercent(Number(value));
+  }
   if (value === null || value === '') return 'blank';
   if (field === 'estimatedCents' || field === 'actualCents') {
     return formatCents(Number(value));

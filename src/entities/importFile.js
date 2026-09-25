@@ -48,6 +48,7 @@ const SCHEDULE_FIELDS = [
   'responsibleParty',
   'estimatedCents',
   'actualCents',
+  'markupBasisPoints',
 ];
 
 const MATERIAL_FIELDS = [
@@ -55,6 +56,7 @@ const MATERIAL_FIELDS = [
   'allowanceCents',
   'estimatedCents',
   'actualCents',
+  'markupBasisPoints',
   'expectedDate',
 ];
 

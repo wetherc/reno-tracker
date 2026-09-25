@@ -1,4 +1,5 @@
 import {
+  checkBasisPoints,
   checkCents,
   checkDate,
   checkText,
@@ -23,6 +24,7 @@ export const TRACKED_FIELDS = {
   responsibleParty: 'party',
   estimatedCents: 'cost',
   actualCents: 'cost',
+  markupBasisPoints: 'cost',
 };
 
 const CHECKS = {
@@ -35,6 +37,7 @@ const CHECKS = {
     checkText(f, v, { max: 200 }),
   estimatedCents: checkCents,
   actualCents: nullable(checkCents),
+  markupBasisPoints: nullable(checkBasisPoints),
 };
 
 export const SCHEDULE_ITEM_REQUIRED = /** @type {const} */ ([
@@ -56,6 +59,7 @@ export function scheduleItemDefaults(input) {
     responsibleParty: input.responsibleParty ?? '',
     estimatedCents: input.estimatedCents ?? 0,
     actualCents: input.actualCents ?? null,
+    markupBasisPoints: input.markupBasisPoints ?? null,
   };
 }
 

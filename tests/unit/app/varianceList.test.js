@@ -32,6 +32,8 @@ const v = (id, extra) => ({
 
 test('showValue formats by field', () => {
   assert.equal(showValue('estimatedCents', '125000'), '$1,250.00');
+  assert.equal(showValue('markupBasisPoints', '2500'), '25%');
+  assert.equal(showValue('markupBasisPoints', null), 'project rate');
   assert.equal(showValue('actualCents', null), 'blank');
   assert.equal(showValue('startDate', '2026-10-01'), 'Oct 1, 2026');
   assert.equal(showValue('title', 'Demo'), 'Demo');

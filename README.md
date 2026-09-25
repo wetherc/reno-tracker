@@ -278,6 +278,10 @@ project and each invoice have a rate of their own. A new invoice with no
 rate in its body copies the project rate. A change to the project rate
 does not change an invoice that is already entered. A project or
 invoice stored with no rate, and an import file with none, reads as 0.
+A schedule item or material can also have a rate of its own, for the
+markup on its estimate. A row with no rate stores null and takes the
+project rate, so a change to the project rate moves every such row. A
+change to the rate of a schedule item writes a change log row.
 
 `GET /api/projects/:id/export` returns the project as one JSON document:
 

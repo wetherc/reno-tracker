@@ -56,8 +56,8 @@ export function createMaterialItem(db, projectId, input) {
       db,
       `INSERT INTO material_items
          (id, projectId, scheduleItemId, name, allowanceCents, estimatedCents,
-          actualCents, expectedDate, sortOrder)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?,
+          actualCents, markupBasisPoints, expectedDate, sortOrder)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
          (SELECT coalesce(max(sortOrder) + 1, 0) FROM material_items WHERE projectId = ?))`,
     ).run(
       id,
@@ -67,6 +67,7 @@ export function createMaterialItem(db, projectId, input) {
       input.allowanceCents,
       input.estimatedCents,
       input.actualCents,
+      input.markupBasisPoints,
       input.expectedDate,
       projectId,
     );

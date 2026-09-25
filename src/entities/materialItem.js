@@ -1,4 +1,5 @@
 import {
+  checkBasisPoints,
   checkCents,
   checkDate,
   checkText,
@@ -16,6 +17,7 @@ const CHECKS = {
   allowanceCents: checkCents,
   estimatedCents: checkCents,
   actualCents: nullable(checkCents),
+  markupBasisPoints: nullable(checkBasisPoints),
   expectedDate: nullable(checkDate),
 };
 
@@ -32,6 +34,7 @@ export function materialItemDefaults(input) {
     allowanceCents: input.allowanceCents ?? 0,
     estimatedCents: input.estimatedCents ?? 0,
     actualCents: input.actualCents ?? null,
+    markupBasisPoints: input.markupBasisPoints ?? null,
     expectedDate: input.expectedDate ?? null,
   };
 }

@@ -56,8 +56,9 @@ export function createScheduleItem(db, projectId, input) {
       db,
       `INSERT INTO schedule_items
          (id, projectId, title, description, startDate, endDate,
-          responsibleParty, estimatedCents, actualCents, sortOrder)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,
+          responsibleParty, estimatedCents, actualCents, markupBasisPoints,
+          sortOrder)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
          (SELECT coalesce(max(sortOrder) + 1, 0) FROM schedule_items WHERE projectId = ?))`,
     ).run(
       id,
@@ -69,6 +70,7 @@ export function createScheduleItem(db, projectId, input) {
       input.responsibleParty,
       input.estimatedCents,
       input.actualCents,
+      input.markupBasisPoints,
       projectId,
     );
     return getScheduleItem(db, id);

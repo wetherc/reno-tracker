@@ -144,6 +144,7 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
             complete: true,
             sortOrder: 7,
             actualCents: 900,
+            markupBasisPoints: 2500,
           },
         ],
         dependencies: [
@@ -167,7 +168,12 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
             scheduleItemId: 'a',
             expectedDate: '2026-01-08',
           },
-          { name: 'Loose', scheduleItemId: 'gone', complete: true },
+          {
+            name: 'Loose',
+            scheduleItemId: 'gone',
+            complete: true,
+            markupBasisPoints: 0,
+          },
         ],
         invoices: [
           {
@@ -199,6 +205,7 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
         responsibleParty: '',
         estimatedCents: 0,
         actualCents: null,
+        markupBasisPoints: null,
         complete: false,
         sortOrder: 0,
       },
@@ -210,6 +217,7 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
         responsibleParty: '',
         estimatedCents: 0,
         actualCents: 900,
+        markupBasisPoints: 2500,
         complete: true,
         sortOrder: 7,
       },
@@ -241,13 +249,14 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
         m.allowanceCents,
         m.estimatedCents,
         m.actualCents,
+        m.markupBasisPoints,
         m.complete,
         m.expectedDate,
         m.sortOrder,
       ]),
       [
-        ['Grout', 'item:Demo', 0, 0, null, false, '2026-01-08', 0],
-        ['Loose', null, 0, 0, null, true, null, 1],
+        ['Grout', 'item:Demo', 0, 0, null, null, false, '2026-01-08', 0],
+        ['Loose', null, 0, 0, null, 0, true, null, 1],
       ],
     );
     assert.deepEqual(imported.invoices, [

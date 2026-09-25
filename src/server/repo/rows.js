@@ -45,6 +45,7 @@ export function toScheduleItem(r) {
     responsibleParty: text(r.responsibleParty),
     estimatedCents: int(r.estimatedCents),
     actualCents: intOrNull(r.actualCents),
+    markupBasisPoints: intOrNull(r.markupBasisPoints),
     complete: bool(r.complete),
     sortOrder: int(r.sortOrder),
   };
@@ -107,6 +108,7 @@ export function toMaterialItem(r) {
     allowanceCents: int(r.allowanceCents),
     estimatedCents: int(r.estimatedCents),
     actualCents: intOrNull(r.actualCents),
+    markupBasisPoints: intOrNull(r.markupBasisPoints),
     complete: bool(r.complete),
     expectedDate: textOrNull(r.expectedDate),
     sortOrder: int(r.sortOrder),

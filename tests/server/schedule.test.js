@@ -216,3 +216,40 @@ test('material routes', async () => {
     await app.close();
   }
 });
+
+test('schedule items and materials keep a markup rate of their own', async () => {
+  const app = await startApp();
+  try {
+    const project = await app.project();
+    const item = await app.item(project.id, 'Tile');
+    assert.equal(item.markupBasisPoints, null);
+
+    let res = await app.api('PATCH', `/api/schedule/${item.id}`, {
+      markupBasisPoints: 10_001,
+    });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.field, 'markupBasisPoints');
+
+    res = await app.api('PATCH', `/api/schedule/${item.id}`, {
+      markupBasisPoints: 2500,
+    });
+    assert.equal(res.body.markupBasisPoints, 2500);
+    res = await app.api('GET', `/api/schedule/${item.id}/changes`);
+    assert.deepEqual(
+      res.body.map((/** @type {any} */ v) => [v.field, v.oldValue, v.newValue]),
+      [['markupBasisPoints', null, '2500']],
+    );
+
+    res = await app.api('POST', `/api/projects/${project.id}/materials`, {
+      name: 'Grout',
+      markupBasisPoints: 1000,
+    });
+    assert.equal(res.body.markupBasisPoints, 1000);
+    res = await app.api('PATCH', `/api/materials/${res.body.id}`, {
+      markupBasisPoints: null,
+    });
+    assert.equal(res.body.markupBasisPoints, null);
+  } finally {
+    await app.close();
+  }
+});

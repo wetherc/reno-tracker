@@ -37,6 +37,7 @@ const itemOf = (id, projectId) => ({
   responsibleParty: '',
   estimatedCents: 0,
   actualCents: null,
+  markupBasisPoints: null,
   complete: false,
   sortOrder: 0,
 });
@@ -78,6 +79,7 @@ function twoProjects() {
       allowanceCents: 0,
       estimatedCents: 0,
       actualCents: null,
+      markupBasisPoints: null,
       complete: false,
       expectedDate: null,
       sortOrder: 0,

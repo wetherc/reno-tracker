@@ -27,6 +27,7 @@ const item = (id, title, sortOrder, startDate = '2026-01-01') => ({
   responsibleParty: '',
   estimatedCents: 0,
   actualCents: null,
+  markupBasisPoints: null,
   complete: false,
   sortOrder,
 });
@@ -62,6 +63,7 @@ test('payload rows sort by order, then date, then name', () => {
       allowanceCents: 0,
       estimatedCents: 0,
       actualCents: null,
+      markupBasisPoints: null,
       complete: false,
       expectedDate: null,
       sortOrder: 0,
@@ -74,6 +76,7 @@ test('payload rows sort by order, then date, then name', () => {
       allowanceCents: 0,
       estimatedCents: 0,
       actualCents: null,
+      markupBasisPoints: null,
       complete: false,
       expectedDate: null,
       sortOrder: 0,

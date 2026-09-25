@@ -25,6 +25,7 @@ const FIELDS = /** @type {const} */ ([
   'responsibleParty',
   'estimatedCents',
   'actualCents',
+  'markupBasisPoints',
 ]);
 
 /**

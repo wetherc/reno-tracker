@@ -78,6 +78,7 @@ const SCHEDULE_FIELDS = /** @type {const} */ ([
   'responsibleParty',
   'estimatedCents',
   'actualCents',
+  'markupBasisPoints',
 ]);
 const MATERIAL_FIELDS = /** @type {const} */ ([
   'scheduleItemId',
@@ -85,6 +86,7 @@ const MATERIAL_FIELDS = /** @type {const} */ ([
   'allowanceCents',
   'estimatedCents',
   'actualCents',
+  'markupBasisPoints',
   'expectedDate',
 ]);
 

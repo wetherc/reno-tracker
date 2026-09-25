@@ -156,8 +156,9 @@ function parseObject(text) {
 
 /**
  * Fills in any list the stored document lacks, the markup rate of a
- * project stored without one, and the markup rate, retainage, and
- * payments of an invoice stored without them.
+ * project, schedule item, or material stored without one, and the markup
+ * rate, retainage, and payments of an invoice stored without them. A row
+ * with no rate takes the project rate.
  * @param {Record<string, unknown>} input
  * @returns {LocalDb}
  */
@@ -171,6 +172,14 @@ function normalize(input) {
   db.projects = db.projects.map((p) => ({
     ...p,
     markupBasisPoints: p.markupBasisPoints ?? 0,
+  }));
+  db.schedule = db.schedule.map((s) => ({
+    ...s,
+    markupBasisPoints: s.markupBasisPoints ?? null,
+  }));
+  db.materials = db.materials.map((m) => ({
+    ...m,
+    markupBasisPoints: m.markupBasisPoints ?? null,
   }));
   db.invoices = db.invoices.map((i) => ({
     ...i,

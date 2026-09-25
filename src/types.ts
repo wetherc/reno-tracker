@@ -17,6 +17,8 @@ export interface Project {
   createdAt: IsoTimestamp;
 }
 
+// markupBasisPoints on a schedule item or material is the margin on its
+// estimate. Null means the row takes the project rate.
 export interface ScheduleItem {
   id: string;
   projectId: string;
@@ -27,6 +29,7 @@ export interface ScheduleItem {
   responsibleParty: string;
   estimatedCents: Cents;
   actualCents: Cents | null;
+  markupBasisPoints: BasisPoints | null;
   complete: boolean;
   sortOrder: number;
 }
@@ -47,7 +50,8 @@ export type TrackedField =
   | 'endDate'
   | 'responsibleParty'
   | 'estimatedCents'
-  | 'actualCents';
+  | 'actualCents'
+  | 'markupBasisPoints';
 
 export interface Variance {
   id: string;
@@ -76,6 +80,7 @@ export interface MaterialItem {
   allowanceCents: Cents;
   estimatedCents: Cents;
   actualCents: Cents | null;
+  markupBasisPoints: BasisPoints | null;
   complete: boolean;
   expectedDate: IsoDate | null;
   sortOrder: number;
@@ -146,6 +151,7 @@ export type ScheduleItemInput = Partial<
     | 'responsibleParty'
     | 'estimatedCents'
     | 'actualCents'
+    | 'markupBasisPoints'
   >
 >;
 
@@ -161,6 +167,7 @@ export type MaterialItemInput = Partial<
     | 'allowanceCents'
     | 'estimatedCents'
     | 'actualCents'
+    | 'markupBasisPoints'
     | 'expectedDate'
   >
 >;

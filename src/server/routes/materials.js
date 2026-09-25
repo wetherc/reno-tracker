@@ -20,6 +20,7 @@ const FIELDS = /** @type {const} */ ([
   'allowanceCents',
   'estimatedCents',
   'actualCents',
+  'markupBasisPoints',
   'expectedDate',
 ]);
 

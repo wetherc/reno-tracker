@@ -59,8 +59,9 @@ export function importProject(db, file) {
     const item = statement(
       db,
       `INSERT INTO schedule_items (id, projectId, title, description, startDate, endDate,
-         responsibleParty, estimatedCents, actualCents, complete, sortOrder)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         responsibleParty, estimatedCents, actualCents, markupBasisPoints,
+         complete, sortOrder)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     for (const s of file.schedule) {
       item.run(
@@ -73,6 +74,7 @@ export function importProject(db, file) {
         s.responsibleParty,
         s.estimatedCents,
         s.actualCents,
+        s.markupBasisPoints,
         Number(s.complete),
         s.sortOrder,
       );
@@ -124,8 +126,9 @@ export function importProject(db, file) {
     const material = statement(
       db,
       `INSERT INTO material_items (id, projectId, scheduleItemId, name, allowanceCents,
-         estimatedCents, actualCents, complete, expectedDate, sortOrder)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         estimatedCents, actualCents, markupBasisPoints, complete, expectedDate,
+         sortOrder)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     for (const m of file.materials) {
       const id = randomUUID();
@@ -138,6 +141,7 @@ export function importProject(db, file) {
         m.allowanceCents,
         m.estimatedCents,
         m.actualCents,
+        m.markupBasisPoints,
         Number(m.complete),
         m.expectedDate,
         m.sortOrder,

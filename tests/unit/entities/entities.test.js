@@ -53,6 +53,7 @@ test('schedule item defaults fill endDate from startDate', () => {
       responsibleParty: '',
       estimatedCents: 0,
       actualCents: null,
+      markupBasisPoints: null,
     },
   );
 });
@@ -97,6 +98,7 @@ test('material item defaults and validation', () => {
     allowanceCents: 0,
     estimatedCents: 0,
     actualCents: null,
+    markupBasisPoints: null,
     expectedDate: null,
   });
   assert.equal(validateMaterialItem({ name: 'Tile' }), null);
@@ -134,6 +136,7 @@ test('diffTrackedFields emits one row per changed tracked field, in field order'
     responsibleParty: 'Crew',
     estimatedCents: 1000,
     actualCents: null,
+    markupBasisPoints: null,
     complete: false,
     sortOrder: 0,
   };
@@ -141,6 +144,7 @@ test('diffTrackedFields emits one row per changed tracked field, in field order'
     endDate: '2026-01-09',
     title: 'Demo',
     actualCents: 1200,
+    markupBasisPoints: 2500,
     complete: true,
     responsibleParty: 'Other',
   });
@@ -158,8 +162,14 @@ test('diffTrackedFields emits one row per changed tracked field, in field order'
       newValue: 'Other',
     },
     { kind: 'cost', field: 'actualCents', oldValue: null, newValue: '1200' },
+    {
+      kind: 'cost',
+      field: 'markupBasisPoints',
+      oldValue: null,
+      newValue: '2500',
+    },
   ]);
-  assert.deepEqual(Object.keys(TRACKED_FIELDS).length, 7);
+  assert.deepEqual(Object.keys(TRACKED_FIELDS).length, 8);
 });
 
 test('defaults keep every field the caller gives', () => {
@@ -185,6 +195,7 @@ test('defaults keep every field the caller gives', () => {
     responsibleParty: 'Us',
     estimatedCents: 100,
     actualCents: 90,
+    markupBasisPoints: 2500,
   };
   assert.deepEqual(scheduleItemDefaults(item), item);
   const material = {
@@ -193,6 +204,7 @@ test('defaults keep every field the caller gives', () => {
     allowanceCents: 10,
     estimatedCents: 12,
     actualCents: 11,
+    markupBasisPoints: 0,
     expectedDate: '2026-02-02',
   };
   assert.deepEqual(materialItemDefaults(material), material);
@@ -213,11 +225,13 @@ test('defaults fill an empty body and keep an explicit null', () => {
     responsibleParty: '',
     estimatedCents: 0,
     actualCents: null,
+    markupBasisPoints: null,
   });
   assert.deepEqual(
     materialItemDefaults({
       scheduleItemId: null,
       actualCents: null,
+      markupBasisPoints: null,
       expectedDate: null,
     }),
     {
@@ -226,6 +240,7 @@ test('defaults fill an empty body and keep an explicit null', () => {
       allowanceCents: 0,
       estimatedCents: 0,
       actualCents: null,
+      markupBasisPoints: null,
       expectedDate: null,
     },
   );
