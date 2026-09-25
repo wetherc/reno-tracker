@@ -10,9 +10,9 @@
 // and the projected total uses it.
 // Every amount here adds the project manager's markup to the base cost
 // that the row keeps. A billed row adds its share of the markup on its
-// invoices, at each invoice's rate. Every other price adds the project
-// rate, so an estimate compares with the budget the same way an invoice
-// does.
+// invoices, at each invoice's rate. Every other price adds the row's
+// own rate, or the project rate when the row has none, so an estimate
+// compares with the budget the same way an invoice does.
 import { markupOf } from '../entities/invoice.js';
 import { addDays, startOfWeek } from '../schedule/dates.js';
 import { billings } from './invoiced.js';
@@ -71,14 +71,15 @@ export function landingDate(item, payload) {
  * @returns {CostEvent[]}
  */
 export function costEvents(payload) {
-  const rate = payload.project.markupBasisPoints;
+  const projectRate = payload.project.markupBasisPoints;
   const byRow = billings(payload.invoices);
   /**
    * The price fields of one row, with markup.
-   * @param {{ id: string, complete: boolean, actualCents: number | null }} row
+   * @param {{ id: string, complete: boolean, actualCents: number | null, markupBasisPoints: number | null }} row
    * @param {number} expected the base estimate
    */
   const prices = (row, expected) => {
+    const rate = row.markupBasisPoints ?? projectRate;
     const expectedMarkupCents = markupOf(expected, rate);
     const billing = byRow.get(row.id);
     const base = billing ? billing.cents : row.actualCents;

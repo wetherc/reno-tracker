@@ -200,3 +200,40 @@ test('costEvents adds the invoice rate to billed rows and the project rate elsew
     ],
   );
 });
+
+test('costEvents adds a row rate over the project rate on estimates and typed prices', () => {
+  const events = costEvents({
+    ...payload,
+    project: { ...payload.project, markupBasisPoints: 1000 },
+    schedule: [
+      itemOf('a', { estimatedCents: 10_000, markupBasisPoints: 2500 }),
+      itemOf('b', {
+        endDate: '2026-10-09',
+        estimatedCents: 10_000,
+        actualCents: 4_000,
+        markupBasisPoints: 0,
+      }),
+    ],
+    materials: [
+      materialOf('m', {
+        expectedDate: '2026-10-10',
+        estimatedCents: 2_000,
+        markupBasisPoints: 5000,
+      }),
+    ],
+    invoices: [],
+  });
+  assert.deepEqual(
+    events.map((e) => [
+      e.id,
+      e.expectedCents,
+      e.expectedMarkupCents,
+      e.billedCents,
+    ]),
+    [
+      ['a', 12_500, 2_500, null],
+      ['b', 10_000, 0, 4_000],
+      ['m', 3_000, 1_000, null],
+    ],
+  );
+});
