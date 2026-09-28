@@ -3,6 +3,7 @@
 import { createBackend, readBackend } from './api/backend.js';
 import { describeFailure } from './api/errors.js';
 import { createContext } from './app/context.js';
+import { watchDay } from './app/dayWatch.js';
 import { mountCosts } from './app/costs.js';
 import { mountInvoices } from './app/invoices.js';
 import { mountMaterials } from './app/materials.js';
@@ -85,6 +86,9 @@ function render() {
 const redraw = () => keepFocus(render, shell.el);
 shell.onSection(redraw);
 ctx.on('payload', redraw);
+// Views read today's date as they draw, so a new day draws the panel
+// again. An open dialog keeps its typed values.
+watchDay(document, redraw);
 
 /** @param {import('./app/startView.js').StartState} next */
 function setStart(next) {

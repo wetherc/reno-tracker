@@ -238,6 +238,12 @@ rebuild and focuses its match after. A dialog does the same for the
 control that opened it. When the match is gone, as after a delete, the
 panel title takes focus.
 
+Every view reads the local date as it draws. `src/app/dayWatch.js`
+checks the date once a minute and each time the tab shows again, and
+draws the panel again when the date changes. So the today marker, the
+late marks, and the overdue invoices move at midnight with no reload.
+An open dialog is not drawn again, so its typed values stay.
+
 The whole project is plain JavaScript with full typechecking. Types live
 in `.ts` files that contain only declarations, and the `.js` files
 reference them through JSDoc comments. `tsconfig.json` sets `allowJs` and
