@@ -215,7 +215,9 @@ test('a day cell picks the day and lists its work under the grid', async () => {
   );
 });
 
-test('only one day is a tab stop and the arrow keys move it', async () => {
+test('only one day is a tab stop and the arrow keys move it', async (t) => {
+  // Today off the grid, so the first of the month takes the stop.
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
   const { el } = await setup(october);
   const cells = el.querySelectorAll('.cal__day');
   const stops = cells.filter((/** @type {any} */ c) => c.tabIndex === 0);

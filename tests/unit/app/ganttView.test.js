@@ -167,7 +167,8 @@ test('connectors follow the links and a late start turns one red', async () => {
   assert.equal(svg.querySelectorAll('marker').length, 2);
 });
 
-test('the today line is drawn only when today is on the grid', async () => {
+test('the today line is drawn only when today is on the grid', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2020, 0, 15) });
   const { el } = await setup();
   assert.equal(el.querySelector('.gantt__today'), null);
   const now = new Date();
