@@ -278,7 +278,9 @@ test('every view id has a renderer', async () => {
   assert.equal(view().children[0].tagName, 'TABLE');
 });
 
-test('the table opens in start date order', async () => {
+test('the table opens in start date order', async (t) => {
+  // Today before the items, so no title gets a late badge.
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
   const { shell } = await setup({
     schedule: [
       itemOf('a', { title: 'Later', startDate: '2026-10-05' }),
@@ -293,7 +295,8 @@ test('the table opens in start date order', async () => {
   assert.equal(start.getAttribute('aria-sort'), 'ascending');
 });
 
-test('a chosen sort outlives the rebuild after a write', async () => {
+test('a chosen sort outlives the rebuild after a write', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
   const { shell, ctx } = await setup({
     schedule: [
       itemOf('a', { title: 'Zinc', estimatedCents: 300 }),
@@ -316,7 +319,8 @@ test('a chosen sort outlives the rebuild after a write', async () => {
   assert.equal(ctx.prefs.read('scheduleSort'), 'title:asc');
 });
 
-test('a saved sort opens the table in that order', async () => {
+test('a saved sort opens the table in that order', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
   const schedule = [
     itemOf('a', { title: 'Apple', startDate: '2026-10-02' }),
     itemOf('b', { title: 'Zinc', startDate: '2026-10-05' }),

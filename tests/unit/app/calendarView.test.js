@@ -121,7 +121,9 @@ test('a bar that crosses the week edge loses that rounded end', async () => {
   assert.equal(back, undefined);
 });
 
-test('turning the month redraws in place and Today returns', async () => {
+test('turning the month redraws in place and Today returns', async (t) => {
+  // Today off the October grid and the months next to it.
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
   const { el, view } = await setup(october);
   const [prev, , next, today] = el.querySelector('.cal__nav').children;
   assert.equal(prev.getAttribute('aria-label'), 'Previous month');

@@ -102,7 +102,9 @@ test('the scale names the months and the first day of every week', async () => {
   assert.equal(el.querySelector('.gantt__chart').style.width, '784px');
 });
 
-test('bars land on their days and a complete bar is marked', async () => {
+test('bars land on their days and a complete bar is marked', async (t) => {
+  // Today before the fixture, so no bar is late.
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
   const { el } = await setup();
   const bars = el.querySelectorAll('.gantt-bar');
   assert.deepEqual(
@@ -403,7 +405,9 @@ test('moveMessage names only the dates that changed', () => {
   );
 });
 
-test('fitLabel keeps a title that fits inside and moves a long one beside the bar', () => {
+test('fitLabel keeps a title that fits inside and moves a long one beside the bar', (t) => {
+  // Today before the fixture, so no bar is late.
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
   const view = ganttView({ ctx: /** @type {any} */ ({}) });
   const el = $(
     view.render(
