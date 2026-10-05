@@ -16,7 +16,12 @@ import {
   pickPayments,
   validateInvoice,
 } from '../../../src/entities/invoice.js';
-import { lineMarkups, markupOf } from '../../../src/entities/lineItems.js';
+import {
+  lineMarkups,
+  lineRate,
+  markupOf,
+  sharedRate,
+} from '../../../src/entities/lineItems.js';
 
 const line = { scheduleItemId: 'a', amountCents: 500 };
 const ok = { party: 'Pinch Plumbing', issuedDate: '2026-01-05', lines: [line] };
@@ -115,6 +120,7 @@ test('defaults fill every field of the invoice and its lines', () => {
         materialItemId: null,
         description: '',
         amountCents: 500,
+        markupBasisPoints: null,
       },
     ],
     retainageCents: 0,
@@ -177,6 +183,8 @@ const billOf = (amounts, markupBasisPoints) => ({
     materialItemId: null,
     description: '',
     amountCents,
+    /** @type {number | null} */
+    markupBasisPoints: null,
   })),
 });
 
@@ -197,6 +205,38 @@ test('line markups add up to the invoice markup', () => {
   assert.equal(invoiceMarkup(bill), 10);
   assert.deepEqual(lineMarkups(billOf([500], 0)), [0]);
   assert.deepEqual(lineMarkups(billOf([], 1500)), []);
+});
+
+test('a line with a rate of its own takes that rate, and a blank one the invoice rate', () => {
+  const bill = billOf([10_000, 10_000, 3], 1000);
+  bill.lines[1].markupBasisPoints = 2500;
+  bill.lines[2].markupBasisPoints = 0;
+  assert.equal(lineRate(bill.lines[0], bill), 1000);
+  assert.equal(lineRate(bill.lines[1], bill), 2500);
+  assert.equal(lineRate(bill.lines[2], bill), 0);
+  assert.deepEqual(lineMarkups(bill), [1000, 2500, 0]);
+  assert.equal(invoiceMarkup(bill), 3500);
+  assert.equal(invoiceTotal(bill), 23_503);
+  assert.equal(sharedRate(bill), null);
+});
+
+test('a document rounds its markup once over lines at different rates', () => {
+  // 1 cent at 50% and 1 cent at 50.01% are 0.5 and 0.5001 cents. Each
+  // alone rounds to 1, but the sum, 1.0001, rounds to 1.
+  const bill = billOf([1, 1], 5000);
+  bill.lines[1].markupBasisPoints = 5001;
+  assert.deepEqual(lineMarkups(bill), [1, 0]);
+  assert.equal(invoiceMarkup(bill), 1);
+});
+
+test('sharedRate names the one rate every line takes', () => {
+  const bill = billOf([1, 2], 1500);
+  assert.equal(sharedRate(bill), 1500);
+  bill.lines[0].markupBasisPoints = 1500;
+  assert.equal(sharedRate(bill), 1500);
+  bill.lines.forEach((l) => (l.markupBasisPoints = 800));
+  assert.equal(sharedRate(bill), 800);
+  assert.equal(sharedRate(billOf([], 1200)), 1200);
 });
 
 test('payments are optional and each needs a day and more than zero cents', () => {
@@ -267,6 +307,7 @@ test('clean input keeps known keys and puts payments in paid-day order', () => {
         materialItemId: null,
         description: '',
         amountCents: 500,
+        markupBasisPoints: null,
       },
     ],
   });

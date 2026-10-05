@@ -14,6 +14,7 @@ const doc = (issuedDate, lines) => ({
     materialItemId,
     description: '',
     amountCents,
+    markupBasisPoints: null,
   })),
 });
 

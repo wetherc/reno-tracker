@@ -126,6 +126,7 @@ export function toLineItem(r) {
     materialItemId: textOrNull(r.materialItemId),
     description: text(r.description),
     amountCents: int(r.amountCents),
+    markupBasisPoints: intOrNull(r.markupBasisPoints),
   };
 }
 

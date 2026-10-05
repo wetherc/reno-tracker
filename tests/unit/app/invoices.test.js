@@ -30,6 +30,7 @@ const line = (scheduleItemId, materialItemId, amountCents) => ({
   materialItemId,
   description: '',
   amountCents,
+  markupBasisPoints: null,
 });
 
 /** @param {Parameters<typeof setupSchedule>[0]} [seed] */

@@ -89,12 +89,15 @@ export interface MaterialItem {
 // One line of an invoice or a change order. Each line names one
 // schedule item or one material: exactly one of scheduleItemId and
 // materialItemId is set. The amount is base cost, before markup.
+// markupBasisPoints is the margin on the amount. Null means the line
+// takes the rate of its document.
 export interface LineItem {
   id: string;
   scheduleItemId: string | null;
   materialItemId: string | null;
   description: string;
   amountCents: Cents;
+  markupBasisPoints: BasisPoints | null;
 }
 
 // Each line of an invoice bills the row it names.
@@ -109,8 +112,8 @@ export interface Payment {
   note: string;
 }
 
-// The lines are base cost, and the total adds markupBasisPoints of
-// their sum. retainageCents is the part of the total that the household
+// The lines are base cost. The total adds the markup on each line, at
+// the line's own rate or else at markupBasisPoints. retainageCents is the part of the total that the household
 // keeps back until the work is done. It is owed but not due, and a
 // payment releases it. Payments are listed by paid day.
 export interface Invoice {
@@ -195,7 +198,12 @@ export type MaterialItemInput = Partial<
 >;
 
 export type LineItemInput = Pick<LineItem, 'amountCents'> &
-  Partial<Pick<LineItem, 'scheduleItemId' | 'materialItemId' | 'description'>>;
+  Partial<
+    Pick<
+      LineItem,
+      'scheduleItemId' | 'materialItemId' | 'description' | 'markupBasisPoints'
+    >
+  >;
 
 export type InvoiceLineInput = LineItemInput;
 

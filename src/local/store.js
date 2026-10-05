@@ -29,6 +29,7 @@ import { PREFIX } from '../storage/prefs.js';
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
 /** @typedef {import('../types.ts').Invoice} Invoice */
 /** @typedef {import('../types.ts').ChangeOrder} ChangeOrder */
+/** @typedef {import('../types.ts').LineItem} LineItem */
 /** @typedef {import('../storage/prefs.js').StorageLike} StorageLike */
 
 /**
@@ -160,11 +161,21 @@ function parseObject(text) {
 }
 
 /**
+ * @param {LineItem} line
+ * @returns {LineItem}
+ */
+const withLineRate = (line) => ({
+  ...line,
+  markupBasisPoints: line.markupBasisPoints ?? null,
+});
+
+/**
  * Fills in any list the stored document lacks, the markup rate of a
  * project, schedule item, or material stored without one, and the markup
  * rate, retainage, and payments of an invoice stored without them. A row
  * with no rate takes the project rate. A change order stored with no
- * rate gets the rate of its project.
+ * rate gets the rate of its project. A line stored with no rate takes
+ * the rate of its document.
  * @param {Record<string, unknown>} input
  * @returns {LocalDb}
  */
@@ -191,12 +202,14 @@ function normalize(input) {
     ...i,
     markupBasisPoints: i.markupBasisPoints ?? 0,
     retainageCents: i.retainageCents ?? 0,
+    lines: i.lines.map(withLineRate),
     payments: i.payments ?? [],
   }));
   const rates = new Map(db.projects.map((p) => [p.id, p.markupBasisPoints]));
   db.changeOrders = db.changeOrders.map((c) => ({
     ...c,
     markupBasisPoints: c.markupBasisPoints ?? rates.get(c.projectId) ?? 0,
+    lines: c.lines.map(withLineRate),
   }));
   return db;
 }

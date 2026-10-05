@@ -12,6 +12,7 @@ const line = (amountCents) => ({
   materialItemId: null,
   description: '',
   amountCents,
+  markupBasisPoints: null,
 });
 
 /** @param {number} amountCents */

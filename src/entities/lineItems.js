@@ -1,8 +1,17 @@
 // Line items, which invoices and change orders both list. Each line
 // names one schedule item or one material and an amount of base cost.
+// A line may have a markup rate of its own, and a line with none takes
+// the rate of its document.
 // A line error names its field as lines.<index>.<name>, so a form can
 // mark the control on that line.
-import { checkCents, checkText, fieldErrors, show } from './validate.js';
+import {
+  checkBasisPoints,
+  checkCents,
+  checkText,
+  fieldErrors,
+  nullable,
+  show,
+} from './validate.js';
 
 /** @typedef {import('../types.ts').LineItemInput} LineItemInput */
 /** @typedef {import('../types.ts').NewLineItem} NewLineItem */
@@ -15,6 +24,7 @@ const LINE_CHECKS = {
   description: (/** @type {string} */ f, /** @type {unknown} */ v) =>
     checkText(f, v, { max: 200 }),
   amountCents: checkCents,
+  markupBasisPoints: nullable(checkBasisPoints),
 };
 
 /**
@@ -97,6 +107,7 @@ export function lineDefaults(line) {
     materialItemId: line.materialItemId ?? null,
     description: line.description ?? '',
     amountCents: line.amountCents,
+    markupBasisPoints: line.markupBasisPoints ?? null,
   };
 }
 
@@ -124,6 +135,7 @@ export const pickLines = (lines) =>
       'materialItemId',
       'description',
       'amountCents',
+      'markupBasisPoints',
     ])
   );
 
@@ -164,7 +176,10 @@ export function docName(noun, doc) {
 export const inSentence = (name) =>
   name.charAt(0).toLowerCase() + name.slice(1);
 
-/** @typedef {{ lines: { amountCents: number }[], markupBasisPoints: number }} Priced */
+/**
+ * @typedef {{ amountCents: number, markupBasisPoints?: number | null }} PricedLine
+ * @typedef {{ lines: PricedLine[], markupBasisPoints: number }} Priced
+ */
 
 /**
  * A rate applied to an amount, rounded to whole cents.
@@ -173,24 +188,56 @@ export const inSentence = (name) =>
  * @returns {number}
  */
 export function markupOf(cents, basisPoints) {
-  return Math.round((cents * basisPoints) / 10_000);
+  return toCents(cents * basisPoints);
+}
+
+/**
+ * Cent basis points rounded to whole cents.
+ * @param {number} centBasisPoints an amount in cents times a rate in basis points
+ * @returns {number}
+ */
+const toCents = (centBasisPoints) => Math.round(centBasisPoints / 10_000);
+
+/**
+ * The rate of one line: its own, or the rate of its document when it
+ * has none.
+ * @param {PricedLine} line
+ * @param {Priced} doc
+ * @returns {number}
+ */
+export const lineRate = (line, doc) =>
+  line.markupBasisPoints ?? doc.markupBasisPoints;
+
+/**
+ * The rate of every line of a document when they all share one, or
+ * null when two lines differ. A document with no lines has its own
+ * rate.
+ * @param {Priced} doc
+ * @returns {number | null}
+ */
+export function sharedRate(doc) {
+  const rates = new Set(doc.lines.map((line) => lineRate(line, doc)));
+  if (rates.size === 0) return doc.markupBasisPoints;
+  return rates.size === 1 ? /** @type {number} */ ([...rates][0]) : null;
 }
 
 /**
  * The markup of each line, in line order. A document rounds its markup
- * once, on the sum of the lines. Each line takes the rounded markup of
- * the running sum through it less that of the lines before it, so the
- * shares add up to the document markup and each share is within a cent
- * of the exact rate.
+ * once, on the sum of the exact markup of every line at that line's
+ * rate. Each line takes the rounded markup of the running sum through
+ * it less that of the lines before it, so the shares add up to the
+ * document markup and each share is within a cent of the exact rate.
+ * The running sum is a whole number of cent basis points, so the sum
+ * stays exact.
  * @param {Priced} doc
  * @returns {number[]}
  */
 export function lineMarkups(doc) {
-  let base = 0;
+  let exact = 0;
   let before = 0;
   return doc.lines.map((line) => {
-    base += line.amountCents;
-    const through = markupOf(base, doc.markupBasisPoints);
+    exact += line.amountCents * lineRate(line, doc);
+    const through = toCents(exact);
     const share = through - before;
     before = through;
     return share;
@@ -199,7 +246,12 @@ export function lineMarkups(doc) {
 
 /**
  * @param {Priced} doc
- * @returns {number} the markup on the sum of the lines
+ * @returns {number} the markup on the lines, rounded once
  */
 export const docMarkup = (doc) =>
-  markupOf(lineSubtotal(doc), doc.markupBasisPoints);
+  toCents(
+    doc.lines.reduce(
+      (sum, line) => sum + line.amountCents * lineRate(line, doc),
+      0,
+    ),
+  );

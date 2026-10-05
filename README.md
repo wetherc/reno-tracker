@@ -186,7 +186,9 @@ A tab keeps the page code it loaded. A tab that loaded a build with no
 invoices reads a stored project without its invoices, and its next
 write stores the project with none. A tab that loaded a build with no
 change orders drops them in the same way, and it also lets a row that a
-change order names be deleted. Reload every open tab after the site
+change order names be deleted. A tab that loaded a build with no line
+rates drops the rate of every line on the invoices and change orders
+that it saves. Reload every open tab after the site
 updates. A build with no change orders also loads a saved file without
 its change orders.
 
@@ -340,8 +342,12 @@ lines, because a contractor can price one change with a margin other
 than the project rate. A new change order with no rate in its body
 copies the project rate, and a change to the project rate does not
 change it. A change order stored with no rate, and one in an import
-file with none, takes the rate of its project. A change order total is
-the sum of its lines plus that markup, rounded once on the sum.
+file with none, takes the rate of its project. Each line of an invoice
+or a change order can also have a rate of its own. A line with no rate
+stores null and takes the rate of its document, so a change to the
+document rate moves every such line. The total of an invoice or a
+change order is the sum of its lines plus the markup of each line at
+its rate, rounded once on the sum.
 A schedule item or material can also have a rate of its own, for the
 markup on its estimate. A row with no rate stores null and takes the
 project rate, so a change to the project rate moves every such row. A

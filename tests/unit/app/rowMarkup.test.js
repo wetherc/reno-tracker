@@ -79,6 +79,7 @@ test('blendedColumn reads each row from projections and totals the footer', () =
             materialItemId: 'm',
             description: '',
             amountCents: 6_000,
+            markupBasisPoints: null,
           },
         ],
       }),

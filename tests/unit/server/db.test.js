@@ -59,7 +59,7 @@ function withTempDir(run) {
 test('openDatabase on :memory: creates every table and sets the version', () => {
   const db = openDatabase(':memory:');
   assert.deepEqual(tableNames(db), [...TABLES].sort());
-  assert.equal(schemaVersion(db), 8);
+  assert.equal(schemaVersion(db), 9);
   assert.equal(db.prepare('PRAGMA foreign_keys').get()?.foreign_keys, 1);
   db.close();
 });
@@ -77,7 +77,7 @@ test('openDatabase creates the parent directory of a file path', () => {
 test('migrate is idempotent', () => {
   const db = openDatabase(':memory:');
   assert.deepEqual(migrate(db), []);
-  assert.equal(schemaVersion(db), 8);
+  assert.equal(schemaVersion(db), 9);
   db.close();
 });
 
@@ -226,4 +226,31 @@ test('a change order stored before its own rate takes the project rate', () => {
     );
     db.close();
   });
+});
+
+test('an invoice or change order line stores a rate of its own or null', () => {
+  const db = openDatabase(':memory:');
+  db.exec(
+    `INSERT INTO projects (id, name, startDate, createdAt)
+       VALUES ('p', 'p', '2026-01-01', 'now');
+     INSERT INTO schedule_items (id, projectId, title, startDate, endDate, sortOrder)
+       VALUES ('s', 'p', 's', '2026-01-01', '2026-01-02', 0);
+     INSERT INTO invoices (id, projectId, party, issuedDate)
+       VALUES ('i', 'p', 'Pinch', '2026-01-02');
+     INSERT INTO change_orders (id, projectId, party, issuedDate)
+       VALUES ('c', 'p', 'Pinch', '2026-01-02');`,
+  );
+  for (const [table, parent, doc] of [
+    ['invoice_lines', 'invoiceId', 'i'],
+    ['change_order_lines', 'changeOrderId', 'c'],
+  ]) {
+    const insert = db.prepare(
+      `INSERT INTO ${table} (id, ${parent}, position, scheduleItemId, amountCents, markupBasisPoints)
+         VALUES (?, '${doc}', 0, 's', 100, ?)`,
+    );
+    insert.run(`${table}-a`, null);
+    insert.run(`${table}-b`, 2500);
+    assert.throws(() => insert.run(`${table}-c`, 10_001), /CHECK/);
+  }
+  db.close();
 });

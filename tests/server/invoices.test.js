@@ -53,7 +53,12 @@ async function seed(api) {
     issuedDate: '2026-01-10',
     dueDate: '2026-02-09',
     lines: [
-      { scheduleItemId: tile.id, amountCents: 120_000, description: 'Labor' },
+      {
+        scheduleItemId: tile.id,
+        amountCents: 120_000,
+        description: 'Labor',
+        markupBasisPoints: 2500,
+      },
       /** @type {any} */ ({
         materialItemId: vanity.id,
         amountCents: 45_000,
@@ -79,12 +84,14 @@ for (const [name, make] of BACKENDS) {
             materialItemId: null,
             description: 'Labor',
             amountCents: 120_000,
+            markupBasisPoints: 2500,
           },
           {
             scheduleItemId: null,
             materialItemId: vanity.id,
             description: '',
             amountCents: 45_000,
+            markupBasisPoints: null,
           },
         ],
       );
@@ -125,6 +132,16 @@ for (const [name, make] of BACKENDS) {
         400,
         'line 2 must bill one schedule item or one material',
         'lines.1.item',
+      );
+      await fails(
+        api.createInvoice(project.id, {
+          party: 'P',
+          issuedDate: '2026-01-05',
+          lines: [line, { ...line, markupBasisPoints: 10_001 }],
+        }),
+        400,
+        'line 2: markupBasisPoints must be whole basis points from 0 to 10000, got 10001',
+        'lines.1.markupBasisPoints',
       );
       await fails(
         api.createInvoice('nope', {

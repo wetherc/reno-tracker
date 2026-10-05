@@ -54,7 +54,12 @@ async function seed(api) {
     issuedDate: '2026-01-10',
     description: 'Move the drain',
     lines: [
-      { scheduleItemId: tile.id, amountCents: 30_000, description: 'Labor' },
+      {
+        scheduleItemId: tile.id,
+        amountCents: 30_000,
+        description: 'Labor',
+        markupBasisPoints: 0,
+      },
       /** @type {any} */ ({
         materialItemId: vanity.id,
         amountCents: 12_500,
@@ -82,12 +87,14 @@ for (const [name, make] of BACKENDS) {
             materialItemId: null,
             description: 'Labor',
             amountCents: 30_000,
+            markupBasisPoints: 0,
           },
           {
             scheduleItemId: null,
             materialItemId: vanity.id,
             description: '',
             amountCents: 12_500,
+            markupBasisPoints: null,
           },
         ],
       );

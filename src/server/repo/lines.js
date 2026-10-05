@@ -117,8 +117,8 @@ export function insertLines(db, kind, docId, lines) {
   const insert = statement(
     db,
     `INSERT INTO ${kind.lines}
-       (id, ${kind.parent}, position, scheduleItemId, materialItemId, description, amountCents)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (id, ${kind.parent}, position, scheduleItemId, materialItemId, description, amountCents, markupBasisPoints)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   lines.forEach((line, i) =>
     insert.run(
@@ -129,6 +129,7 @@ export function insertLines(db, kind, docId, lines) {
       line.materialItemId,
       line.description,
       line.amountCents,
+      line.markupBasisPoints,
     ),
   );
 }

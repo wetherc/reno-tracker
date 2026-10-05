@@ -182,7 +182,12 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
             issuedDate: '2026-01-10',
             lines: [
               { scheduleItemId: 'b', amountCents: 900, extra: 1 },
-              { materialItemId: 'g', amountCents: 50, description: 'Bag' },
+              {
+                materialItemId: 'g',
+                amountCents: 50,
+                description: 'Bag',
+                markupBasisPoints: 1200,
+              },
             ],
           },
         ],
@@ -272,12 +277,14 @@ test('both backends fill defaults, drop dangling rows and repeated edges, and un
             materialItemId: null,
             description: '',
             amountCents: 900,
+            markupBasisPoints: null,
           },
           {
             scheduleItemId: null,
             materialItemId: 'material:Grout',
             description: 'Bag',
             amountCents: 50,
+            markupBasisPoints: 1200,
           },
         ],
         retainageCents: 0,

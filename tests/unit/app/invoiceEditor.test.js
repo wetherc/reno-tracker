@@ -220,6 +220,7 @@ test('editing fills the lines, patches, and closes when the invoice is gone', as
         materialItemId: null,
         description: 'Labor',
         amountCents: 5000,
+        markupBasisPoints: null,
       },
       {
         id: 'l2',
@@ -227,6 +228,7 @@ test('editing fills the lines, patches, and closes when the invoice is gone', as
         materialItemId: 'm2',
         description: '',
         amountCents: 250,
+        markupBasisPoints: null,
       },
     ],
   });
@@ -285,6 +287,7 @@ test('delete asks first and writes on yes', async () => {
         materialItemId: null,
         description: '',
         amountCents: 1,
+        markupBasisPoints: null,
       },
     ],
   });
@@ -397,6 +400,7 @@ test('an invoice opens on its own rate, not the project rate', async () => {
             materialItemId: null,
             description: '',
             amountCents: 2_000,
+            markupBasisPoints: null,
           },
         ],
       }),

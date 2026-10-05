@@ -356,6 +356,7 @@ test('a billed item shows its invoice sum read only and cannot be deleted', asyn
             materialItemId: null,
             description: '',
             amountCents: 40000,
+            markupBasisPoints: null,
           },
         ],
       }),

@@ -14,6 +14,7 @@ const line = (scheduleItemId, materialItemId, amountCents) => ({
   materialItemId,
   description: '',
   amountCents,
+  markupBasisPoints: null,
 });
 
 const late = invoiceOf('late', {

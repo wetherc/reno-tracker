@@ -94,6 +94,7 @@ export function lineOf(link, amountCents) {
     materialItemId: link.materialItemId ?? null,
     description: '',
     amountCents,
+    markupBasisPoints: null,
   };
 }
 

@@ -163,6 +163,7 @@ const billsMaterial = (materialItemId, amountCents) => ({
   materialItemId,
   description: '',
   amountCents,
+  markupBasisPoints: null,
 });
 
 test('a billed material shows its invoice sum read only and saves without it', async () => {

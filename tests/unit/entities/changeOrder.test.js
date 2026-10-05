@@ -56,6 +56,7 @@ test('defaults fill every field and keep only known line keys', () => {
         materialItemId: null,
         description: '',
         amountCents: 100,
+        markupBasisPoints: null,
       },
     ],
   });

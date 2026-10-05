@@ -488,6 +488,40 @@ test('an invoice stored with no markup, retainage, or payments reads with none',
   ]);
 });
 
+test('a line stored with no rate reads as taking the rate of its document', () => {
+  const storage = memoryStorage();
+  const line = {
+    id: 'l',
+    scheduleItemId: 's',
+    materialItemId: null,
+    description: '',
+    amountCents: 100,
+  };
+  const doc = {
+    projectId: 'a',
+    number: '',
+    party: 'Pinch',
+    issuedDate: '2026-01-05',
+    markupBasisPoints: 1000,
+    lines: [line, { ...line, id: 'm', markupBasisPoints: 2000 }],
+  };
+  storage.setItem(
+    PROJECT_PREFIX + 'a',
+    JSON.stringify({
+      projects: [projectOfId('a')],
+      invoices: [{ ...doc, id: 'i' }],
+      changeOrders: [{ ...doc, id: 'c', approved: true, description: '' }],
+    }),
+  );
+  const db = createStore(storage).read();
+  for (const { lines } of [...db.invoices, ...db.changeOrders]) {
+    assert.deepEqual(
+      lines.map((l) => l.markupBasisPoints),
+      [null, 2000],
+    );
+  }
+});
+
 test('a change order stored with no rate reads with the rate of its project', () => {
   const storage = memoryStorage();
   const order = {

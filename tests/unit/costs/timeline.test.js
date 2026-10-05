@@ -280,6 +280,7 @@ test('costEvents adds the invoice rate to billed rows and the project rate elsew
             materialItemId: null,
             description: '',
             amountCents: 9_000,
+            markupBasisPoints: null,
           },
         ],
       }),

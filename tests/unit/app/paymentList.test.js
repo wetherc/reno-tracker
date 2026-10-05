@@ -51,6 +51,7 @@ const invoice = invoiceOf('i1', {
       materialItemId: null,
       description: '',
       amountCents: 10_000,
+      markupBasisPoints: null,
     },
   ],
   payments: [
