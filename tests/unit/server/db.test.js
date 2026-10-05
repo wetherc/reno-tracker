@@ -24,6 +24,8 @@ const TABLES = [
   'invoices',
   'invoice_lines',
   'invoice_payments',
+  'change_orders',
+  'change_order_lines',
 ];
 
 /** @param {DatabaseSync} db */
@@ -49,7 +51,7 @@ function withTempDir(run) {
 test('openDatabase on :memory: creates every table and sets the version', () => {
   const db = openDatabase(':memory:');
   assert.deepEqual(tableNames(db), [...TABLES].sort());
-  assert.equal(schemaVersion(db), 6);
+  assert.equal(schemaVersion(db), 7);
   assert.equal(db.prepare('PRAGMA foreign_keys').get()?.foreign_keys, 1);
   db.close();
 });
@@ -67,7 +69,7 @@ test('openDatabase creates the parent directory of a file path', () => {
 test('migrate is idempotent', () => {
   const db = openDatabase(':memory:');
   assert.deepEqual(migrate(db), []);
-  assert.equal(schemaVersion(db), 6);
+  assert.equal(schemaVersion(db), 7);
   db.close();
 });
 

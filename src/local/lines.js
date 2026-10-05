@@ -2,6 +2,7 @@
 // LocalDb. Every row a line names must belong to the document's
 // project, and a row that a line names cannot be deleted, the same as
 // on the server.
+import { changeOrderName } from '../entities/changeOrder.js';
 import { invoiceName } from '../entities/invoice.js';
 import { badRequest, conflict } from './errors.js';
 import { newId } from './store.js';
@@ -9,17 +10,20 @@ import { newId } from './store.js';
 /** @typedef {import('./store.js').LocalDb} LocalDb */
 /** @typedef {import('../types.ts').LineItem} LineItem */
 /** @typedef {import('../types.ts').NewLineItem} NewLineItem */
+/** @typedef {import('../types.ts').Invoice} Invoice */
+/** @typedef {import('../types.ts').ChangeOrder} ChangeOrder */
 
 /**
  * @typedef {object} LineKind
- * @property {'invoices'} list the LocalDb list of the documents
+ * @property {'invoices' | 'changeOrders'} list the LocalDb list of the documents
  * @property {string} verb what a line does to its row, such as "bills"
  * @property {(doc: { number: string, party: string }) => string} name the name of a document in a message
  */
 
-/** @type {Record<'invoice', LineKind>} */
+/** @type {Record<'invoice' | 'changeOrder', LineKind>} */
 export const LINE_KINDS = {
   invoice: { list: 'invoices', verb: 'bills', name: invoiceName },
+  changeOrder: { list: 'changeOrders', verb: 'adds to', name: changeOrderName },
 };
 
 /**
@@ -58,7 +62,9 @@ export function linesFor(db, kind, projectId, lines) {
  */
 export function checkUnlinked(db, key, id, name) {
   for (const kind of Object.values(LINE_KINDS)) {
-    const doc = db[kind.list]
+    /** @type {(Invoice | ChangeOrder)[]} */
+    const docs = db[kind.list];
+    const doc = docs
       .filter((d) => d.lines.some((l) => l[key] === id))
       .sort((a, b) => a.issuedDate.localeCompare(b.issuedDate))[0];
     if (doc) {

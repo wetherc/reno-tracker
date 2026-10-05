@@ -386,4 +386,39 @@ export const REFUSED = [
     'invoices row 1: payment 1: amountCents must be whole cents, zero or more, got undefined',
     'invoices',
   ],
+  [
+    'change orders that are not a list',
+    file({ changeOrders: 'x' }),
+    'changeOrders must be a list',
+    'changeOrders',
+  ],
+  [
+    'a change order with a bad approved value',
+    file({
+      changeOrders: [
+        {
+          party: 'P',
+          issuedDate: '2026-01-05',
+          approved: 1,
+          lines: [{ scheduleItemId: 'a', amountCents: 1 }],
+        },
+      ],
+    }),
+    'changeOrders row 1: approved must be true or false, got 1',
+    'changeOrders',
+  ],
+  [
+    'a change order line for a material the file does not list',
+    file({
+      changeOrders: [
+        {
+          party: 'P',
+          issuedDate: '2026-01-05',
+          lines: [{ materialItemId: 'm', amountCents: 1 }],
+        },
+      ],
+    }),
+    'changeOrders row 1: line 1 adds to material "m", which the file does not list',
+    'changeOrders',
+  ],
 ];

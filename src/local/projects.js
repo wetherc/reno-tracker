@@ -95,6 +95,9 @@ export function getProjectPayload(db, id) {
     invoices: db.invoices
       .filter((i) => i.projectId === id)
       .sort((a, b) => a.issuedDate.localeCompare(b.issuedDate)),
+    changeOrders: db.changeOrders
+      .filter((c) => c.projectId === id)
+      .sort((a, b) => a.issuedDate.localeCompare(b.issuedDate)),
   };
 }
 

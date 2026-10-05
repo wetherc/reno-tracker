@@ -23,8 +23,15 @@ import { newId, now } from './store.js';
  * @returns {ExportFile}
  */
 export function exportProject(db, id) {
-  const { project, schedule, dependencies, notes, materials, invoices } =
-    getProjectPayload(db, id);
+  const {
+    project,
+    schedule,
+    dependencies,
+    notes,
+    materials,
+    invoices,
+    changeOrders,
+  } = getProjectPayload(db, id);
   return {
     format: EXPORT_FORMAT,
     exportedAt: now(),
@@ -35,6 +42,7 @@ export function exportProject(db, id) {
     notes,
     materials,
     invoices,
+    changeOrders,
   };
 }
 
@@ -98,22 +106,33 @@ export function importProject(db, file) {
         m.scheduleItemId === null ? null : mapped(m.scheduleItemId),
     });
   }
+  /** @param {import('../types.ts').NewLineItem[]} lines */
+  const mappedLines = (lines) =>
+    lines.map((line) => ({
+      ...line,
+      id: newId(),
+      scheduleItemId:
+        line.scheduleItemId === null ? null : mapped(line.scheduleItemId),
+      materialItemId:
+        line.materialItemId === null
+          ? null
+          : /** @type {string} */ (materialIds.get(line.materialItemId)),
+    }));
   for (const invoice of file.invoices) {
     db.invoices.push({
       ...invoice,
       id: newId(),
       projectId: project.id,
-      lines: invoice.lines.map((line) => ({
-        ...line,
-        id: newId(),
-        scheduleItemId:
-          line.scheduleItemId === null ? null : mapped(line.scheduleItemId),
-        materialItemId:
-          line.materialItemId === null
-            ? null
-            : /** @type {string} */ (materialIds.get(line.materialItemId)),
-      })),
+      lines: mappedLines(invoice.lines),
       payments: withIds(invoice.payments),
+    });
+  }
+  for (const order of file.changeOrders) {
+    db.changeOrders.push({
+      ...order,
+      id: newId(),
+      projectId: project.id,
+      lines: mappedLines(order.lines),
     });
   }
   return getProjectPayload(db, project.id);

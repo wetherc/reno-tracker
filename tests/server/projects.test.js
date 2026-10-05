@@ -34,6 +34,7 @@ test('project routes: list, create, read payload, patch, delete, reorder', async
       'notes',
       'materials',
       'invoices',
+      'changeOrders',
     ]);
 
     res = await app.api('PATCH', `/api/projects/${project.id}`, {

@@ -163,6 +163,24 @@ export function toInvoice(r, lines, payments) {
   };
 }
 
+/**
+ * @param {Row} r
+ * @param {import('../../types.ts').LineItem[]} lines
+ * @returns {import('../../types.ts').ChangeOrder}
+ */
+export function toChangeOrder(r, lines) {
+  return {
+    id: text(r.id),
+    projectId: text(r.projectId),
+    number: text(r.number),
+    party: text(r.party),
+    issuedDate: text(r.issuedDate),
+    approved: bool(r.approved),
+    description: text(r.description),
+    lines,
+  };
+}
+
 /** @returns {string} */
 export function now() {
   return new Date().toISOString();

@@ -126,6 +126,21 @@ export interface Invoice {
   payments: Payment[];
 }
 
+// An agreed change to the scope of the work. Each line adds its amount
+// to the estimate of the row it names, on top of the estimate typed on
+// that row, once the change order is approved. A pending change order
+// changes no estimate.
+export interface ChangeOrder {
+  id: string;
+  projectId: string;
+  number: string;
+  party: string;
+  issuedDate: IsoDate;
+  approved: boolean;
+  description: string;
+  lines: LineItem[];
+}
+
 // One project and its rows. GET /api/projects/:id returns this, and the
 // client keeps one of these in memory. The change log is left out,
 // because it grows with every edit. GET /api/schedule/:id/changes
@@ -137,6 +152,7 @@ export interface ProjectPayload {
   notes: Note[];
   materials: MaterialItem[];
   invoices: Invoice[];
+  changeOrders: ChangeOrder[];
 }
 
 // Inputs. Every field is optional on a patch. Create bodies fill missing
@@ -213,6 +229,19 @@ export type NewInvoice = Omit<
   payments: Omit<Payment, 'id'>[];
 };
 
+// A patch that carries lines replaces every line of the change order.
+export type ChangeOrderInput = Partial<
+  Pick<
+    ChangeOrder,
+    'number' | 'party' | 'issuedDate' | 'approved' | 'description'
+  > & { lines: LineItemInput[] }
+>;
+
+// A checked change order with every field filled, before it gets its ids.
+export type NewChangeOrder = Omit<ChangeOrder, 'id' | 'projectId' | 'lines'> & {
+  lines: NewLineItem[];
+};
+
 // A checked project with every field filled, before it gets its id.
 export type NewProject = Pick<
   Project,
@@ -241,8 +270,10 @@ export interface ExportFile {
   variances: Variance[];
   notes: Note[];
   materials: MaterialItem[];
-  // A file with no invoices list imports with no invoices.
+  // A file with no invoices list imports with no invoices, and a file
+  // with no changeOrders list imports with no change orders.
   invoices?: Invoice[];
+  changeOrders?: ChangeOrder[];
 }
 
 // The rows of an export file after the import check. Ids are the ones
@@ -255,6 +286,7 @@ export interface ImportRows {
   notes: Omit<Note, 'id'>[];
   materials: (Omit<MaterialItem, 'id' | 'projectId'> & { id: string | null })[];
   invoices: NewInvoice[];
+  changeOrders: NewChangeOrder[];
 }
 
 export interface ApiErrorBody {

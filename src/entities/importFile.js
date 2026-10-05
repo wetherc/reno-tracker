@@ -7,9 +7,10 @@
 // item the file does not list is dropped, and so is a dependency with
 // an unknown end or a second copy of an edge, because nothing could
 // show them. A material that points at an unknown item is kept with no
-// link. A material keeps its file id, if it has one, so an invoice line
-// can name it. A dependency on itself or a loop of dependencies stops the
-// import, because the Gantt drops every item in a loop.
+// link. A material keeps its file id, if it has one, so a line of an
+// invoice or a change order can name it. A dependency on itself or a
+// loop of dependencies stops the import, because the Gantt drops every
+// item in a loop.
 import {
   scheduleItemDefaults,
   TRACKED_FIELDS,
@@ -20,6 +21,12 @@ import { PROJECT_FIELDS, projectDefaults, validateProject } from './project.js';
 import { checkBoolean, checkText, checkTimestamp, show } from './validate.js';
 import { findCycle } from '../schedule/graph.js';
 import { checkDocs } from './importDocs.js';
+import {
+  CHANGE_ORDER_FIELDS,
+  changeOrderDefaults,
+  cleanChangeOrderInput,
+  validateChangeOrder,
+} from './changeOrder.js';
 import {
   cleanInvoiceInput,
   INVOICE_FIELDS,
@@ -73,6 +80,15 @@ const INVOICES = {
   validate: validateInvoice,
   defaults: (fields) => invoiceDefaults(cleanInvoiceInput(fields)),
   verb: 'bills',
+};
+
+/** @type {import('./importDocs.js').DocKind<ImportRows['changeOrders'][number]>} */
+const CHANGE_ORDERS = {
+  list: 'changeOrders',
+  fields: CHANGE_ORDER_FIELDS,
+  validate: validateChangeOrder,
+  defaults: (fields) => changeOrderDefaults(cleanChangeOrderInput(fields)),
+  verb: 'adds to',
 };
 
 /**
@@ -295,6 +311,7 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
 
   const known = { items: new Set(titles.keys()), materials: materialIds };
   const invoices = checkDocs(INVOICES, body.invoices, known, fail);
+  const changeOrders = checkDocs(CHANGE_ORDERS, body.changeOrders, known, fail);
 
   return {
     project,
@@ -304,6 +321,7 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
     notes,
     materials,
     invoices,
+    changeOrders,
   };
 }
 

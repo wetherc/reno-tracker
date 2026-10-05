@@ -28,6 +28,7 @@ import { PREFIX } from '../storage/prefs.js';
 /** @typedef {import('../types.ts').Note} Note */
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
 /** @typedef {import('../types.ts').Invoice} Invoice */
+/** @typedef {import('../types.ts').ChangeOrder} ChangeOrder */
 /** @typedef {import('../storage/prefs.js').StorageLike} StorageLike */
 
 /**
@@ -39,10 +40,11 @@ import { PREFIX } from '../storage/prefs.js';
  *   notes: Note[],
  *   materials: MaterialItem[],
  *   invoices: Invoice[],
+ *   changeOrders: ChangeOrder[],
  * }} LocalDb
  */
 
-/** @typedef {'project' | 'schedule' | 'notes' | 'dependencies' | 'materials' | 'invoices'} RowKind */
+/** @typedef {'project' | 'schedule' | 'notes' | 'dependencies' | 'materials' | 'invoices' | 'changeOrders'} RowKind */
 
 /**
  * @typedef {{
@@ -67,6 +69,7 @@ export function emptyDb() {
     notes: [],
     materials: [],
     invoices: [],
+    changeOrders: [],
   };
 }
 
@@ -108,6 +111,7 @@ export function projectRows(db, id) {
     notes: db.notes.filter((n) => items.has(n.scheduleItemId)),
     materials: db.materials.filter((m) => m.projectId === id),
     invoices: db.invoices.filter((i) => i.projectId === id),
+    changeOrders: db.changeOrders.filter((c) => c.projectId === id),
   };
 }
 
@@ -125,6 +129,7 @@ export function removeRows(db, id) {
   db.dependencies = db.dependencies.filter((d) => d.projectId !== id);
   db.materials = db.materials.filter((m) => m.projectId !== id);
   db.invoices = db.invoices.filter((i) => i.projectId !== id);
+  db.changeOrders = db.changeOrders.filter((c) => c.projectId !== id);
   db.variances = db.variances.filter((v) => !items.has(v.scheduleItemId));
   db.notes = db.notes.filter((n) => !items.has(n.scheduleItemId));
 }

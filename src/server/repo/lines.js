@@ -4,6 +4,7 @@
 // row that a line names before SQLite does.
 import { randomUUID } from 'node:crypto';
 import { badRequest, conflict } from '../errors.js';
+import { changeOrderName } from '../../entities/changeOrder.js';
 import { invoiceName } from '../../entities/invoice.js';
 import { toLineItem } from './rows.js';
 import { statement } from './statements.js';
@@ -21,7 +22,7 @@ import { statement } from './statements.js';
  * @property {(doc: { number: string, party: string }) => string} name the name of a document in a message
  */
 
-/** @type {Record<'invoice', LineKind>} */
+/** @type {Record<'invoice' | 'changeOrder', LineKind>} */
 export const LINE_KINDS = {
   invoice: {
     docs: 'invoices',
@@ -29,6 +30,13 @@ export const LINE_KINDS = {
     parent: 'invoiceId',
     verb: 'bills',
     name: invoiceName,
+  },
+  changeOrder: {
+    docs: 'change_orders',
+    lines: 'change_order_lines',
+    parent: 'changeOrderId',
+    verb: 'adds to',
+    name: changeOrderName,
   },
 };
 

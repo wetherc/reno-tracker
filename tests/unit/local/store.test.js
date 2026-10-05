@@ -96,6 +96,16 @@ function twoProjects() {
       lines: [],
       payments: [],
     });
+    db.changeOrders.push({
+      id: `${p}c`,
+      projectId: p,
+      number: '',
+      party: 'Pinch',
+      issuedDate: '2026-01-05',
+      approved: false,
+      description: '',
+      lines: [],
+    });
   }
   return db;
 }
@@ -148,6 +158,7 @@ test('projectOf finds the project that owns a row of each kind', () => {
   assert.equal(projectOf(db, 'dependencies', 'bd'), 'b');
   assert.equal(projectOf(db, 'materials', 'am'), 'a');
   assert.equal(projectOf(db, 'materials', 'zz'), null);
+  assert.equal(projectOf(db, 'changeOrders', 'bc'), 'b');
 });
 
 test('projectRows and removeRows split one project from the rest', () => {
@@ -155,7 +166,7 @@ test('projectRows and removeRows split one project from the rest', () => {
   const rows = /** @type {LocalDb} */ (projectRows(db, 'a'));
   assert.deepEqual(
     Object.values(rows).map((list) => list.length),
-    [1, 2, 1, 1, 1, 1, 1],
+    [1, 2, 1, 1, 1, 1, 1, 1],
   );
   assert.ok(
     Object.values(rows)

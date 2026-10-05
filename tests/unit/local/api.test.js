@@ -73,6 +73,7 @@ test('projects: list, create, read payload, patch, delete, reorder', async () =>
     'notes',
     'materials',
     'invoices',
+    'changeOrders',
   ]);
   await fails(api.getProject('nope'), 404, 'No project with id nope');
 

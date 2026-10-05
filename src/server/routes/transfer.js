@@ -10,6 +10,7 @@ import {
   getProjectPayload,
   getProjectVariances,
 } from '../repo/projects.js';
+import { insertChangeOrder } from '../repo/changeOrders.js';
 import { insertPayments } from '../repo/invoices.js';
 import { insertLines, LINE_KINDS } from '../repo/lines.js';
 import { now } from '../repo/rows.js';
@@ -27,8 +28,15 @@ import { statement } from '../repo/statements.js';
  * @returns {ExportFile}
  */
 export function exportProject(db, id) {
-  const { project, schedule, dependencies, notes, materials, invoices } =
-    getProjectPayload(db, id);
+  const {
+    project,
+    schedule,
+    dependencies,
+    notes,
+    materials,
+    invoices,
+    changeOrders,
+  } = getProjectPayload(db, id);
   return {
     format: EXPORT_FORMAT,
     exportedAt: now(),
@@ -39,6 +47,7 @@ export function exportProject(db, id) {
     notes,
     materials,
     invoices,
+    changeOrders,
   };
 }
 
@@ -180,6 +189,10 @@ export function importProject(db, file) {
       );
       insertPayments(db, id, inv.payments);
       insertLines(db, LINE_KINDS.invoice, id, mappedLines(inv.lines));
+    }
+    for (const order of file.changeOrders) {
+      const id = insertChangeOrder(db, project.id, order);
+      insertLines(db, LINE_KINDS.changeOrder, id, mappedLines(order.lines));
     }
     return getProjectPayload(db, project.id);
   });

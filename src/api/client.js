@@ -16,6 +16,8 @@ import { ApiError } from './errors.js';
 /** @typedef {import('../types.ts').MaterialItemInput} MaterialItemInput */
 /** @typedef {import('../types.ts').Invoice} Invoice */
 /** @typedef {import('../types.ts').InvoiceInput} InvoiceInput */
+/** @typedef {import('../types.ts').ChangeOrder} ChangeOrder */
+/** @typedef {import('../types.ts').ChangeOrderInput} ChangeOrderInput */
 /** @typedef {import('../types.ts').ReorderKind} ReorderKind */
 /** @typedef {import('../types.ts').ExportFile} ExportFile */
 
@@ -118,6 +120,15 @@ export function createApi({
     patchInvoice: (id, input) => request('PATCH', `/api/invoices/${id}`, input),
     /** @param {string} id @returns {Promise<void>} */
     deleteInvoice: (id) => request('DELETE', `/api/invoices/${id}`),
+
+    /** @param {string} projectId @param {ChangeOrderInput} input @returns {Promise<ChangeOrder>} */
+    createChangeOrder: (projectId, input) =>
+      request('POST', `/api/projects/${projectId}/change-orders`, input),
+    /** @param {string} id @param {ChangeOrderInput} input @returns {Promise<ChangeOrder>} */
+    patchChangeOrder: (id, input) =>
+      request('PATCH', `/api/change-orders/${id}`, input),
+    /** @param {string} id @returns {Promise<void>} */
+    deleteChangeOrder: (id) => request('DELETE', `/api/change-orders/${id}`),
 
     /** @param {string} projectId @param {ReorderKind} kind @param {string[]} ids @returns {Promise<ProjectPayload>} */
     reorder: (projectId, kind, ids) =>

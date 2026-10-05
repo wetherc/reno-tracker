@@ -55,6 +55,17 @@ import {
   patchInvoice,
 } from './invoices.js';
 import {
+  createChangeOrder,
+  deleteChangeOrder,
+  patchChangeOrder,
+} from './changeOrders.js';
+import {
+  CHANGE_ORDER_FIELDS,
+  changeOrderDefaults,
+  cleanChangeOrderInput,
+  validateChangeOrder,
+} from '../entities/changeOrder.js';
+import {
   cleanInvoiceInput,
   INVOICE_FIELDS,
   invoiceDefaults,
@@ -293,6 +304,25 @@ export function createLocalApi(storage, events) {
       }),
     deleteInvoice: (id) =>
       mutate(owner('invoices', id), (db) => deleteInvoice(db, id)),
+
+    createChangeOrder: (projectId, input) =>
+      mutate(owner('project', projectId), (db) => {
+        const body = pick(asObject(input), CHANGE_ORDER_FIELDS);
+        rejectInvalid(validateChangeOrder(body));
+        return createChangeOrder(
+          db,
+          projectId,
+          changeOrderDefaults(cleanChangeOrderInput(body)),
+        );
+      }),
+    patchChangeOrder: (id, input) =>
+      mutate(owner('changeOrders', id), (db) => {
+        const body = pick(asObject(input), CHANGE_ORDER_FIELDS);
+        rejectInvalid(validateChangeOrder(body, { partial: true }));
+        return patchChangeOrder(db, id, cleanChangeOrderInput(body));
+      }),
+    deleteChangeOrder: (id) =>
+      mutate(owner('changeOrders', id), (db) => deleteChangeOrder(db, id)),
 
     reorder: (projectId, kind, ids) =>
       mutate(owner('project', projectId), (db) => {
