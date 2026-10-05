@@ -16,7 +16,7 @@
 // invoices, at each invoice's rate. Every other price adds the row's
 // own rate, or the project rate when the row has none, so an estimate
 // compares with the budget the same way an invoice does.
-import { markupOf } from '../entities/invoice.js';
+import { markupOf } from '../entities/lineItems.js';
 import { addDays, startOfWeek } from '../schedule/dates.js';
 import { addedCents, approvedChanges } from './changed.js';
 import { billings } from './invoiced.js';

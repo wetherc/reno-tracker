@@ -309,10 +309,11 @@ export function createLocalApi(storage, events) {
       mutate(owner('project', projectId), (db) => {
         const body = pick(asObject(input), CHANGE_ORDER_FIELDS);
         rejectInvalid(validateChangeOrder(body));
+        const { markupBasisPoints } = getProject(db, projectId);
         return createChangeOrder(
           db,
           projectId,
-          changeOrderDefaults(cleanChangeOrderInput(body)),
+          changeOrderDefaults(cleanChangeOrderInput(body), markupBasisPoints),
         );
       }),
     patchChangeOrder: (id, input) =>

@@ -176,6 +176,7 @@ export function toChangeOrder(r, lines) {
     party: text(r.party),
     issuedDate: text(r.issuedDate),
     approved: bool(r.approved),
+    markupBasisPoints: int(r.markupBasisPoints),
     description: text(r.description),
     lines,
   };

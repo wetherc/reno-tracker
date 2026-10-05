@@ -163,3 +163,43 @@ export function docName(noun, doc) {
  */
 export const inSentence = (name) =>
   name.charAt(0).toLowerCase() + name.slice(1);
+
+/** @typedef {{ lines: { amountCents: number }[], markupBasisPoints: number }} Priced */
+
+/**
+ * A rate applied to an amount, rounded to whole cents.
+ * @param {number} cents
+ * @param {number} basisPoints
+ * @returns {number}
+ */
+export function markupOf(cents, basisPoints) {
+  return Math.round((cents * basisPoints) / 10_000);
+}
+
+/**
+ * The markup of each line, in line order. A document rounds its markup
+ * once, on the sum of the lines. Each line takes the rounded markup of
+ * the running sum through it less that of the lines before it, so the
+ * shares add up to the document markup and each share is within a cent
+ * of the exact rate.
+ * @param {Priced} doc
+ * @returns {number[]}
+ */
+export function lineMarkups(doc) {
+  let base = 0;
+  let before = 0;
+  return doc.lines.map((line) => {
+    base += line.amountCents;
+    const through = markupOf(base, doc.markupBasisPoints);
+    const share = through - before;
+    before = through;
+    return share;
+  });
+}
+
+/**
+ * @param {Priced} doc
+ * @returns {number} the markup on the sum of the lines
+ */
+export const docMarkup = (doc) =>
+  markupOf(lineSubtotal(doc), doc.markupBasisPoints);

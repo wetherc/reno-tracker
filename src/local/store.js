@@ -163,7 +163,8 @@ function parseObject(text) {
  * Fills in any list the stored document lacks, the markup rate of a
  * project, schedule item, or material stored without one, and the markup
  * rate, retainage, and payments of an invoice stored without them. A row
- * with no rate takes the project rate.
+ * with no rate takes the project rate. A change order stored with no
+ * rate gets the rate of its project.
  * @param {Record<string, unknown>} input
  * @returns {LocalDb}
  */
@@ -191,6 +192,11 @@ function normalize(input) {
     markupBasisPoints: i.markupBasisPoints ?? 0,
     retainageCents: i.retainageCents ?? 0,
     payments: i.payments ?? [],
+  }));
+  const rates = new Map(db.projects.map((p) => [p.id, p.markupBasisPoints]));
+  db.changeOrders = db.changeOrders.map((c) => ({
+    ...c,
+    markupBasisPoints: c.markupBasisPoints ?? rates.get(c.projectId) ?? 0,
   }));
   return db;
 }

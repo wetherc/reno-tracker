@@ -1,16 +1,20 @@
 // A change order is an agreed change to the scope of the work. Each of
 // its lines adds an amount of base cost to the estimate of one schedule
 // item or one material. Only an approved change order adds to an
-// estimate. A line error names its field as lines.<index>.<name>, so a
+// estimate. The change order's own markup rate applies to its lines, so
+// a contractor can price a change with a margin other than the project
+// rate. A line error names its field as lines.<index>.<name>, so a
 // form can mark the control on that line.
 import {
   cleanLines,
+  docMarkup,
   docName,
   inSentence,
   lineListErrors,
   lineSubtotal,
 } from './lineItems.js';
 import {
+  checkBasisPoints,
   checkBoolean,
   checkDate,
   checkText,
@@ -29,6 +33,7 @@ export const CHANGE_ORDER_FIELDS = /** @type {const} */ ([
   'party',
   'issuedDate',
   'approved',
+  'markupBasisPoints',
   'description',
   'lines',
 ]);
@@ -40,6 +45,7 @@ const CHECKS = {
     checkText(f, v, { min: 1, max: 200 }),
   issuedDate: checkDate,
   approved: checkBoolean,
+  markupBasisPoints: checkBasisPoints,
   description: (/** @type {string} */ f, /** @type {unknown} */ v) =>
     checkText(f, v, { max: 1000 }),
 };
@@ -84,14 +90,16 @@ export function cleanChangeOrderInput(body) {
  * Fills a checked create body with defaults. A new change order is
  * pending until a body says it is approved.
  * @param {ReturnType<typeof cleanChangeOrderInput>} input
+ * @param {number} markupBasisPoints the rate of a body with none, which is the project's rate
  * @returns {NewChangeOrder}
  */
-export function changeOrderDefaults(input) {
+export function changeOrderDefaults(input, markupBasisPoints) {
   return {
     number: input.number ?? '',
     party: input.party ?? '',
     issuedDate: input.issuedDate ?? '',
     approved: input.approved ?? false,
+    markupBasisPoints: input.markupBasisPoints ?? markupBasisPoints,
     description: input.description ?? '',
     lines: input.lines ?? [],
   };
@@ -115,7 +123,8 @@ export const changeOrderNameInSentence = (order) =>
   inSentence(changeOrderName(order));
 
 /**
- * @param {{ lines: { amountCents: number }[] }} order
- * @returns {number} the sum of the lines
+ * @param {Pick<ChangeOrder, 'markupBasisPoints'> & { lines: { amountCents: number }[] }} order
+ * @returns {number} the sum of the lines plus the markup
  */
-export const changeOrderTotal = lineSubtotal;
+export const changeOrderTotal = (order) =>
+  lineSubtotal(order) + docMarkup(order);

@@ -110,6 +110,7 @@ export function changeOrderOf(id, extra = {}) {
     party: `Party ${id}`,
     issuedDate: '2026-10-05',
     approved: true,
+    markupBasisPoints: 0,
     description: '',
     lines: [],
     ...extra,

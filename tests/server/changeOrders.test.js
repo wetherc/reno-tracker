@@ -301,5 +301,55 @@ for (const [name, make] of BACKENDS) {
       const plain = await api.importProject(older);
       assert.deepEqual(plain.changeOrders, []);
     });
+
+    test('a new change order copies the project rate and keeps its own', async () => {
+      const api = make();
+      const { project, tile, order } = await seed(api);
+      assert.equal(order.markupBasisPoints, 0);
+      await api.patchProject(project.id, { markupBasisPoints: 1500 });
+      const body = {
+        party: 'Pinch',
+        issuedDate: '2026-01-12',
+        lines: [{ scheduleItemId: tile.id, amountCents: 100 }],
+      };
+      const copied = await api.createChangeOrder(project.id, body);
+      assert.equal(copied.markupBasisPoints, 1500);
+      const discounted = await api.createChangeOrder(project.id, {
+        ...body,
+        markupBasisPoints: 500,
+      });
+      assert.equal(discounted.markupBasisPoints, 500);
+      await api.patchProject(project.id, { markupBasisPoints: 2000 });
+      const kept = await api.patchChangeOrder(copied.id, { number: '9' });
+      assert.equal(kept.markupBasisPoints, 1500);
+      const lower = await api.patchChangeOrder(copied.id, {
+        markupBasisPoints: 0,
+      });
+      assert.equal(lower.markupBasisPoints, 0);
+      await fails(
+        api.patchChangeOrder(copied.id, { markupBasisPoints: 10_001 }),
+        400,
+        'markupBasisPoints must be whole basis points from 0 to 10000, got 10001',
+        'markupBasisPoints',
+      );
+
+      const file = await api.exportProject(project.id);
+      const copy = await api.importProject(file);
+      assert.deepEqual(
+        copy.changeOrders.map((c) => c.markupBasisPoints),
+        [0, 0, 500],
+      );
+      const bare = {
+        ...file,
+        changeOrders: file.changeOrders?.map(
+          ({ markupBasisPoints: _rate, ...rest }) => rest,
+        ),
+      };
+      const older = await api.importProject(/** @type {any} */ (bare));
+      assert.deepEqual(
+        older.changeOrders.map((c) => c.markupBasisPoints),
+        [2000, 2000, 2000],
+      );
+    });
   });
 }

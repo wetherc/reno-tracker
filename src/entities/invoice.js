@@ -11,6 +11,7 @@ import {
   isObject,
   lineDefaults,
   lineListErrors,
+  docMarkup,
   lineSubtotal,
   pickRows,
 } from './lineItems.js';
@@ -242,37 +243,6 @@ export function invoicePaid(invoice) {
 }
 
 /**
- * A rate applied to an amount, rounded to whole cents.
- * @param {number} cents
- * @param {number} basisPoints
- * @returns {number}
- */
-export function markupOf(cents, basisPoints) {
-  return Math.round((cents * basisPoints) / 10_000);
-}
-
-/**
- * The markup of each line, in line order. The invoice rounds its markup
- * once, on the sum of the lines. Each line takes the rounded markup of
- * the running sum through it less that of the lines before it, so the
- * shares add up to the invoice markup and each share is within a cent
- * of the exact rate.
- * @param {Priced} invoice
- * @returns {number[]}
- */
-export function lineMarkups(invoice) {
-  let base = 0;
-  let before = 0;
-  return invoice.lines.map((line) => {
-    base += line.amountCents;
-    const through = markupOf(base, invoice.markupBasisPoints);
-    const share = through - before;
-    before = through;
-    return share;
-  });
-}
-
-/**
  * @param {Lined} invoice
  * @returns {number} the sum of the lines, before markup
  */
@@ -282,9 +252,7 @@ export const invoiceSubtotal = lineSubtotal;
  * @param {Priced} invoice
  * @returns {number} the markup on the sum of the lines
  */
-export function invoiceMarkup(invoice) {
-  return markupOf(invoiceSubtotal(invoice), invoice.markupBasisPoints);
-}
+export const invoiceMarkup = docMarkup;
 
 /**
  * @param {Priced} invoice

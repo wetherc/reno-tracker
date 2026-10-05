@@ -9,8 +9,6 @@ import {
   invoiceMarkup,
   invoiceSubtotal,
   invoiceTotal,
-  lineMarkups,
-  markupOf,
   MAX_LINES,
   MAX_PAYMENTS,
   paymentDefaults,
@@ -18,6 +16,7 @@ import {
   pickPayments,
   validateInvoice,
 } from '../../../src/entities/invoice.js';
+import { lineMarkups, markupOf } from '../../../src/entities/lineItems.js';
 
 const line = { scheduleItemId: 'a', amountCents: 500 };
 const ok = { party: 'Pinch Plumbing', issuedDate: '2026-01-05', lines: [line] };

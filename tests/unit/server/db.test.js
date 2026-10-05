@@ -1,12 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { DatabaseSync } from 'node:sqlite';
 import {
   listMigrations,
   migrate,
+  MIGRATIONS_DIR,
   schemaVersion,
   SCHEMA_PATH,
 } from '../../../src/server/db/migrate.js';
@@ -51,7 +59,7 @@ function withTempDir(run) {
 test('openDatabase on :memory: creates every table and sets the version', () => {
   const db = openDatabase(':memory:');
   assert.deepEqual(tableNames(db), [...TABLES].sort());
-  assert.equal(schemaVersion(db), 7);
+  assert.equal(schemaVersion(db), 8);
   assert.equal(db.prepare('PRAGMA foreign_keys').get()?.foreign_keys, 1);
   db.close();
 });
@@ -69,7 +77,7 @@ test('openDatabase creates the parent directory of a file path', () => {
 test('migrate is idempotent', () => {
   const db = openDatabase(':memory:');
   assert.deepEqual(migrate(db), []);
-  assert.equal(schemaVersion(db), 7);
+  assert.equal(schemaVersion(db), 8);
   db.close();
 });
 
@@ -191,4 +199,31 @@ test('the links table has an index on each end', () => {
   assert.ok(names.includes('dependencies_successorId'));
   assert.ok(names.includes('dependencies_projectId'));
   db.close();
+});
+
+test('a change order stored before its own rate takes the project rate', () => {
+  withTempDir((dir) => {
+    const source = MIGRATIONS_DIR;
+    const files = readdirSync(source).sort();
+    const copy = (/** @type {string} */ f) =>
+      copyFileSync(join(source, f), join(dir, f));
+    files.filter((f) => f < '008').forEach(copy);
+    const db = new DatabaseSync(':memory:');
+    const paths = { schemaPath: SCHEMA_PATH, migrationsDir: dir };
+    migrate(db, paths);
+    db.exec(
+      `INSERT INTO projects (id, name, startDate, createdAt, markupBasisPoints)
+         VALUES ('p', 'p', '2026-01-01', 'now', 1250);
+       INSERT INTO change_orders (id, projectId, party, issuedDate)
+         VALUES ('c', 'p', 'Pinch', '2026-01-02');`,
+    );
+    files.filter((f) => f >= '008').forEach(copy);
+    migrate(db, paths);
+    assert.equal(
+      db.prepare('SELECT markupBasisPoints FROM change_orders').get()
+        ?.markupBasisPoints,
+      1250,
+    );
+    db.close();
+  });
 });

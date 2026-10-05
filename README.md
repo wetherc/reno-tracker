@@ -322,6 +322,13 @@ project and each invoice have a rate of their own. A new invoice with no
 rate in its body copies the project rate. A change to the project rate
 does not change an invoice that is already entered. A project or
 invoice stored with no rate, and an import file with none, reads as 0.
+Each change order also has a rate of its own, for the markup on its
+lines, because a contractor can price one change with a margin other
+than the project rate. A new change order with no rate in its body
+copies the project rate, and a change to the project rate does not
+change it. A change order stored with no rate, and one in an import
+file with none, takes the rate of its project. A change order total is
+the sum of its lines plus that markup, rounded once on the sum.
 A schedule item or material can also have a rate of its own, for the
 markup on its estimate. A row with no rate stores null and takes the
 project rate, so a change to the project rate moves every such row. A

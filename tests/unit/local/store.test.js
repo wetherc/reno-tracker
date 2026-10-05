@@ -103,6 +103,7 @@ function twoProjects() {
       party: 'Pinch',
       issuedDate: '2026-01-05',
       approved: false,
+      markupBasisPoints: 0,
       description: '',
       lines: [],
     });
@@ -485,4 +486,31 @@ test('an invoice stored with no markup, retainage, or payments reads with none',
   assert.deepEqual(createStore(storage).read().invoices, [
     { ...invoice, markupBasisPoints: 0, retainageCents: 0, payments: [] },
   ]);
+});
+
+test('a change order stored with no rate reads with the rate of its project', () => {
+  const storage = memoryStorage();
+  const order = {
+    id: 'c',
+    projectId: 'a',
+    number: '',
+    party: 'Pinch',
+    issuedDate: '2026-01-05',
+    approved: true,
+    description: '',
+    lines: [],
+  };
+  storage.setItem(
+    PROJECT_PREFIX + 'a',
+    JSON.stringify({
+      projects: [{ ...projectOfId('a'), markupBasisPoints: 1250 }],
+      changeOrders: [order, { ...order, id: 'd', projectId: 'gone' }],
+    }),
+  );
+  assert.deepEqual(
+    createStore(storage)
+      .read()
+      .changeOrders.map((c) => c.markupBasisPoints),
+    [1250, 0],
+  );
 });

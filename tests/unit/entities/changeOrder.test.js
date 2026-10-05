@@ -43,11 +43,12 @@ test('defaults fill every field and keep only known line keys', () => {
     issuedDate: '2026-01-05',
     lines: [{ ...line, extra: 1 }],
   });
-  assert.deepEqual(changeOrderDefaults(clean), {
+  assert.deepEqual(changeOrderDefaults(clean, 1500), {
     number: '',
     party: 'P',
     issuedDate: '2026-01-05',
     approved: false,
+    markupBasisPoints: 1500,
     description: '',
     lines: [
       {
@@ -61,7 +62,12 @@ test('defaults fill every field and keep only known line keys', () => {
   assert.deepEqual(cleanChangeOrderInput({ approved: true }), {
     approved: true,
   });
-  assert.deepEqual(changeOrderDefaults({}).lines, []);
+  assert.deepEqual(changeOrderDefaults({}, 0).lines, []);
+  // A body with its own rate keeps it over the project rate.
+  assert.equal(
+    changeOrderDefaults({ markupBasisPoints: 500 }, 1500).markupBasisPoints,
+    500,
+  );
 });
 
 test('a change order goes by its number and party, and totals its lines', () => {
@@ -74,7 +80,18 @@ test('a change order goes by its number and party, and totals its lines', () => 
     'a change order from Pinch',
   );
   assert.equal(
-    changeOrderTotal({ lines: [{ amountCents: 5 }, { amountCents: 7 }] }),
+    changeOrderTotal({
+      markupBasisPoints: 0,
+      lines: [{ amountCents: 5 }, { amountCents: 7 }],
+    }),
     12,
+  );
+  // The markup rounds once, on the sum of the lines.
+  assert.equal(
+    changeOrderTotal({
+      markupBasisPoints: 1000,
+      lines: [{ amountCents: 1005 }, { amountCents: 1000 }],
+    }),
+    2206,
   );
 });

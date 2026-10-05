@@ -60,8 +60,9 @@ export function insertChangeOrder(db, projectId, input) {
   statement(
     db,
     `INSERT INTO change_orders
-       (id, projectId, number, party, issuedDate, approved, description)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (id, projectId, number, party, issuedDate, approved,
+        markupBasisPoints, description)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     id,
     projectId,
@@ -69,6 +70,7 @@ export function insertChangeOrder(db, projectId, input) {
     input.party,
     input.issuedDate,
     Number(input.approved),
+    input.markupBasisPoints,
     input.description,
   );
   return id;

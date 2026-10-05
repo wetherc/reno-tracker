@@ -9,6 +9,7 @@ import {
   deleteChangeOrder,
   patchChangeOrder,
 } from '../repo/changeOrders.js';
+import { getProject } from '../repo/projects.js';
 import { asObject, pick, rejectInvalid } from './input.js';
 
 /** @typedef {import('node:sqlite').DatabaseSync} Database */
@@ -22,10 +23,11 @@ export function changeOrderRoutes(router, db) {
   router.post('/api/projects/:id/change-orders', ({ params, body }) => {
     const input = pick(asObject(body), CHANGE_ORDER_FIELDS);
     rejectInvalid(validateChangeOrder(input));
+    const { markupBasisPoints } = getProject(db, params.id);
     return createChangeOrder(
       db,
       params.id,
-      changeOrderDefaults(cleanChangeOrderInput(input)),
+      changeOrderDefaults(cleanChangeOrderInput(input), markupBasisPoints),
     );
   });
   router.patch('/api/change-orders/:id', ({ params, body }) => {

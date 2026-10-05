@@ -110,9 +110,12 @@ export function openChangeOrderEditor({ ctx, order }) {
   total.setAttribute('aria-live', 'polite');
   /** @type {ReturnType<typeof lineList> | undefined} */
   let lines;
+  // The editor has no rate field yet. It saves the rate it opened with.
+  const markupBasisPoints =
+    order?.markupBasisPoints ?? payload.project.markupBasisPoints;
   const showTotal = () => {
     total.textContent = `Total ${formatCents(
-      changeOrderTotal({ lines: lines?.amounts() ?? [] }),
+      changeOrderTotal({ markupBasisPoints, lines: lines?.amounts() ?? [] }),
     )}`;
   };
   lines = lineList({
@@ -194,6 +197,7 @@ export function openChangeOrderEditor({ ctx, order }) {
       party: party.input.value.trim(),
       issuedDate: issuedDate.input.value,
       approved: approved.input.value === STATUS.approved,
+      markupBasisPoints,
       description: description.input.value.trim(),
       lines: /** @type {ReturnType<typeof lineList>} */ (lines).read(problems),
     };

@@ -5,7 +5,7 @@
 // and total reads the billed sum as the row's actual price. That price
 // is base cost. Each row's share of its invoices' markup is kept apart,
 // and only the costs panel adds it.
-import { lineMarkups } from '../entities/invoice.js';
+import { lineMarkups } from '../entities/lineItems.js';
 import { formatCents } from '../format/money.js';
 import { sumsByRow } from './lineSums.js';
 

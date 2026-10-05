@@ -82,14 +82,19 @@ const INVOICES = {
   verb: 'bills',
 };
 
-/** @type {import('./importDocs.js').DocKind<ImportRows['changeOrders'][number]>} */
-const CHANGE_ORDERS = {
+/**
+ * A change order with no rate in the file takes the project rate.
+ * @param {number} projectRate
+ * @returns {import('./importDocs.js').DocKind<ImportRows['changeOrders'][number]>}
+ */
+const changeOrderKind = (projectRate) => ({
   list: 'changeOrders',
   fields: CHANGE_ORDER_FIELDS,
   validate: validateChangeOrder,
-  defaults: (fields) => changeOrderDefaults(cleanChangeOrderInput(fields)),
+  defaults: (fields) =>
+    changeOrderDefaults(cleanChangeOrderInput(fields), projectRate),
   verb: 'adds to',
-};
+});
 
 /**
  * @param {unknown} value
@@ -311,7 +316,12 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
 
   const known = { items: new Set(titles.keys()), materials: materialIds };
   const invoices = checkDocs(INVOICES, body.invoices, known, fail);
-  const changeOrders = checkDocs(CHANGE_ORDERS, body.changeOrders, known, fail);
+  const changeOrders = checkDocs(
+    changeOrderKind(project.markupBasisPoints),
+    body.changeOrders,
+    known,
+    fail,
+  );
 
   return {
     project,

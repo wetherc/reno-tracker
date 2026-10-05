@@ -129,7 +129,8 @@ export interface Invoice {
 // An agreed change to the scope of the work. Each line adds its amount
 // to the estimate of the row it names, on top of the estimate typed on
 // that row, once the change order is approved. A pending change order
-// changes no estimate.
+// changes no estimate. The lines are base cost, and markupBasisPoints is
+// the margin on them, which a new change order copies from the project.
 export interface ChangeOrder {
   id: string;
   projectId: string;
@@ -137,6 +138,7 @@ export interface ChangeOrder {
   party: string;
   issuedDate: IsoDate;
   approved: boolean;
+  markupBasisPoints: BasisPoints;
   description: string;
   lines: LineItem[];
 }
@@ -233,7 +235,12 @@ export type NewInvoice = Omit<
 export type ChangeOrderInput = Partial<
   Pick<
     ChangeOrder,
-    'number' | 'party' | 'issuedDate' | 'approved' | 'description'
+    | 'number'
+    | 'party'
+    | 'issuedDate'
+    | 'approved'
+    | 'markupBasisPoints'
+    | 'description'
   > & { lines: LineItemInput[] }
 >;
 
