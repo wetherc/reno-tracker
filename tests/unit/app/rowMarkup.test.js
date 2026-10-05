@@ -83,6 +83,7 @@ test('blendedColumn reads each row from projections and totals the footer', () =
         ],
       }),
     ],
+    changeOrders: [],
   });
   const byId = projections(payload);
   assert.deepEqual(byId.get('m'), { cents: 7_200, markupCents: 1_200 });
@@ -90,9 +91,9 @@ test('blendedColumn reads each row from projections and totals the footer', () =
   const [a, b] = payload.schedule;
   const cell = $(column.cell(a));
   assert.equal(column.label, 'Blended');
-  assert.equal(cell.className, 'blended');
+  assert.equal(cell.className, 'cell-stack');
   assert.equal(cell.textContent, '$110.00$10.00 margin');
-  assert.equal(cell.children[0].className, 'blended__margin u-muted');
+  assert.equal(cell.children[0].className, 'cell-stack__note u-muted');
   assert.equal(/** @type {any} */ (column.compare)(a, b) < 0, true);
   assert.equal($(footer).textContent, '$310.00$10.00 margin');
 });

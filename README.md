@@ -29,6 +29,21 @@ static site on GitHub Pages, where it keeps its data in the browser.
   line bills keeps the actual price typed on it. A billed row cannot be
   deleted until its lines are gone. An invoice edit writes no row to the
   change log.
+- Change orders. Each change order has a number, the party that sent
+  it, an issue day, a reason, a status of pending or approved, and one
+  or more lines. Each line adds an amount of raw cost to one schedule
+  item or one material. An approved change order adds its lines to the
+  estimates of those rows, on top of the estimate typed on each row. A
+  pending one changes no estimate. The schedule and materials tables
+  show each revised estimate with its change order part under it, and
+  their variances, totals, and Blended column read it. The item and
+  material editors keep the typed estimate in the field and name the
+  change order part under it. On the costs panel the change lands on
+  the row's own day, and the row's markup rate applies to it. A complete
+  row with an actual price counts that price in Projected, so an
+  approved change on it raises Committed only. A row that a change order
+  names cannot be deleted until its lines are gone. A change order edit
+  writes no row to the change log.
 - Payments on each invoice. A payment has a paid day, an amount, and an
   optional note. A deposit is a payment dated before the issue day. An
   invoice can also hold back retainage, which stays owed but not due
@@ -217,6 +232,12 @@ every edit and would make each refetch larger. The Changes tab of the
 item editor fetches the rows of its item from
 `GET /api/schedule/:id/changes` each time it opens, and again after each
 write while it is open. Export still includes the whole log.
+
+`src/costs/changed.js` sums the lines of the approved change orders per
+row. `costEvents` adds that sum to the estimate of each row, and the
+schedule and materials tables add it to the Estimate column. The rows
+of the payload keep their typed estimates, so an editor saves back the
+typed value and never the revised one.
 
 `ctx.openProject` passes each fetched payload through
 `withInvoiceActuals` in `src/costs/invoiced.js`, which sets the actual
@@ -433,7 +454,9 @@ placement) in the component's own class.
 More shared widgets live one sheet up in `widgets.css`, next to the widget
 they were built for: `.disclosure` / `__chevron` / `--open`,
 `.stat-bar` / `__track` / `__fill` / `--over`, `.fact-line` / `__label` /
-`__value` / `--row`, and `.chip-list`.
+`__value` / `--row`, `.chip-list`, `.cell-stack` / `__note` for an
+amount over a small note in a table cell, and `.doc-party` for the party
+button in the invoice and change order tables.
 
 ### Layout and responsiveness
 

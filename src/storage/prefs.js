@@ -6,7 +6,7 @@ export const PREFIX = 'reno-tracker:';
 
 /**
  * @typedef {'theme' | 'lastProject' | 'lastView' | 'lastSection'
- *   | 'scheduleSort' | 'materialsSort' | 'invoicesSort'
+ *   | 'scheduleSort' | 'materialsSort' | 'invoicesSort' | 'changeOrdersSort'
  *   | 'scheduleStatus'} PrefKey
  */
 

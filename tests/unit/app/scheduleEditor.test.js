@@ -5,7 +5,14 @@ import {
   describeLength,
   openScheduleEditor,
 } from '../../../src/app/scheduleEditor.js';
-import { invoiceOf, itemOf, setupSchedule, tick } from './scheduleFixtures.js';
+import {
+  changeOrderOf,
+  invoiceOf,
+  itemOf,
+  lineOf,
+  setupSchedule,
+  tick,
+} from './scheduleFixtures.js';
 
 const dom = installDom();
 
@@ -378,4 +385,51 @@ test('a billed item shows its invoice sum read only and cannot be deleted', asyn
   await tick();
   assert.equal('actualCents' in patches[0], false);
   assert.deepEqual(fx.log, ['patch a ']);
+});
+
+test('an item keeps its typed estimate, names its change orders, and cannot be deleted', async () => {
+  const fx = setupSchedule({
+    schedule: [itemOf('a', { title: 'Demo', estimatedCents: 10000 })],
+    changeOrders: [
+      changeOrderOf('c1', {
+        number: '4',
+        party: 'Wreckers',
+        lines: [
+          lineOf({ scheduleItemId: 'a' }, 2000),
+          lineOf({ scheduleItemId: 'a' }, 500),
+        ],
+      }),
+    ],
+  });
+  await fx.ctx.openProject('p1');
+  /** @type {any[]} */
+  const patches = [];
+  const patch = fx.ctx.api.patchScheduleItem;
+  fx.ctx.api.patchScheduleItem = (id, body) => {
+    patches.push(body);
+    return patch(id, body);
+  };
+  const item = /** @type {any} */ (fx.ctx.payload).schedule[0];
+  const dialog = openScheduleEditor({ ctx: fx.ctx, item });
+  const form = $(dialog.el).querySelector('form');
+  const estimate = form.querySelectorAll('[inputmode="decimal"]')[0];
+  assert.equal(estimate.value, '100.00');
+  assert.equal(
+    form.querySelector(`#${estimate.getAttribute('aria-describedby')}`)
+      .textContent,
+    'Plus $25.00 from 2 approved change order lines',
+  );
+  assert.equal(
+    form.querySelector('.editor__projection').textContent,
+    'Projected $125.00 raw + $0.00 margin = $125.00 blended',
+  );
+  $(dialog.el).children[2].children[0].click();
+  await tick();
+  assert.equal(
+    fx.toasts.at(-1),
+    'bad Change order 4 from Wreckers adds to Demo. Remove that line first.',
+  );
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(patches[0].estimatedCents, 10000);
 });

@@ -1,5 +1,6 @@
 // The money numbers at the top of the costs panel. Committed is every
-// estimate added up. Spent is every actual price on a complete row.
+// estimate added up, and each estimate includes the row's approved
+// change orders. Spent is every actual price on a complete row.
 // Projected is the total the project is heading for. A complete row
 // counts its actual price when one is entered. An open row counts the
 // larger of its actual price and its estimate, because a first invoice

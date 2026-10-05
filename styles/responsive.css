@@ -46,12 +46,13 @@
     border-bottom: 1px solid var(--border);
   }
 
-  /* On a phone the sections form a tab bar: four equal columns with the
-     icon over the label, so all four fit one line. A screen too narrow
-     for four columns wraps them rather than push the page wider. */
+  /* On a phone the sections form a tab bar of two even rows: three equal
+     columns with the icon over the label. A 390px screen gives each
+     column about 7rem, so the longest label, Change orders, keeps to one
+     line. */
   .app__sidebar .nav {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     flex: 1 1 auto;
     max-width: 32rem;
     min-width: 0;

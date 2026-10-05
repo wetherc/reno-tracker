@@ -70,6 +70,7 @@ test('withInvoiceActuals sets the billed sum and keeps other rows', () => {
     schedule: [a],
     materials: [],
     invoices: [],
+    changeOrders: [],
   });
   assert.equal(withInvoiceActuals(plain), plain);
 });

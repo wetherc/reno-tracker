@@ -89,7 +89,7 @@ export function mountInvoices({ ctx, shell }) {
           cell: (invoice) =>
             focusKey(
               bareButton({
-                className: 'invoice-party',
+                className: 'doc-party',
                 label: invoice.party,
                 onClick: () => openInvoiceEditor({ ctx, invoice }),
               }),

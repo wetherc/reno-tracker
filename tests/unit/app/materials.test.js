@@ -10,7 +10,21 @@ import {
 } from '../../../src/app/materials.js';
 import { mountShell } from '../../../src/app/shell.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
-import { itemOf, materialOf, setupSchedule, tick } from './scheduleFixtures.js';
+import {
+  changeOrderOf,
+  itemOf,
+  lineOf,
+  materialOf,
+  setupSchedule,
+  tick,
+} from './scheduleFixtures.js';
+import { approvedChanges } from '../../../src/costs/changed.js';
+
+/** @param {string} id @param {number} cents */
+const changesFor = (id, cents) =>
+  approvedChanges([
+    changeOrderOf('c', { lines: [lineOf({ materialItemId: id }, cents)] }),
+  ]);
 
 const dom = installDom();
 
@@ -47,12 +61,18 @@ const payload = /** @type {any} */ ({
 });
 
 test('allowanceVariance counts the actual once it is entered', () => {
-  assert.equal(allowanceVariance(materialOf('x')), 2000);
+  assert.equal(allowanceVariance(materialOf('x'), 0), 2000);
   assert.equal(
-    allowanceVariance(materialOf('x', { actualCents: 9000 })),
+    allowanceVariance(materialOf('x', { actualCents: 9000 }), 0),
     -1000,
   );
-  assert.equal(allowanceVariance(materialOf('x', { estimatedCents: 0 })), 0);
+  assert.equal(allowanceVariance(materialOf('x', { estimatedCents: 0 }), 0), 0);
+  // An approved change order raises the expected cost over the allowance.
+  assert.equal(allowanceVariance(materialOf('x'), 300), 2300);
+  assert.equal(
+    allowanceVariance(materialOf('x', { actualCents: 9000 }), 300),
+    -1000,
+  );
 });
 
 test('landingDate follows the expected date, then the item, then the project', () => {
@@ -80,25 +100,45 @@ test('landingDate follows the expected date, then the item, then the project', (
 });
 
 test('estimateVariance reads the actual against the expected cost', () => {
-  assert.equal(estimateVariance(materialOf('x')), null);
-  assert.equal(estimateVariance(materialOf('x', { actualCents: 12500 })), 500);
+  assert.equal(estimateVariance(materialOf('x'), 0), null);
   assert.equal(
-    estimateVariance(materialOf('x', { estimatedCents: 0, actualCents: 9000 })),
+    estimateVariance(materialOf('x', { actualCents: 12500 }), 0),
+    500,
+  );
+  assert.equal(
+    estimateVariance(
+      materialOf('x', { estimatedCents: 0, actualCents: 9000 }),
+      0,
+    ),
     -1000,
+  );
+  assert.equal(
+    estimateVariance(materialOf('x', { actualCents: 12500 }), 500),
+    0,
   );
 });
 
 test('materialTotals sums the three prices, skipping blank actuals', () => {
   assert.deepEqual(
-    materialTotals([materialOf('x'), materialOf('y', { actualCents: 500 })]),
+    materialTotals(
+      [materialOf('x'), materialOf('y', { actualCents: 500 })],
+      new Map(),
+    ),
     { allowanceCents: 20000, estimatedCents: 24000, actualCents: 500 },
+  );
+  // Each row adds its approved change orders to the estimate total.
+  assert.equal(
+    materialTotals([materialOf('x'), materialOf('y')], changesFor('y', 700))
+      .estimatedCents,
+    24700,
   );
   // A row with no estimate adds its allowance to the estimate total.
   assert.deepEqual(
-    materialTotals([materialOf('x', { estimatedCents: 0 })]).estimatedCents,
+    materialTotals([materialOf('x', { estimatedCents: 0 })], new Map())
+      .estimatedCents,
     10000,
   );
-  assert.deepEqual(materialTotals([]), {
+  assert.deepEqual(materialTotals([], new Map()), {
     allowanceCents: 0,
     estimatedCents: 0,
     actualCents: 0,
@@ -317,4 +357,27 @@ test('a table with no stand-in values has no note under it', async () => {
     materials: [materialOf('m1', { expectedDate: '2026-10-01' })],
   });
   assert.equal(shell.body.children.length, 1);
+});
+
+test('the Estimate column adds approved change orders and names their part', async () => {
+  const { shell } = await setup({
+    materials: [
+      materialOf('x', { name: 'Vanity', estimatedCents: 0 }),
+      materialOf('y', { name: 'Grout' }),
+    ],
+    changeOrders: [
+      changeOrderOf('c', { lines: [lineOf({ materialItemId: 'x' }, 500)] }),
+    ],
+  });
+  const [vanity, grout] = rows(shell);
+  const estimate = vanity.children[5];
+  assert.equal(
+    estimate.textContent,
+    '$105.00+$5.00 change orders (the allowance, no estimate yet)',
+  );
+  assert.equal(grout.children[5].textContent, '$120.00');
+  // Vs allowance: 10000 allowance plus 500 changes, against 10000.
+  assert.equal(vanity.children[8].textContent, '+$5.00');
+  const foot = $(table(shell).children[3]).children[0].children;
+  assert.equal(foot[5].textContent, '$225.00');
 });

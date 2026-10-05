@@ -5,6 +5,9 @@
 //   schedule item it is for, else on the project start.
 // "Expected" is the estimate. A material with no estimate uses its
 // allowance instead, so a budget line with no quote yet still counts.
+// Every approved change order line adds its amount to the expected cost
+// of its row, so the change lands on the row's day, not on the day of
+// the change order.
 // "Actual" is the actual price, and only a row marked complete counts
 // toward it. "Billed" is the actual price on any row, complete or not,
 // and the projected total uses it.
@@ -15,6 +18,7 @@
 // compares with the budget the same way an invoice does.
 import { markupOf } from '../entities/invoice.js';
 import { addDays, startOfWeek } from '../schedule/dates.js';
+import { addedCents, approvedChanges } from './changed.js';
 import { billings } from './invoiced.js';
 
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
@@ -40,12 +44,16 @@ import { billings } from './invoiced.js';
 
 /**
  * The expected cost of a material: the estimate when one is entered,
- * else the allowance. A zero estimate means none was entered.
+ * else the allowance, plus the material's approved change order lines.
+ * A zero estimate means none was entered.
  * @param {Pick<MaterialItem, 'estimatedCents' | 'allowanceCents'>} item
+ * @param {number} changeCents the sum of its approved change order lines
  * @returns {number}
  */
-export function materialExpected(item) {
-  return item.estimatedCents > 0 ? item.estimatedCents : item.allowanceCents;
+export function materialExpected(item, changeCents) {
+  const base =
+    item.estimatedCents > 0 ? item.estimatedCents : item.allowanceCents;
+  return base + changeCents;
 }
 
 /**
@@ -106,6 +114,9 @@ export function rowPrices(row, expected, projectRate, billing) {
  */
 export function costEvents(payload) {
   const byRow = billings(payload.invoices);
+  const changes = approvedChanges(payload.changeOrders);
+  /** @param {string} id */
+  const added = (id) => addedCents(changes, id);
   /**
    * @param {{ id: string, complete: boolean, actualCents: number | null, markupBasisPoints: number | null }} row
    * @param {number} expected the base estimate
@@ -125,7 +136,7 @@ export function costEvents(payload) {
       source: 'schedule',
       title: item.title,
       date: item.endDate,
-      ...prices(item, item.estimatedCents),
+      ...prices(item, item.estimatedCents + added(item.id)),
     });
   }
   for (const item of payload.materials) {
@@ -134,7 +145,7 @@ export function costEvents(payload) {
       source: 'material',
       title: item.name,
       date: landingDate(item, payload).date,
-      ...prices(item, materialExpected(item)),
+      ...prices(item, materialExpected(item, added(item.id))),
     });
   }
   return events.sort((a, b) => a.date.localeCompare(b.date));

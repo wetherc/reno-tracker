@@ -4,6 +4,7 @@ import { createBackend, readBackend } from './api/backend.js';
 import { describeFailure } from './api/errors.js';
 import { createContext } from './app/context.js';
 import { watchDay } from './app/dayWatch.js';
+import { mountChangeOrders } from './app/changeOrders.js';
 import { mountCosts } from './app/costs.js';
 import { mountInvoices } from './app/invoices.js';
 import { mountMaterials } from './app/materials.js';
@@ -42,6 +43,7 @@ const shell = mountShell({
 const schedule = mountSchedule({ ctx, shell });
 const notes = mountNotes({ ctx, shell });
 const materials = mountMaterials({ ctx, shell });
+const changeOrders = mountChangeOrders({ ctx, shell });
 const invoices = mountInvoices({ ctx, shell });
 const costs = mountCosts({ ctx, shell });
 
@@ -72,6 +74,10 @@ function render() {
   }
   if (shell.section === 'materials') {
     materials.show();
+    return;
+  }
+  if (shell.section === 'changeOrders') {
+    changeOrders.show();
     return;
   }
   if (shell.section === 'invoices') {

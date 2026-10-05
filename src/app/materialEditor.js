@@ -4,6 +4,7 @@
 // markup rate of the row.
 import { ApiError } from '../api/errors.js';
 import { materialExpected } from '../costs/timeline.js';
+import { addChangeHint, changesOf } from './changeEstimates.js';
 import { materialItemErrors } from '../entities/materialItem.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
@@ -15,7 +16,7 @@ import {
   textField,
 } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
-import { actualField, refuseBilled } from './billing.js';
+import { actualField, refuseLinked } from './billing.js';
 import { discardGuard } from './discardGuard.js';
 import { showProblems } from './formErrors.js';
 import { MARKUP_MESSAGE } from './projectDialog.js';
@@ -85,6 +86,8 @@ export function openMaterialEditor({ ctx, item }) {
     label: MATERIAL_LABELS.estimatedCents,
     cents: item?.estimatedCents ?? 0,
   });
+  const change = item && changesOf(ctx).get(item.id);
+  addChangeHint(estimatedCents, change);
   const actual = actualField({
     ctx,
     id: `${prefix}-actual`,
@@ -121,10 +124,10 @@ export function openMaterialEditor({ ctx, item }) {
     if (typed === null && !isBlank(actualCents)) return null;
     return {
       complete: item?.complete ?? false,
-      expected: materialExpected({
-        allowanceCents: allowance,
-        estimatedCents: estimate,
-      }),
+      expected: materialExpected(
+        { allowanceCents: allowance, estimatedCents: estimate },
+        change?.cents ?? 0,
+      ),
       actualCents: typed,
       markupBasisPoints: rate,
       projectRate,
@@ -264,7 +267,7 @@ export function openMaterialEditor({ ctx, item }) {
   }
 
   async function deleteItem() {
-    if (!item || refuseBilled(ctx, item.id, item.name)) return;
+    if (!item || refuseLinked(ctx, item.id, item.name)) return;
     const yes = await confirmDialog({
       title: `Delete ${item.name}?`,
       message: 'The schedule item it is for stays as it is.',

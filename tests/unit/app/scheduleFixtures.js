@@ -13,6 +13,7 @@ import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 /** @typedef {import('../../../src/types.ts').Dependency} Dependency */
 /** @typedef {import('../../../src/types.ts').MaterialItem} MaterialItem */
 /** @typedef {import('../../../src/types.ts').Invoice} Invoice */
+/** @typedef {import('../../../src/types.ts').ChangeOrder} ChangeOrder */
 
 /**
  * @param {string} id
@@ -81,7 +82,42 @@ export function invoiceOf(id, extra = {}) {
 }
 
 /**
- * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[], materials?: MaterialItem[], invoices?: Invoice[], markupBasisPoints?: number }} [seed]
+ * One line that names a schedule item or a material.
+ * @param {{ scheduleItemId?: string, materialItemId?: string }} link
+ * @param {number} amountCents
+ * @returns {import('../../../src/types.ts').LineItem}
+ */
+export function lineOf(link, amountCents) {
+  return {
+    id: `l-${link.scheduleItemId ?? link.materialItemId}-${amountCents}`,
+    scheduleItemId: link.scheduleItemId ?? null,
+    materialItemId: link.materialItemId ?? null,
+    description: '',
+    amountCents,
+  };
+}
+
+/**
+ * @param {string} id
+ * @param {Partial<ChangeOrder>} [extra]
+ * @returns {ChangeOrder}
+ */
+export function changeOrderOf(id, extra = {}) {
+  return {
+    id,
+    projectId: 'p1',
+    number: '',
+    party: `Party ${id}`,
+    issuedDate: '2026-10-05',
+    approved: true,
+    description: '',
+    lines: [],
+    ...extra,
+  };
+}
+
+/**
+ * @param {{ schedule?: ScheduleItem[], notes?: Note[], variances?: Variance[], dependencies?: Dependency[], materials?: MaterialItem[], invoices?: Invoice[], changeOrders?: ChangeOrder[], markupBasisPoints?: number }} [seed]
  */
 export function setupSchedule({
   schedule = [],
@@ -90,9 +126,11 @@ export function setupSchedule({
   dependencies = [],
   materials = [],
   invoices = [],
+  changeOrders = [],
   markupBasisPoints = 0,
 } = {}) {
   let bills = invoices;
+  let orders = changeOrders;
   let items = schedule;
   let bom = materials;
   let allNotes = notes;
@@ -116,6 +154,7 @@ export function setupSchedule({
       notes: allNotes,
       materials: bom,
       invoices: bills,
+      changeOrders: orders,
     }),
     createScheduleItem: async (
       /** @type {string} */ projectId,
@@ -272,6 +311,36 @@ export function setupSchedule({
       bills = bills.filter((i) => i.id !== id);
       log.push(`delete invoice ${id}`);
     },
+    createChangeOrder: async (
+      /** @type {string} */ projectId,
+      /** @type {any} */ input,
+    ) => {
+      if (input.party === 'boom') {
+        throw new ApiError(400, {
+          error: 'line 1 adds to a material that is not in this project',
+          field: 'lines.0.item',
+        });
+      }
+      const created = changeOrderOf(`c${orders.length + 1}`, {
+        ...input,
+        projectId,
+      });
+      orders = [...orders, created];
+      log.push(`create change order ${input.party}`);
+      return created;
+    },
+    patchChangeOrder: async (
+      /** @type {string} */ id,
+      /** @type {any} */ patch,
+    ) => {
+      orders = orders.map((c) => (c.id === id ? { ...c, ...patch } : c));
+      log.push(`patch change order ${id}`);
+      return orders.find((c) => c.id === id);
+    },
+    deleteChangeOrder: async (/** @type {string} */ id) => {
+      orders = orders.filter((c) => c.id !== id);
+      log.push(`delete change order ${id}`);
+    },
     setMaterialComplete: async (
       /** @type {string} */ id,
       /** @type {boolean} */ complete,
@@ -307,6 +376,7 @@ export function setupSchedule({
     links: () => links,
     materials: () => bom,
     invoices: () => bills,
+    changeOrders: () => orders,
   };
 }
 

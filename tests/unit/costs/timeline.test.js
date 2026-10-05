@@ -7,7 +7,13 @@ import {
   landingDate,
   materialExpected,
 } from '../../../src/costs/timeline.js';
-import { invoiceOf, itemOf, materialOf } from '../app/scheduleFixtures.js';
+import {
+  changeOrderOf,
+  invoiceOf,
+  itemOf,
+  lineOf,
+  materialOf,
+} from '../app/scheduleFixtures.js';
 
 const payload = /** @type {any} */ ({
   project: {
@@ -16,6 +22,7 @@ const payload = /** @type {any} */ ({
     markupBasisPoints: 0,
   },
   invoices: [],
+  changeOrders: [],
   schedule: [
     itemOf('b', {
       endDate: '2026-10-20',
@@ -47,11 +54,24 @@ const payload = /** @type {any} */ ({
 });
 
 test('materialExpected falls back to the allowance when no estimate is entered', () => {
-  assert.equal(materialExpected(materialOf('x')), 12000);
-  assert.equal(materialExpected(materialOf('x', { estimatedCents: 0 })), 10000);
+  assert.equal(materialExpected(materialOf('x'), 0), 12000);
   assert.equal(
-    materialExpected(materialOf('x', { estimatedCents: 0, allowanceCents: 0 })),
+    materialExpected(materialOf('x', { estimatedCents: 0 }), 0),
+    10000,
+  );
+  assert.equal(
+    materialExpected(
+      materialOf('x', { estimatedCents: 0, allowanceCents: 0 }),
+      0,
+    ),
     0,
+  );
+  // Approved change orders add to the estimate, or to the allowance
+  // that stands in for it.
+  assert.equal(materialExpected(materialOf('x'), 500), 12500);
+  assert.equal(
+    materialExpected(materialOf('x', { estimatedCents: 0 }), 500),
+    10500,
   );
 });
 
@@ -222,6 +242,7 @@ test('costEvents adds a row rate over the project rate on estimates and typed pr
       }),
     ],
     invoices: [],
+    changeOrders: [],
   });
   assert.deepEqual(
     events.map((e) => [
@@ -236,4 +257,30 @@ test('costEvents adds a row rate over the project rate on estimates and typed pr
       ['m', 3_000, 1_000, null],
     ],
   );
+});
+
+test('costEvents adds approved change order lines to the estimate at the row rate', () => {
+  const events = costEvents({
+    ...payload,
+    project: { ...payload.project, markupBasisPoints: 1000 },
+    changeOrders: [
+      changeOrderOf('c1', {
+        lines: [
+          lineOf({ scheduleItemId: 'a' }, 2000),
+          lineOf({ materialItemId: 'm3' }, 300),
+        ],
+      }),
+      changeOrderOf('c2', {
+        approved: false,
+        lines: [lineOf({ scheduleItemId: 'b' }, 9000)],
+      }),
+    ],
+  });
+  const byId = new Map(events.map((e) => [e.id, e]));
+  // 10000 typed plus 2000 approved, with 10% on the sum.
+  assert.equal(byId.get('a')?.expectedCents, 13200);
+  assert.equal(byId.get('a')?.expectedMarkupCents, 1200);
+  assert.equal(byId.get('m3')?.expectedCents, 1100);
+  // A pending change order adds nothing.
+  assert.equal(byId.get('b')?.expectedCents, 33000);
 });

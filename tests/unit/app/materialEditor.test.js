@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
 import { openMaterialEditor } from '../../../src/app/materialEditor.js';
 import {
+  changeOrderOf,
   invoiceOf,
   itemOf,
+  lineOf,
   materialOf,
   setupSchedule,
   tick,
@@ -268,4 +270,38 @@ test('the projection line counts the allowance with no estimate and the invoice 
     'Projected $60.00 raw + $12.00 margin = $72.00 blended',
   );
   $(billed.el).close();
+});
+
+test('the projection line adds approved change orders to the allowance with no estimate', async () => {
+  const fx = setupSchedule({
+    materials: [
+      materialOf('m1', {
+        name: 'Vanity',
+        allowanceCents: 10000,
+        estimatedCents: 0,
+      }),
+    ],
+    changeOrders: [
+      changeOrderOf('c1', { lines: [lineOf({ materialItemId: 'm1' }, 1500)] }),
+    ],
+  });
+  await fx.ctx.openProject('p1');
+  const item = /** @type {any} */ (fx.ctx.payload).materials[0];
+  const dialog = openMaterialEditor({ ctx: fx.ctx, item });
+  const form = $(dialog.el).querySelector('form');
+  assert.equal(
+    form.querySelector('.editor__projection').textContent,
+    'Projected $115.00 raw + $0.00 margin = $115.00 blended',
+  );
+  assert.match(
+    form.textContent,
+    /Plus \$15\.00 from 1 approved change order line/,
+  );
+  $(dialog.el).children[2].children[0].click();
+  await tick();
+  assert.equal(
+    fx.toasts.at(-1),
+    'bad A change order from Party c1 adds to Vanity. Remove that line first.',
+  );
+  $(dialog.el).close();
 });

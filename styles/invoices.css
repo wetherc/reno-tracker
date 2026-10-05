@@ -1,15 +1,5 @@
 /* Invoices table and the invoice editor. */
 
-.invoice-party {
-  min-width: 8rem;
-  font-weight: 600;
-  text-align: left;
-}
-
-.invoice-party:hover {
-  color: var(--accent);
-}
-
 .invoice-markup {
   flex: 0 0 7rem;
 }

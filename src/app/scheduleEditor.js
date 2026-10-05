@@ -17,7 +17,8 @@ import {
 } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
 import { tabs } from '../ui/Tabs.js';
-import { actualField, refuseBilled } from './billing.js';
+import { actualField, refuseLinked } from './billing.js';
+import { addChangeHint, changesOf } from './changeEstimates.js';
 import { completeToggle } from './completeToggle.js';
 import { dependencyLinks } from './dependencies.js';
 import { discardGuard } from './discardGuard.js';
@@ -94,6 +95,8 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     label: FIELD_LABELS.estimatedCents,
     cents: item?.estimatedCents ?? 0,
   });
+  const change = item && changesOf(ctx).get(item.id);
+  addChangeHint(estimatedCents, change);
   const actual = actualField({
     ctx,
     id: `${prefix}-actual`,
@@ -144,7 +147,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     if (typed === null && !isBlank(actualCents)) return null;
     return {
       complete: item?.complete ?? false,
-      expected,
+      expected: expected + (change?.cents ?? 0),
       actualCents: typed,
       markupBasisPoints: rate,
       projectRate,
@@ -361,7 +364,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
   }
 
   async function deleteItem() {
-    if (!item || refuseBilled(ctx, item.id, item.title)) return;
+    if (!item || refuseLinked(ctx, item.id, item.title)) return;
     const yes = await confirmDialog({
       title: `Delete ${item.title}?`,
       message:

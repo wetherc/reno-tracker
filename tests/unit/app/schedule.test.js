@@ -4,13 +4,21 @@ import { installDom } from '../domShim.js';
 import { mountSchedule } from '../../../src/app/schedule.js';
 import {
   costVariance,
+  revisedPrices,
   scheduleTotals,
   totalCostVariance,
   varianceCell,
 } from '../../../src/app/scheduleTable.js';
 import { mountShell } from '../../../src/app/shell.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
-import { itemOf, setupSchedule, tick } from './scheduleFixtures.js';
+import {
+  changeOrderOf,
+  itemOf,
+  lineOf,
+  setupSchedule,
+  tick,
+} from './scheduleFixtures.js';
+import { approvedChanges } from '../../../src/costs/changed.js';
 
 const dom = installDom();
 
@@ -201,10 +209,22 @@ test('the table has one row per item with the planned columns', async () => {
 
 test('scheduleTotals sums days and prices, skipping blank actuals', () => {
   assert.deepEqual(
-    scheduleTotals([itemOf('a'), itemOf('b', { actualCents: 500 })]),
+    scheduleTotals([itemOf('a'), itemOf('b', { actualCents: 500 })], new Map()),
     { days: 6, estimatedCents: 20000, actualCents: 500 },
   );
-  assert.deepEqual(scheduleTotals([]), {
+  // Each row adds its approved change orders to the estimate total.
+  const changes = approvedChanges([
+    changeOrderOf('c', { lines: [lineOf({ scheduleItemId: 'b' }, 400)] }),
+  ]);
+  assert.equal(
+    scheduleTotals([itemOf('a'), itemOf('b')], changes).estimatedCents,
+    20400,
+  );
+  assert.deepEqual(revisedPrices(itemOf('b'), changes), {
+    estimatedCents: 10400,
+    actualCents: null,
+  });
+  assert.deepEqual(scheduleTotals([], new Map()), {
     days: 0,
     estimatedCents: 0,
     actualCents: 0,
@@ -372,4 +392,30 @@ test('one note reads in the singular', async () => {
     rows(shell)[0].children[10].children[0].getAttribute('aria-label'),
     '1 note on Demo',
   );
+});
+
+test('the Estimate column adds approved change orders and the variance reads it', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
+  const { shell } = await setup({
+    schedule: [
+      itemOf('a', { title: 'Demo', actualCents: 12500 }),
+      itemOf('b', { title: 'Tile', startDate: '2026-10-02' }),
+    ],
+    changeOrders: [
+      changeOrderOf('c', { lines: [lineOf({ scheduleItemId: 'a' }, 2000)] }),
+    ],
+  });
+  const demo = rows(shell).find(
+    (/** @type {any} */ r) => r.children[1].textContent === 'Demo',
+  );
+  assert.equal(demo.children[6].textContent, '$120.00+$20.00 change orders');
+  assert.equal(demo.children[8].textContent, '+$5.00');
+  const foot = $(table(shell).children[3]).children[0].children;
+  assert.equal(foot[6].textContent, '$220.00');
+  assert.equal(foot[8].textContent, '+$5.00');
+  const heads = $(table(shell).children[1]).children[0].children;
+  heads[6].children[0].click();
+  assert.equal(rows(shell)[0].children[1].textContent, 'Tile');
+  heads[8].children[0].click();
+  assert.equal(rows(shell)[0].children[1].textContent, 'Tile');
 });

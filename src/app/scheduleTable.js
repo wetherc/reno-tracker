@@ -1,7 +1,9 @@
 // The table view of the schedule: one row per item, a checkbox per row
 // that marks the work done, and a title that opens the editor. Estimate
-// and Actual are raw cost. Blended is what the costs panel counts for
-// the row, with its margin.
+// and Actual are raw cost. Estimate adds the row's approved change
+// orders. Blended is what the costs panel counts for the row, with its
+// margin.
+import { addedCents, approvedChanges } from '../costs/changed.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { spanDays, todayIso } from '../schedule/dates.js';
@@ -10,6 +12,7 @@ import { bareButton } from '../ui/buttons.js';
 import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
+import { estimateCell } from './changeEstimates.js';
 import { completeToggle } from './completeToggle.js';
 import { lateBadge } from './lateBadge.js';
 import { blendedColumn, projections } from './rowMarkup.js';
@@ -69,15 +72,32 @@ export function varianceCell(cents) {
 }
 
 /**
- * Column totals. Days is the sum of every row's length, so overlapping
- * rows count twice. Actual sums only the rows that have a price entered.
- * @param {ScheduleItem[]} items
+ * The two prices of an item, with its estimate raised by its approved
+ * change orders. The row itself keeps the typed estimate, because the
+ * editor opens on it and saves it back.
+ * @param {ScheduleItem} item
+ * @param {import('../costs/changed.js').Changes} changes
+ * @returns {{ estimatedCents: number, actualCents: number | null }}
  */
-export function scheduleTotals(items) {
+export function revisedPrices(item, changes) {
+  return {
+    estimatedCents: item.estimatedCents + addedCents(changes, item.id),
+    actualCents: item.actualCents,
+  };
+}
+
+/**
+ * Column totals. Days is the sum of every row's length, so overlapping
+ * rows count twice. Estimate adds each row's approved change orders.
+ * Actual sums only the rows that have a price entered.
+ * @param {ScheduleItem[]} items
+ * @param {import('../costs/changed.js').Changes} changes
+ */
+export function scheduleTotals(items, changes) {
   const totals = { days: 0, estimatedCents: 0, actualCents: 0 };
   for (const item of items) {
     totals.days += spanDays(item.startDate, item.endDate);
-    totals.estimatedCents += item.estimatedCents;
+    totals.estimatedCents += revisedPrices(item, changes).estimatedCents;
     totals.actualCents += item.actualCents ?? 0;
   }
   return totals;
@@ -118,7 +138,10 @@ export function scheduleTable({ ctx }) {
   /** @param {ProjectPayload} payload */
   function buildTable(payload) {
     const counts = noteCounts(payload);
-    const totals = scheduleTotals(payload.schedule);
+    const changes = approvedChanges(payload.changeOrders);
+    /** @param {ScheduleItem} item */
+    const revised = (item) => revisedPrices(item, changes);
+    const totals = scheduleTotals(payload.schedule, changes);
     const today = todayIso();
     const blended = blendedColumn(projections(payload), payload.schedule);
     return dataTable({
@@ -140,7 +163,7 @@ export function scheduleTable({ ctx }) {
         String(totals.days),
         formatCents(totals.estimatedCents),
         formatCents(totals.actualCents),
-        varianceCell(totalCostVariance(payload.schedule)),
+        varianceCell(totalCostVariance(payload.schedule.map(revised))),
         blended.footer,
         '',
       ],
@@ -189,8 +212,13 @@ export function scheduleTable({ ctx }) {
           key: 'estimate',
           label: 'Estimate',
           align: 'end',
-          compare: (a, b) => a.estimatedCents - b.estimatedCents,
-          cell: (item) => formatCents(item.estimatedCents),
+          compare: (a, b) =>
+            revised(a).estimatedCents - revised(b).estimatedCents,
+          cell: (item) =>
+            estimateCell(
+              revised(item).estimatedCents,
+              addedCents(changes, item.id),
+            ),
         },
         {
           key: 'actual',
@@ -204,8 +232,9 @@ export function scheduleTable({ ctx }) {
           label: 'Variance',
           align: 'end',
           compare: (a, b) =>
-            (costVariance(a) ?? -Infinity) - (costVariance(b) ?? -Infinity),
-          cell: (item) => varianceCell(costVariance(item)),
+            (costVariance(revised(a)) ?? -Infinity) -
+            (costVariance(revised(b)) ?? -Infinity),
+          cell: (item) => varianceCell(costVariance(revised(item))),
         },
         blended.column,
         {

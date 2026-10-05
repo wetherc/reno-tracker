@@ -41,6 +41,7 @@ function setup() {
         notes: [],
         materials: [],
         invoices: [],
+        changeOrders: [],
       };
     },
     createProject: async (/** @type {any} */ input) => {

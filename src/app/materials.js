@@ -1,8 +1,10 @@
 // The materials section: the bill of materials for the open project as a
 // table with a totals row, an Add button in the panel header, and a
 // checkbox per row that marks the material bought. The name opens the
-// editor. Allowance, Estimate, and Actual are raw cost. Blended is
-// what the costs panel counts for the row, with its margin.
+// editor. Allowance, Estimate, and Actual are raw cost. Estimate adds
+// the row's approved change orders. Blended is what the costs panel
+// counts for the row, with its margin.
+import { addedCents, approvedChanges } from '../costs/changed.js';
 import { landingDate, materialExpected } from '../costs/timeline.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
@@ -12,6 +14,7 @@ import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
 import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
+import { estimateCell as amountCell } from './changeEstimates.js';
 import { openMaterialEditor } from './materialEditor.js';
 import { blendedColumn, projections } from './rowMarkup.js';
 import {
@@ -33,44 +36,47 @@ export { landingDate };
  * How far the material runs over its allowance. The actual price counts
  * once it is entered, the expected cost before that.
  * @param {MaterialItem} item
+ * @param {number} changeCents the sum of its approved change order lines
  * @returns {number}
  */
-export function allowanceVariance(item) {
-  return (item.actualCents ?? materialExpected(item)) - item.allowanceCents;
+export function allowanceVariance(item, changeCents) {
+  return (
+    (item.actualCents ?? materialExpected(item, changeCents)) -
+    item.allowanceCents
+  );
 }
 
 /**
  * Actual minus expected, or null until an actual is entered.
  * @param {MaterialItem} item
+ * @param {number} changeCents the sum of its approved change order lines
  */
-export function estimateVariance(item) {
+export function estimateVariance(item, changeCents) {
   return costVariance({
-    estimatedCents: materialExpected(item),
+    estimatedCents: materialExpected(item, changeCents),
     actualCents: item.actualCents,
   });
 }
 
 /**
  * Column totals. Estimate sums the expected cost of each row, so a row
- * with no estimate adds its allowance. Actual sums only the rows that
- * have a price entered.
+ * with no estimate adds its allowance, and each row adds its approved
+ * change orders. Actual sums only the rows that have a price entered.
  * @param {MaterialItem[]} materials
+ * @param {import('../costs/changed.js').Changes} changes
  */
-export function materialTotals(materials) {
+export function materialTotals(materials, changes) {
   const totals = { allowanceCents: 0, estimatedCents: 0, actualCents: 0 };
   for (const item of materials) {
     totals.allowanceCents += item.allowanceCents;
-    totals.estimatedCents += materialExpected(item);
+    totals.estimatedCents += materialExpected(
+      item,
+      addedCents(changes, item.id),
+    );
     totals.actualCents += item.actualCents ?? 0;
   }
   return totals;
 }
-
-/** @param {MaterialItem} item */
-const expectedRow = (item) => ({
-  estimatedCents: materialExpected(item),
-  actualCents: item.actualCents,
-});
 
 /**
  * @param {string} a
@@ -103,9 +109,18 @@ export function mountMaterials({ ctx, shell }) {
     const forTitle = (item) => titles.get(item.scheduleItemId ?? '') ?? '';
     /** @param {MaterialItem} item */
     const lands = (item) => landingDate(item, payload).date;
-    const totals = materialTotals(payload.materials);
+    const changes = approvedChanges(payload.changeOrders);
+    /** @param {MaterialItem} item */
+    const added = (item) => addedCents(changes, item.id);
+    /** @param {MaterialItem} item */
+    const expected = (item) => materialExpected(item, added(item));
+    /** @param {MaterialItem} item */
+    const overAllowance = (item) => allowanceVariance(item, added(item));
+    /** @param {MaterialItem} item */
+    const overEstimate = (item) => estimateVariance(item, added(item));
+    const totals = materialTotals(payload.materials, changes);
     const overall = payload.materials.reduce(
-      (sum, item) => sum + allowanceVariance(item),
+      (sum, item) => sum + overAllowance(item),
       0,
     );
     const blended = blendedColumn(projections(payload), payload.materials);
@@ -127,7 +142,14 @@ export function mountMaterials({ ctx, shell }) {
         formatCents(totals.allowanceCents),
         formatCents(totals.estimatedCents),
         formatCents(totals.actualCents),
-        varianceCell(totalCostVariance(payload.materials.map(expectedRow))),
+        varianceCell(
+          totalCostVariance(
+            payload.materials.map((item) => ({
+              estimatedCents: expected(item),
+              actualCents: item.actualCents,
+            })),
+          ),
+        ),
         varianceCell(overall),
         blended.footer,
       ],
@@ -179,8 +201,8 @@ export function mountMaterials({ ctx, shell }) {
           key: 'estimate',
           label: 'Estimate',
           align: 'end',
-          compare: (a, b) => materialExpected(a) - materialExpected(b),
-          cell: (item) => estimateCell(item),
+          compare: (a, b) => expected(a) - expected(b),
+          cell: (item) => estimateCell(item, added(item)),
         },
         {
           key: 'actual',
@@ -194,26 +216,30 @@ export function mountMaterials({ ctx, shell }) {
           label: 'Vs estimate',
           align: 'end',
           compare: (a, b) =>
-            (estimateVariance(a) ?? -Infinity) -
-            (estimateVariance(b) ?? -Infinity),
-          cell: (item) => varianceCell(estimateVariance(item)),
+            (overEstimate(a) ?? -Infinity) - (overEstimate(b) ?? -Infinity),
+          cell: (item) => varianceCell(overEstimate(item)),
         },
         {
           key: 'variance',
           label: 'Vs allowance',
           align: 'end',
-          compare: (a, b) => allowanceVariance(a) - allowanceVariance(b),
-          cell: (item) => varianceCell(allowanceVariance(item)),
+          compare: (a, b) => overAllowance(a) - overAllowance(b),
+          cell: (item) => varianceCell(overAllowance(item)),
         },
         blended.column,
       ],
     });
   }
 
-  /** @param {MaterialItem} item */
-  function estimateCell(item) {
+  /**
+   * The expected cost, with the change order part under it. With no
+   * estimate the allowance stands in for it.
+   * @param {MaterialItem} item
+   * @param {number} changeCents
+   */
+  function estimateCell(item, changeCents) {
     const el = document.createElement('span');
-    el.append(formatCents(materialExpected(item)));
+    el.append(amountCell(materialExpected(item, changeCents), changeCents));
     if (item.estimatedCents === 0)
       standIn(el, 'the allowance, no estimate yet');
     return el;

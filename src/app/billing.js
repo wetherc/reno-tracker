@@ -1,9 +1,12 @@
-// The parts of the schedule and material editors that follow invoices.
-// A billed row's Actual is the sum of its invoice lines, so its editor
-// shows that sum read only and leaves actualCents out of the save. A
-// billed row cannot be deleted, so its Delete button says why at once
-// instead of asking to confirm a delete the backend refuses.
+// The parts of the schedule and material editors that follow invoices
+// and change orders. A billed row's Actual is the sum of its invoice
+// lines, so its editor shows that sum read only and leaves actualCents
+// out of the save. A row that an invoice or change order line names
+// cannot be deleted, so its Delete button says why at once instead of
+// asking to confirm a delete the backend refuses.
 import { billedHint, billings } from '../costs/invoiced.js';
+import { sumsByRow } from '../costs/lineSums.js';
+import { changeOrderName } from '../entities/changeOrder.js';
 import { invoiceName } from '../entities/invoice.js';
 import { moneyField } from '../ui/formFields.js';
 
@@ -59,17 +62,35 @@ export function actualField({ ctx, id, label, rowId, cents, placeholder }) {
 }
 
 /**
- * Toasts why a billed row cannot be deleted.
+ * The sentence the backends answer to the delete of a row that a line
+ * names, or null when no line names it. An invoice goes before a
+ * change order, pending or approved, and the earliest of each.
  * @param {AppContext} ctx
  * @param {string} rowId
  * @param {string} name the row's title or name
- * @returns {boolean} true when the row is billed and the delete stops
+ * @returns {string | null}
  */
-export function refuseBilled(ctx, rowId, name) {
+export function linkedMessage(ctx, rowId, name) {
   const billing = billingOf(ctx, rowId);
-  if (!billing) return false;
-  ctx.toaster.failure(
-    `${invoiceName(billing.first)} bills ${name}. Remove that line first.`,
-  );
-  return true;
+  if (billing) {
+    return `${invoiceName(billing.first)} bills ${name}. Remove that line first.`;
+  }
+  const change = sumsByRow(ctx.payload?.changeOrders ?? []).get(rowId);
+  if (change) {
+    return `${changeOrderName(change.first)} adds to ${name}. Remove that line first.`;
+  }
+  return null;
+}
+
+/**
+ * Toasts why a row that a line names cannot be deleted.
+ * @param {AppContext} ctx
+ * @param {string} rowId
+ * @param {string} name the row's title or name
+ * @returns {boolean} true when a line names the row and the delete stops
+ */
+export function refuseLinked(ctx, rowId, name) {
+  const message = linkedMessage(ctx, rowId, name);
+  if (message) ctx.toaster.failure(message);
+  return message !== null;
 }

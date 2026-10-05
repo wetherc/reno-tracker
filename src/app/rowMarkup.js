@@ -9,6 +9,7 @@ import { costEvents, rowPrices } from '../costs/timeline.js';
 import { formatCents } from '../format/money.js';
 import { formatPercent } from '../format/percent.js';
 import { percentField } from '../ui/formFields.js';
+import { stackedCell } from '../ui/stackedCell.js';
 
 /**
  * @typedef {object} RowCosts
@@ -101,13 +102,7 @@ export function projections(payload) {
  * @returns {HTMLSpanElement}
  */
 export function blendedCell({ cents, markupCents }) {
-  const el = document.createElement('span');
-  el.className = 'blended';
-  const margin = document.createElement('span');
-  margin.className = 'blended__margin u-muted';
-  margin.textContent = `${formatCents(markupCents)} margin`;
-  el.append(formatCents(cents), margin);
-  return el;
+  return stackedCell(formatCents(cents), `${formatCents(markupCents)} margin`);
 }
 
 /**
