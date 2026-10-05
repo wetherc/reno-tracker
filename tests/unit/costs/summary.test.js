@@ -14,7 +14,7 @@ const event = (extra) => ({
   complete: false,
   expectedCents: 1000,
   expectedMarkupCents: 0,
-  actualCents: null,
+  invoicedCents: null,
   billedCents: null,
   billedMarkupCents: null,
   ...extra,
@@ -25,24 +25,37 @@ test('costSummary adds up committed, spent, projected, and headroom', () => {
     [
       event({
         expectedCents: 10000,
-        actualCents: 12000,
+        invoicedCents: 12000,
         billedCents: 12000,
         billedMarkupCents: 0,
         complete: true,
       }),
-      event({ expectedCents: 30000 }),
+      // An open row with an invoice counts in Spent.
+      event({
+        expectedCents: 30000,
+        invoicedCents: 2000,
+        billedCents: 2000,
+        billedMarkupCents: 0,
+      }),
       event({ expectedCents: 700, complete: true }),
+      // A typed price on a complete row is not invoiced, so it accrues.
+      event({
+        expectedCents: 900,
+        billedCents: 800,
+        billedMarkupCents: 0,
+        complete: true,
+      }),
     ],
     50000,
   );
   assert.deepEqual(summary, {
     budgetCents: 50000,
-    committedCents: 40700,
-    spentCents: 12000,
-    projectedCents: 42700,
-    headroomCents: 7300,
-    accruedCents: 700,
-    accruedCount: 1,
+    committedCents: 41600,
+    spentCents: 14000,
+    projectedCents: 43500,
+    headroomCents: 6500,
+    accruedCents: 1500,
+    accruedCount: 2,
     markupCents: 0,
   });
 });
@@ -94,7 +107,7 @@ test('costSummary keeps the estimate on an open row billed below it', () => {
         complete: true,
         expectedCents: 5_000,
         expectedMarkupCents: 1_000,
-        actualCents: 1_250,
+        invoicedCents: 1_250,
         billedCents: 1_250,
         billedMarkupCents: 250,
       }),

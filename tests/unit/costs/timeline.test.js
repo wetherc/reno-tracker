@@ -4,6 +4,7 @@ import {
   byWeek,
   costEvents,
   cumulative,
+  invoiceEvents,
   landingDate,
   materialExpected,
 } from '../../../src/costs/timeline.js';
@@ -98,13 +99,14 @@ test('costEvents lands each row on one day in date order', () => {
       e.source,
       e.date,
       e.expectedCents,
-      e.actualCents,
+      e.invoicedCents,
       e.billedCents,
     ]),
     [
+      // Typed prices are billed but not invoiced.
       ['m3', 'material', '2026-09-01', 700, null, null],
-      ['m2', 'material', '2026-10-01', 2000, 1500, 1500],
-      ['a', 'schedule', '2026-10-03', 10000, 12000, 12000],
+      ['m2', 'material', '2026-10-01', 2000, null, 1500],
+      ['a', 'schedule', '2026-10-03', 10000, null, 12000],
       ['b', 'schedule', '2026-10-20', 30000, null, 4000],
       ['m1', 'material', '2026-12-02', 5000, null, 800],
     ],
@@ -114,20 +116,19 @@ test('costEvents lands each row on one day in date order', () => {
   assert.equal(events[3].complete, false);
 });
 
-test('cumulative sums by day and skips rows with no value', () => {
-  const events = costEvents(payload);
-  assert.deepEqual(cumulative(events, 'expectedCents'), [
+/** @param {import('../../../src/costs/timeline.js').CostEvent[]} events */
+const estimates = (events) =>
+  events.map((e) => ({ date: e.date, cents: e.expectedCents }));
+
+test('cumulative sums by day', () => {
+  assert.deepEqual(cumulative(estimates(costEvents(payload))), [
     { date: '2026-09-01', cents: 700 },
     { date: '2026-10-01', cents: 2700 },
     { date: '2026-10-03', cents: 12700 },
     { date: '2026-10-20', cents: 42700 },
     { date: '2026-12-02', cents: 47700 },
   ]);
-  assert.deepEqual(cumulative(events, 'actualCents'), [
-    { date: '2026-10-01', cents: 1500 },
-    { date: '2026-10-03', cents: 13500 },
-  ]);
-  assert.deepEqual(cumulative([], 'expectedCents'), []);
+  assert.deepEqual(cumulative([]), []);
 });
 
 test('cumulative merges two costs on the same day into one point', () => {
@@ -139,13 +140,85 @@ test('cumulative merges two costs on the same day into one point', () => {
       itemOf('y', { endDate: '2026-10-03', estimatedCents: 250 }),
     ],
   });
-  assert.deepEqual(cumulative(twice, 'expectedCents'), [
+  assert.deepEqual(cumulative(estimates(twice)), [
     { date: '2026-10-03', cents: 350 },
   ]);
 });
 
+test('invoiceEvents lands each invoice total on its issue day', () => {
+  const events = invoiceEvents({
+    ...payload,
+    invoices: [
+      invoiceOf('late', {
+        number: '7',
+        issuedDate: '2026-11-02',
+        markupBasisPoints: 1000,
+        lines: [
+          lineOf({ scheduleItemId: 'a' }, 1005),
+          lineOf({ materialItemId: 'm1' }, 1000),
+        ],
+      }),
+      invoiceOf('early', {
+        issuedDate: '2026-09-20',
+        lines: [lineOf({ scheduleItemId: 'b' }, 400)],
+      }),
+    ],
+  });
+  assert.deepEqual(events, [
+    {
+      id: 'early',
+      title: 'An invoice from Party early',
+      date: '2026-09-20',
+      cents: 400,
+    },
+    // 2005 plus 10% rounded once on the sum.
+    {
+      id: 'late',
+      title: 'Invoice 7 from Party late',
+      date: '2026-11-02',
+      cents: 2206,
+    },
+  ]);
+});
+
+test('costEvents invoiced sums match the invoice totals', () => {
+  const invoiced = {
+    ...payload,
+    project: { ...payload.project, markupBasisPoints: 2500 },
+    invoices: [
+      invoiceOf('i1', {
+        markupBasisPoints: 3333,
+        lines: [
+          lineOf({ scheduleItemId: 'a' }, 1001),
+          lineOf({ scheduleItemId: 'b' }, 1001),
+          lineOf({ materialItemId: 'm1' }, 1001),
+        ],
+      }),
+      invoiceOf('i2', {
+        markupBasisPoints: 1500,
+        lines: [lineOf({ scheduleItemId: 'a' }, 333)],
+      }),
+    ],
+  };
+  const rows = costEvents(invoiced).reduce(
+    (sum, e) => sum + (e.invoicedCents ?? 0),
+    0,
+  );
+  const docs = invoiceEvents(invoiced).reduce((sum, e) => sum + e.cents, 0);
+  assert.equal(rows, docs);
+  // An open row with an invoice line is invoiced. Its markup share is
+  // 667 on the first two lines less the 334 on the first.
+  const b = costEvents(invoiced).find((e) => e.id === 'b');
+  assert.equal(b?.complete, false);
+  assert.equal(b?.invoicedCents, 1334);
+});
+
 test('byWeek fills the empty weeks between the first and the last', () => {
-  const weeks = byWeek(costEvents(payload));
+  const invoices = [
+    { id: 'i', title: 'i', date: '2026-10-02', cents: 900 },
+    { id: 'j', title: 'j', date: '2026-10-03', cents: 100 },
+  ];
+  const weeks = byWeek(costEvents(payload), invoices);
   // Aug 30 through Nov 29 is fourteen Sundays.
   assert.equal(weeks.length, 14);
   assert.deepEqual(weeks[0], {
@@ -153,11 +226,11 @@ test('byWeek fills the empty weeks between the first and the last', () => {
     expectedCents: 700,
     actualCents: 0,
   });
-  // Oct 1 and Oct 3 fall in the same week.
+  // Oct 1 and Oct 3 fall in the same week, and so do both invoices.
   assert.deepEqual(weeks[4], {
     week: '2026-09-27',
     expectedCents: 12000,
-    actualCents: 13500,
+    actualCents: 1000,
   });
   assert.deepEqual(weeks[7], {
     week: '2026-10-18',
@@ -174,7 +247,17 @@ test('byWeek fills the empty weeks between the first and the last', () => {
     expectedCents: 5000,
     actualCents: 0,
   });
-  assert.deepEqual(byWeek([]), []);
+  assert.deepEqual(byWeek([], []), []);
+});
+
+test('byWeek stretches to an invoice outside the estimates', () => {
+  const weeks = byWeek(
+    [],
+    [{ id: 'i', title: 'i', date: '2026-10-14', cents: 900 }],
+  );
+  assert.deepEqual(weeks, [
+    { week: '2026-10-11', expectedCents: 0, actualCents: 900 },
+  ]);
 });
 
 test('costEvents adds the invoice rate to billed rows and the project rate elsewhere', () => {
@@ -207,7 +290,7 @@ test('costEvents adds the invoice rate to billed rows and the project rate elsew
       e.id,
       e.expectedCents,
       e.expectedMarkupCents,
-      e.actualCents,
+      e.invoicedCents,
       e.billedCents,
       e.billedMarkupCents,
     ]),
@@ -215,7 +298,7 @@ test('costEvents adds the invoice rate to billed rows and the project rate elsew
       // Billed: base from the line, markup at the invoice's 20%.
       ['a', 11_000, 1_000, 10_800, 10_800, 1_800],
       ['b', 5_500, 500, null, null, null],
-      // A typed price takes the project rate.
+      // A typed price takes the project rate and is not invoiced.
       ['c', 11_000, 1_000, null, 2_200, 200],
     ],
   );

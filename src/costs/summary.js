@@ -1,6 +1,7 @@
 // The money numbers at the top of the costs panel. Committed is every
 // estimate added up, and each estimate includes the row's approved
-// change orders. Spent is every actual price on a complete row.
+// change orders. Spent is every invoice total, paid or not, so it
+// matches the sum of the invoices in the Invoices section.
 // Projected is the total the project is heading for. A complete row
 // counts its actual price when one is entered. An open row counts the
 // larger of its actual price and its estimate, because a first invoice
@@ -8,9 +9,10 @@
 // the estimate is still to come. A price above the estimate counts at
 // once, so an overrun shows before the box is ticked. Headroom is the
 // budget less the projected total, so it goes negative when the project
-// is set to run over. Accrued is the estimate on every complete row that
-// has no actual price yet: work done or goods received, but no invoice
-// entered, so the money is owed but not counted in Spent. Every number
+// is set to run over. Accrued is the projected amount of every complete
+// row that no invoice line bills: work done or goods received, but no
+// invoice entered, so the money is owed but not counted in Spent. It
+// is the typed price when one is entered, else the estimate. Every number
 // includes the markup. Markup is the part of the projected total that is
 // the project manager's margin, and the rest is base cost.
 
@@ -20,10 +22,10 @@
  * @typedef {object} CostSummary
  * @property {number} budgetCents
  * @property {number} committedCents every estimate added up
- * @property {number} spentCents every actual price on a complete row
+ * @property {number} spentCents every invoice total, paid or not
  * @property {number} projectedCents billed price on a complete row, the larger of billed and estimate on an open one
  * @property {number} headroomCents budget less projected, negative when over
- * @property {number} accruedCents estimates on complete rows with no actual price
+ * @property {number} accruedCents projected amounts of complete rows with no invoice line
  * @property {number} accruedCount how many rows make up accruedCents
  * @property {number} markupCents the markup part of projectedCents
  */
@@ -42,12 +44,12 @@ export function costSummary(events, budgetCents) {
   let markupCents = 0;
   for (const event of events) {
     committedCents += event.expectedCents;
-    if (event.actualCents !== null) spentCents += event.actualCents;
+    spentCents += event.invoicedCents ?? 0;
     const counted = projected(event);
     projectedCents += counted.cents;
     markupCents += counted.markupCents;
-    if (event.complete && event.actualCents === null) {
-      accruedCents += event.expectedCents;
+    if (event.complete && event.invoicedCents === null) {
+      accruedCents += counted.cents;
       accruedCount += 1;
     }
   }

@@ -1,8 +1,11 @@
 // The tables of the costs section. The line items table lists every
-// cost in the project, labor and materials together, and is the data
-// behind the cumulative chart, with a line under it for the cost that
-// is incurred but not yet invoiced. The week table is the visually
-// hidden twin of the week chart.
+// cost in the project, labor and materials together, with a line under
+// it for the cost that is incurred but not yet invoiced. Its Invoiced
+// column adds up to the Spent tile, and its Blended column is the same
+// amount per row as the Blended column of the schedule and materials
+// tables, so it adds up to the Projected tile. The week table is the
+// visually hidden twin of the week chart.
+import { projected } from '../costs/summary.js';
 import { formatDate, formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { bareButton } from '../ui/buttons.js';
@@ -10,6 +13,7 @@ import { dataTable } from '../ui/DataTable.js';
 import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { openMaterialEditor } from './materialEditor.js';
+import { blendedColumn } from './rowMarkup.js';
 import { openScheduleEditor } from './scheduleEditor.js';
 import {
   costVariance,
@@ -27,12 +31,14 @@ import {
 const KIND = { schedule: 'Labor', material: 'Material' };
 
 /**
+ * The estimate against the blended amount, for the variance column. A
+ * row with no invoiced or typed price has no variance.
  * @param {CostEvent} event
  * @returns {{ estimatedCents: number, actualCents: number | null }}
  */
 const prices = (event) => ({
   estimatedCents: event.expectedCents,
-  actualCents: event.actualCents,
+  actualCents: event.billedCents === null ? null : projected(event).cents,
 });
 
 /**
@@ -54,11 +60,15 @@ const byText = (a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' });
  */
 export function lineItemTable({ ctx, payload, events, sort, onSort }) {
   let expected = 0;
-  let actual = 0;
+  let invoiced = 0;
   for (const event of events) {
     expected += event.expectedCents;
-    actual += event.actualCents ?? 0;
+    invoiced += event.invoicedCents ?? 0;
   }
+  const blended = blendedColumn(
+    new Map(events.map((e) => [e.id, projected(e)])),
+    events,
+  );
 
   /** @param {CostEvent} event */
   function open(event) {
@@ -84,7 +94,8 @@ export function lineItemTable({ ctx, payload, events, sort, onSort }) {
       '',
       '',
       formatCents(expected),
-      formatCents(actual),
+      formatCents(invoiced),
+      blended.footer,
       varianceCell(totalCostVariance(events.map(prices))),
     ],
     columns: [
@@ -132,12 +143,13 @@ export function lineItemTable({ ctx, payload, events, sort, onSort }) {
         cell: (event) => formatCents(event.expectedCents),
       },
       {
-        key: 'actual',
-        label: 'Actual',
+        key: 'invoiced',
+        label: 'Invoiced',
         align: 'end',
-        compare: (a, b) => (a.actualCents ?? -1) - (b.actualCents ?? -1),
-        cell: (event) => formatCents(event.actualCents),
+        compare: (a, b) => (a.invoicedCents ?? -1) - (b.invoicedCents ?? -1),
+        cell: (event) => formatCents(event.invoicedCents),
       },
+      blended.column,
       {
         key: 'variance',
         label: 'Vs estimate',
@@ -152,9 +164,9 @@ export function lineItemTable({ ctx, payload, events, sort, onSort }) {
 }
 
 /**
- * The cost that is incurred but not invoiced: the estimate on every
- * complete row with no actual price entered yet. Reads "1 finished row
- * with no actual yet" under the label so the rule is on the page.
+ * The cost that is incurred but not invoiced: the projected amount of
+ * every complete row that no invoice line bills. Reads "1 finished row
+ * with no invoice yet" under the label so the rule is on the page.
  * @param {CostSummary} summary
  * @returns {HTMLElement}
  */
@@ -169,7 +181,7 @@ export function accruedLine(summary) {
   const note = document.createElement('span');
   note.className = 'cost-accrued__note u-muted';
   const rows = summary.accruedCount === 1 ? 'row' : 'rows';
-  note.textContent = `${summary.accruedCount} finished ${rows} with no actual yet`;
+  note.textContent = `${summary.accruedCount} finished ${rows} with no invoice yet`;
   text.append(label, note);
   const value = document.createElement('span');
   value.className = 'fact-line__value';
@@ -190,7 +202,7 @@ export function weekTable(weeks) {
   cap.textContent = 'Cost by week';
   const thead = document.createElement('thead');
   const hr = document.createElement('tr');
-  for (const text of ['Week of', 'Expected', 'Actual']) {
+  for (const text of ['Week of', 'Expected', 'Invoiced']) {
     const th = document.createElement('th');
     th.setAttribute('scope', 'col');
     th.textContent = text;

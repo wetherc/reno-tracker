@@ -2,16 +2,15 @@ import { test, expect } from './fixtures.js';
 
 /**
  * @param {import('@playwright/test').Page} page
- * @param {{ title: string, start: string, end: string, estimate: string, actual?: string }} item
+ * @param {{ title: string, start: string, end: string, estimate: string }} item
  */
-async function addItem(page, { title, start, end, estimate, actual }) {
+async function addItem(page, { title, start, end, estimate }) {
   const dialog = page.getByRole('dialog');
   await page.getByRole('button', { name: 'Add item' }).click();
   await dialog.getByLabel('Title').fill(title);
   await dialog.getByLabel('Start').fill(start);
   await dialog.getByLabel('End').fill(end);
   await dialog.getByLabel('Estimate').fill(estimate);
-  if (actual) await dialog.getByLabel('Actual').fill(actual);
   await dialog.getByRole('button', { name: 'Add to schedule' }).click();
   await expect(dialog).toBeHidden();
 }
@@ -40,7 +39,6 @@ test('the costs panel sums the project and draws both charts', async ({
     start: '2026-09-01',
     end: '2026-09-03',
     estimate: '2,000',
-    actual: '2,400',
   });
   await addItem(page, {
     title: 'Rough plumbing',
@@ -72,6 +70,18 @@ test('the costs panel sums the project and draws both charts', async ({
   await dialog.getByLabel('Material', { exact: true }).fill('Sink');
   await dialog.getByLabel('Allowance').fill('1,500');
   await dialog.getByRole('button', { name: 'Add to materials' }).click();
+  await expect(dialog).toBeHidden();
+
+  // Spent reads invoices only, so Demo's price comes in on one.
+  await page.getByRole('button', { name: 'Invoices' }).click();
+  await page.getByRole('button', { name: 'Add invoice' }).click();
+  await dialog.getByLabel('Invoice no.').fill('88');
+  await dialog.getByLabel('From').fill('Wreckers');
+  await dialog.getByLabel('Issued').fill('2026-09-03');
+  const line = dialog.locator('.line-item').nth(0);
+  await line.getByLabel('Bills').selectOption('Demo');
+  await line.getByLabel('Amount').fill('2,400');
+  await dialog.getByRole('button', { name: 'Add invoice' }).click();
   await expect(dialog).toBeHidden();
 
   await page.getByRole('button', { name: 'Costs' }).click();
@@ -109,10 +119,10 @@ test('the costs panel sums the project and draws both charts', async ({
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog).toBeHidden();
 
-  const line = page.getByRole('img', { name: 'Cumulative cost of Kitchen' });
-  await expect(line.locator('.chart__expected')).toHaveCount(1);
-  await expect(line.locator('.chart__actual')).toHaveCount(1);
-  await expect(line.locator('.chart__budget')).toHaveCount(1);
+  const chart = page.getByRole('img', { name: 'Cumulative cost of Kitchen' });
+  await expect(chart.locator('.chart__expected')).toHaveCount(1);
+  await expect(chart.locator('.chart__actual')).toHaveCount(1);
+  await expect(chart.locator('.chart__budget')).toHaveCount(1);
   const bars = page.getByRole('img', { name: 'Cost of Kitchen by week' });
   // Sep 3 to Nov 10 covers eleven Sundays, Aug 30 through Nov 8.
   await expect(bars.locator('.chart__expected-bar')).toHaveCount(11);
@@ -122,27 +132,30 @@ test('the costs panel sums the project and draws both charts', async ({
   // them and the picked one lights up.
   await expect(page.locator('.chart-readout')).toHaveCount(0);
   const demoDot = page.getByRole('button', {
-    name: 'Sep 3, 2026 · Demo · $3,500.00 expected so far · $2,400.00 paid so far · $46,500.00 of budget left',
+    name: 'Sep 3, 2026 · Demo, Invoice 88 from Wreckers · $3,500.00 expected so far · $2,400.00 invoiced so far · $46,500.00 of budget left',
   });
   await demoDot.hover();
-  await expect(line.locator('.chart__mark--active')).toHaveCount(1);
+  await expect(chart.locator('.chart__mark--active')).toHaveCount(1);
   // The callout lists the row and the running totals.
   const tip = page.locator('.chart-tip').first();
   await expect(tip).toBeVisible();
   await expect(tip.locator('.chart-tip__date')).toHaveText('Thu, Sep 3, 2026');
-  await expect(tip.locator('.chart-tip__row')).toHaveText(['Demo$2,000.00']);
+  await expect(tip.locator('.chart-tip__row')).toHaveText([
+    'Demo$2,000.00',
+    'Invoice 88 from Wreckers$2,400.00',
+  ]);
   await expect(tip.locator('dd')).toHaveText([
     '$3,500.00',
     '$2,400.00',
     '$46,500.00',
   ]);
   // The axis names every Sunday by its day and each month once.
-  await expect(line.locator('.chart__tick--month')).toHaveText([
+  await expect(chart.locator('.chart__tick--month')).toHaveText([
     'Sep 2026',
     'Oct',
     'Nov',
   ]);
-  await expect(line.locator('.chart__tick--week').first()).toHaveText('6');
+  await expect(chart.locator('.chart__tick--week').first()).toHaveText('6');
   await demoDot.focus();
   await page.keyboard.press('ArrowRight');
   await expect(
@@ -175,7 +188,7 @@ test('the costs panel sums the project and draws both charts', async ({
   ]);
   await page
     .getByRole('button', {
-      name: 'Week of Oct 25, 2026 · $18,000.00 expected · $0.00 paid',
+      name: 'Week of Oct 25, 2026 · $18,000.00 expected · $0.00 invoiced',
     })
     .hover();
   await expect(bars.locator('.chart__expected-bar--active')).toHaveCount(1);

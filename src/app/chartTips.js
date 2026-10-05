@@ -1,6 +1,7 @@
 // The callout that opens over a picked mark on a cost chart. A day on
 // the cumulative chart lists the rows that land on it with their
-// amounts, then the two running totals and the room left in the budget.
+// estimates and the invoices issued on it with their totals, then the
+// two running totals and the room left in the budget.
 // A week on the bar chart shows its two totals. Each total wears the
 // same mark as the tile and the line it stands for. The picker owns the
 // box, so these builders return only its contents.
@@ -10,20 +11,25 @@ import { formatCents } from '../format/money.js';
 /** @typedef {import('../charts/lineChart.js').Marker} Marker */
 /** @typedef {import('../charts/barChart.js').Bar} Bar */
 /** @typedef {import('../costs/timeline.js').CostEvent} CostEvent */
+/** @typedef {import('../costs/timeline.js').InvoiceEvent} InvoiceEvent */
 
 /** @typedef {{ label: string, value: string, mark?: 'budget' | 'expected' | 'actual', over?: boolean }} TipTotal */
 
 /**
  * @param {Marker} marker
  * @param {CostEvent[]} landing the rows that land that day
+ * @param {InvoiceEvent[]} issued the invoices issued that day
  * @param {number} budgetCents
  * @returns {HTMLElement}
  */
-export function markerTip(marker, landing, budgetCents) {
+export function markerTip(marker, landing, issued, budgetCents) {
   const left = budgetCents - marker.expectedCents;
   return tip(
     `${formatWeekday(marker.date)}, ${formatDate(marker.date)}`,
-    landing.map((event) => [event.title, formatCents(event.expectedCents)]),
+    [
+      ...landing.map((e) => row(e.title, e.expectedCents)),
+      ...issued.map((e) => row(e.title, e.cents)),
+    ],
     [
       {
         label: 'Expected so far',
@@ -31,7 +37,7 @@ export function markerTip(marker, landing, budgetCents) {
         mark: 'expected',
       },
       {
-        label: 'Paid so far',
+        label: 'Invoiced so far',
         value:
           marker.actualCents === null
             ? 'nothing yet'
@@ -46,6 +52,13 @@ export function markerTip(marker, landing, budgetCents) {
 }
 
 /**
+ * @param {string} name
+ * @param {number} cents
+ * @returns {[string, string]}
+ */
+const row = (name, cents) => [name, formatCents(cents)];
+
+/**
  * @param {Bar} bar
  * @returns {HTMLElement}
  */
@@ -55,7 +68,11 @@ export function weekTip(bar) {
     [],
     [
       { label: 'Estimate', value: formatCents(bar.expectedCents) },
-      { label: 'Paid', value: formatCents(bar.actualCents), mark: 'actual' },
+      {
+        label: 'Invoiced',
+        value: formatCents(bar.actualCents),
+        mark: 'actual',
+      },
     ],
   );
 }

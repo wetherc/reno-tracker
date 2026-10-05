@@ -17,7 +17,13 @@ import { mountShell } from '../../../src/app/shell.js';
 import { costSummary } from '../../../src/costs/summary.js';
 import { todayIso } from '../../../src/schedule/dates.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
-import { itemOf, materialOf, setupSchedule } from './scheduleFixtures.js';
+import {
+  invoiceOf,
+  itemOf,
+  lineOf,
+  materialOf,
+  setupSchedule,
+} from './scheduleFixtures.js';
 
 const dom = installDom();
 
@@ -55,6 +61,16 @@ test('chartRange runs from the earlier of start and first cost to a week past th
     start: '2026-09-01',
     end: '2026-09-08',
   });
+  // The cost events and invoice events come in two sorted runs.
+  assert.deepEqual(
+    chartRange(payload, [
+      at('2026-10-01'),
+      at('2026-08-20'),
+      at('2026-11-05'),
+      at('2026-10-10'),
+    ]),
+    { start: '2026-08-20', end: '2026-11-12' },
+  );
 });
 
 test('chartRange does not stretch the axis to today when the last cost is in the past', () => {
@@ -86,7 +102,7 @@ test('summaryTiles names the seven numbers and flips the headroom tile when over
           complete: true,
           expectedCents: 10000,
           expectedMarkupCents: 0,
-          actualCents: 12000,
+          invoicedCents: 12000,
           billedCents: 12000,
           billedMarkupCents: 0,
         },
@@ -108,6 +124,7 @@ test('summaryTiles names the seven numbers and flips the headroom tile when over
     ],
   );
   assert.equal(under[1].note, 'every estimate, before invoices');
+  assert.equal(under[2].note, 'every invoice, paid or not');
   assert.equal(under[3].note, 'invoiced price, else estimate');
   assert.equal(under[4].note, 'budget minus projected');
   assert.equal(under[5].note, '2 of 5 workdays done');
@@ -141,11 +158,11 @@ test('describeMarker and describeMonth read one mark out in words', () => {
   };
   assert.equal(
     describeMarker(marker, ['Demo', 'Grout'], 500000),
-    'Oct 3, 2026 · Demo, Grout · $1,000.00 expected so far · nothing paid yet · $4,000.00 of budget left',
+    'Oct 3, 2026 · Demo, Grout · $1,000.00 expected so far · nothing invoiced yet · $4,000.00 of budget left',
   );
   assert.equal(
     describeMarker({ ...marker, actualCents: 110000 }, ['Demo'], 90000),
-    'Oct 3, 2026 · Demo · $1,000.00 expected so far · $1,100.00 paid so far · $100.00 over budget',
+    'Oct 3, 2026 · Demo · $1,000.00 expected so far · $1,100.00 invoiced so far · $100.00 over budget',
   );
   assert.equal(
     describeWeek({
@@ -160,7 +177,7 @@ test('describeMarker and describeMonth read one mark out in words', () => {
       expectedCents: 250000,
       actualCents: 0,
     }),
-    'Week of Oct 4, 2026 · $2,500.00 expected · $0.00 paid',
+    'Week of Oct 4, 2026 · $2,500.00 expected · $0.00 invoiced',
   );
 });
 
@@ -175,7 +192,7 @@ test('markerTargets and weekTargets place a target on each mark, in percent', ()
       { date: '2026-10-11', cents: 20000 },
       { date: '2026-10-21', cents: 50000 },
     ],
-    actual: [],
+    actual: [{ date: '2026-10-15', cents: 7000 }],
     budgetCents: 80000,
     start: '2026-10-01',
     end: '2026-11-20',
@@ -187,14 +204,26 @@ test('markerTargets and weekTargets place a target on each mark, in percent', ()
   const dot = $(document.createElement('circle'));
   dot.setAttribute('data-date', '2026-10-21');
   svg.append(dot);
-  const dots = markerTargets(line, events, 80000, svg);
-  assert.equal(dots.length, 2);
+  const issued = [
+    { id: 'i', title: 'Invoice 7', date: '2026-10-15', cents: 7000 },
+  ];
+  const dots = markerTargets(line, events, issued, 80000, svg);
+  assert.equal(dots.length, 3);
   assert.match(dots[0].text, /^Oct 11, 2026 · Demo, Grout · /);
+  // A day with only an invoice on it names the invoice.
+  assert.match(
+    dots[1].text,
+    /^Oct 15, 2026 · Invoice 7 · .* · \$70\.00 invoiced so far/,
+  );
+  assert.equal(
+    $(dots[1].detail?.()).querySelector('.chart-tip__row').textContent,
+    'Invoice 7$70.00',
+  );
   assert.deepEqual([dots[0].left, dots[0].top], [31.69, 55.71]);
   assert.equal(dots[0].width, undefined);
-  dots[1].highlight?.(true);
+  dots[2].highlight?.(true);
   assert.equal(dot.className, 'chart__mark--active');
-  dots[1].highlight?.(false);
+  dots[2].highlight?.(false);
   assert.equal(dot.className, '');
   dots[0].highlight?.(true);
 
@@ -216,7 +245,7 @@ test('markerTargets and weekTargets place a target on each mark, in percent', ()
   );
   assert.equal(
     columns[1].text,
-    'Week of Nov 8, 2026 · $0.00 expected · $0.00 paid',
+    'Week of Nov 8, 2026 · $0.00 expected · $0.00 invoiced',
   );
   assert.deepEqual(weekTargets(barChartModel({ weeks: [] }), svg), []);
 });
@@ -249,6 +278,12 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
         name: 'Grout',
         expectedDate: '2026-11-02',
         estimatedCents: 4000,
+      }),
+    ],
+    invoices: [
+      invoiceOf('i', {
+        issuedDate: '2026-10-03',
+        lines: [lineOf({ scheduleItemId: 'a' }, 110000)],
       }),
     ],
   });
@@ -292,7 +327,7 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   assert.equal(cards[0].querySelector('.chart-readout'), null);
   assert.match(
     picker.children[0].getAttribute('aria-label'),
-    /\$1,100\.00 paid so far/,
+    /\$1,100\.00 invoiced so far/,
   );
   picker.children[0].dispatchEvent({ type: 'pointerenter' });
   assert.equal(
@@ -318,7 +353,7 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   assert.equal(key.getAttribute('aria-label'), 'Key');
   assert.deepEqual(
     key.children.map((/** @type {any} */ li) => li.textContent),
-    ['Estimate', 'Paid on finished rows'],
+    ['Estimate', 'Invoiced'],
   );
   assert.equal(cards[0].querySelector('.chart-legend'), null);
   const twin = cards[1].querySelector('table');
@@ -345,7 +380,13 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   assert.equal(rows.length, 3);
   assert.equal(
     rows[0].textContent,
-    'Demo' + 'Labor' + 'Oct 3' + '$1,000.00' + '$1,100.00' + '+$100.00',
+    'Demo' +
+      'Labor' +
+      'Oct 3' +
+      '$1,000.00' +
+      '$1,100.00' +
+      '$1,100.00$0.00 margin' +
+      '+$100.00',
   );
   assert.ok(rows[0].classList.contains('cost-row--complete'));
   assert.equal(
@@ -354,15 +395,24 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   );
   assert.equal(
     rows[1].textContent,
-    'Grout' + 'Material' + 'Nov 2' + '$40.00' + '—' + '—',
+    'Grout' +
+      'Material' +
+      'Nov 2' +
+      '$40.00' +
+      '—' +
+      '$40.00$0.00 margin' +
+      '—',
   );
   assert.equal(rows[2].children[0].textContent, '');
   const total = $(items.querySelector('tfoot')).children[0];
-  assert.equal(total.textContent, 'Total$3,540.00$1,100.00+$100.00');
+  assert.equal(
+    total.textContent,
+    'Total$3,540.00$1,100.00$3,640.00$0.00 margin+$100.00',
+  );
   const accrued = cards[2].querySelector('.cost-accrued');
   assert.equal(
     accrued.textContent,
-    'Incurred, not invoiced' + '0 finished rows with no actual yet' + '$0.00',
+    'Incurred, not invoiced' + '0 finished rows with no invoice yet' + '$0.00',
   );
 });
 
@@ -396,19 +446,70 @@ test('mountCosts marks today when it is inside the range', async () => {
   assert.ok(shell.body.querySelector('.chart__today'));
 });
 
-test('mountCosts sums the finished rows that have no actual price yet', async () => {
+test('mountCosts sums the finished rows that no invoice bills', async () => {
   const { shell } = await setup({
     schedule: [
       itemOf('a', { title: 'Demo', estimatedCents: 352500, complete: true }),
       itemOf('b', { title: 'Tile', estimatedCents: 100000 }),
+      // A typed price is not an invoice, and it counts in place of the
+      // estimate.
+      itemOf('c', {
+        title: 'Trim',
+        estimatedCents: 9000,
+        actualCents: 2000,
+        complete: true,
+      }),
     ],
   });
   const accrued = $(shell.body.querySelector('.cost-accrued'));
   assert.equal(
     accrued.textContent,
     'Incurred, not invoiced' +
-      '1 finished row with no actual yet' +
-      '$3,525.00',
+      '2 finished rows with no invoice yet' +
+      '$3,545.00',
+  );
+});
+
+test('mountCosts counts every invoice in Spent on the day it was issued', async () => {
+  const { shell } = await setup({
+    markupBasisPoints: 1000,
+    schedule: [
+      itemOf('b', {
+        title: 'Tile',
+        startDate: '2026-10-05',
+        endDate: '2026-11-20',
+        estimatedCents: 250000,
+      }),
+    ],
+    invoices: [
+      invoiceOf('i', {
+        issuedDate: '2026-09-20',
+        markupBasisPoints: 1000,
+        lines: [lineOf({ scheduleItemId: 'b' }, 50000)],
+      }),
+    ],
+  });
+  const tiles = $(shell.body.querySelectorAll('.cost-tile')).map(
+    (/** @type {any} */ t) => t.textContent,
+  );
+  // The deposit on an open row is spent, with its markup.
+  assert.equal(tiles[2], 'Spent$550.00every invoice, paid or not');
+  const items = $(shell.body.querySelector('.data-table'));
+  const row = items.querySelector('tbody').children[0];
+  assert.equal(
+    row.textContent,
+    'Tile' +
+      'Labor' +
+      'Nov 20' +
+      '$2,750.00' +
+      '$550.00' +
+      '$2,750.00$250.00 margin' +
+      '$0.00',
+  );
+  const picker = $(shell.body.querySelector('.chart-picker'));
+  assert.match(
+    picker.children[0].getAttribute('aria-label'),
+    /^Sep 20, 2026 · An invoice from Party i · \$0\.00 expected so far · \$550\.00 invoiced so far/,
   );
 });
 
@@ -424,7 +525,7 @@ test('mountCosts adds the project markup and says so under the line items', asyn
   assert.equal(tile, 'Projected$1,150.00$1,000.00 base + $150.00 markup');
   assert.match(
     $(shell.body.querySelector('.cost-markup-note')).textContent,
-    /^Every estimate and actual here includes the markup/,
+    /^Every amount here includes the markup/,
   );
 });
 
@@ -433,4 +534,37 @@ test('mountCosts has no markup note with no markup', async () => {
     schedule: [itemOf('a', { estimatedCents: 100000 })],
   });
   assert.equal(shell.body.querySelector('.cost-markup-note'), null);
+});
+
+test('the line items sort by each money column', async () => {
+  const { shell } = await setup({
+    schedule: [
+      itemOf('a', { title: 'Demo', estimatedCents: 1000, complete: true }),
+      itemOf('b', { title: 'Tile', estimatedCents: 5000, actualCents: 9000 }),
+      itemOf('c', { title: 'Trim', estimatedCents: 3000 }),
+    ],
+    invoices: [
+      invoiceOf('i', { lines: [lineOf({ scheduleItemId: 'c' }, 2000)] }),
+    ],
+  });
+  const items = () => $(shell.body.querySelector('.data-table'));
+  const names = () =>
+    items()
+      .querySelector('tbody')
+      .children.map((/** @type {any} */ r) => r.children[1].textContent);
+  /** @param {string} label */
+  const sortBy = (label) =>
+    items()
+      .children[1].children[0].children.find(
+        (/** @type {any} */ th) => th.textContent === label,
+      )
+      .children[0].click();
+  sortBy('Invoiced');
+  assert.deepEqual(names(), ['Demo', 'Tile', 'Trim']);
+  sortBy('Blended');
+  assert.deepEqual(names(), ['Demo', 'Trim', 'Tile']);
+  // Tile runs $40 over its estimate, and Trim has an invoice below its
+  // open estimate, so it counts the estimate.
+  sortBy('Vs estimate');
+  assert.deepEqual(names(), ['Demo', 'Trim', 'Tile']);
 });

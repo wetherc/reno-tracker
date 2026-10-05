@@ -74,13 +74,21 @@ static site on GitHub Pages, where it keeps its data in the browser.
   another project opens.
 - A costs panel with summary tiles, a cumulative cost line against the
   budget, a cost-by-week bar chart, and a table of every line item, labor
-  and materials together. A line under the table totals the cost incurred
-  but not invoiced, which is the estimate on every complete row with no
-  actual price entered yet. The time axis on both charts marks every Sunday
-  with its day number and names each month once. Pointing at or tabbing to
-  a dot on the line or a bar in the week chart opens a callout with the
-  rows that land that day and the running totals, and drops a line from
-  the dot to the axis.
+  and materials together. The Spent tile is the sum of every invoice
+  total, paid or not, on open and complete rows alike, so it matches the
+  total in the Invoices section. A price typed on a row that no invoice
+  line bills is not spent. The spent line and the week bars put each
+  invoice on its issue day. The table shows the invoiced amount of each
+  row, which adds up to Spent, and a Blended column with the same amount
+  per row as the Blended column of the schedule and materials tables,
+  which adds up to Projected. A line under the table totals the cost
+  incurred but not invoiced, which is the blended amount of every
+  complete row that no invoice line bills. The time axis on both charts
+  marks every Sunday with its day number and names each month once.
+  Pointing at or tabbing to a dot on the line or a bar in the week chart
+  opens a callout with the rows that land that day, the invoices issued
+  that day, and the running totals, and drops a line from the dot to the
+  axis.
 - A markup rate on the project, for the project manager's margin. Each
   schedule item and material can have a rate of its own, and a blank rate
   takes the project rate. The editors ask for raw cost, before markup, and

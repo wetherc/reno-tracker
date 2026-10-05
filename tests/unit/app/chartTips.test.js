@@ -20,19 +20,23 @@ const events = /** @type {any} */ ([
   { title: 'Grout', expectedCents: 100000 },
 ]);
 
-test('markerTip lists the rows that land and the running totals', () => {
-  const tip = $(markerTip(marker, events, 500000));
+const issued = [
+  { id: 'i', title: 'Invoice 7 from Pinch', date: '2026-10-11', cents: 50000 },
+];
+
+test('markerTip lists the rows that land, the invoices issued, and the running totals', () => {
+  const tip = $(markerTip(marker, events, issued, 500000));
   assert.equal(
     tip.querySelector('.chart-tip__date').textContent,
     'Sun, Oct 11, 2026',
   );
   assert.deepEqual(
     [...tip.querySelectorAll('.chart-tip__row')].map((li) => li.textContent),
-    ['Demo$2,000.00', 'Grout$1,000.00'],
+    ['Demo$2,000.00', 'Grout$1,000.00', 'Invoice 7 from Pinch$500.00'],
   );
   assert.deepEqual(
     [...tip.querySelectorAll('dt')].map((dt) => dt.textContent),
-    ['Expected so far', 'Paid so far', 'Budget left'],
+    ['Expected so far', 'Invoiced so far', 'Budget left'],
   );
   assert.deepEqual(
     [...tip.querySelectorAll('dd')].map((dd) => dd.textContent),
@@ -49,9 +53,11 @@ test('markerTip lists the rows that land and the running totals', () => {
 });
 
 test('markerTip turns the budget line red once the total passes it', () => {
-  const tip = $(markerTip({ ...marker, actualCents: 250000 }, events, 100000));
-  const [, paid, over] = tip.querySelectorAll('dt');
-  assert.equal(paid.textContent, 'Paid so far');
+  const tip = $(
+    markerTip({ ...marker, actualCents: 250000 }, events, [], 100000),
+  );
+  const [, invoiced, over] = tip.querySelectorAll('dt');
+  assert.equal(invoiced.textContent, 'Invoiced so far');
   assert.equal(over.textContent, 'Over budget');
   assert.equal(over.className, 'chart-tip__label chart-tip__label--over');
   const amounts = tip.querySelectorAll('dd');
@@ -81,7 +87,7 @@ test('weekTip shows the two totals and no row list', () => {
   assert.equal(tip.querySelector('.chart-tip__rows'), null);
   assert.deepEqual(
     [...tip.querySelectorAll('dt')].map((dt) => dt.textContent),
-    ['Estimate', 'Paid'],
+    ['Estimate', 'Invoiced'],
   );
   assert.deepEqual(
     [...tip.querySelectorAll('dd')].map((dd) => dd.textContent),

@@ -8,9 +8,12 @@
 // Every approved change order line adds its amount to the expected cost
 // of its row, so the change lands on the row's day, not on the day of
 // the change order.
-// "Actual" is the actual price, and only a row marked complete counts
-// toward it. "Billed" is the actual price on any row, complete or not,
-// and the projected total uses it.
+// "Invoiced" is the sum of the row's invoice lines, complete or not.
+// A price typed on a row that no line bills is not invoiced. "Billed"
+// is the invoiced sum where there is one, else the typed price, and
+// the projected total uses it. The spent line reads the invoices
+// themselves, so each invoice lands on its issue day, and the line at
+// today matches the Spent tile.
 // Every amount here adds the project manager's markup to the base cost
 // that the row keeps. A billed row adds its share of the markup on its
 // invoices, at each invoice's rate. Every other price adds the row's
@@ -18,6 +21,7 @@
 // compares with the budget the same way an invoice does. The change
 // order lines in an estimate add their share of the markup at each
 // change order's rate instead of the row's.
+import { invoiceName, invoiceTotal } from '../entities/invoice.js';
 import { markupOf } from '../entities/lineItems.js';
 import { addDays, startOfWeek } from '../schedule/dates.js';
 import { approvedChanges } from './changed.js';
@@ -35,14 +39,22 @@ import { billings } from './invoiced.js';
  * @property {boolean} complete
  * @property {number} expectedCents the estimate, with markup
  * @property {number} expectedMarkupCents the markup part of expectedCents
- * @property {number | null} actualCents the price paid with markup, once the row is complete
- * @property {number | null} billedCents the price entered with markup, complete or not
+ * @property {number | null} invoicedCents the invoice lines with markup, null when no line bills the row
+ * @property {number | null} billedCents the invoiced or typed price with markup, complete or not
  * @property {number | null} billedMarkupCents the markup part of billedCents
  */
 
 /** @typedef {{ date: string, cents: number }} SeriesPoint */
 
-/** @typedef {{ week: string, expectedCents: number, actualCents: number }} WeekTotal */
+/**
+ * @typedef {object} InvoiceEvent
+ * @property {string} id the invoice id
+ * @property {string} title the invoice name
+ * @property {string} date YYYY-MM-DD, the issue day
+ * @property {number} cents the invoice total, with markup
+ */
+
+/** @typedef {{ week: string, expectedCents: number, actualCents: number }} WeekTotal actualCents is the invoiced total */
 
 /**
  * The expected cost of a material: the estimate when one is entered,
@@ -75,7 +87,7 @@ export function landingDate(item, payload) {
 }
 
 /**
- * @typedef {Pick<CostEvent, 'complete' | 'expectedCents' | 'expectedMarkupCents' | 'actualCents' | 'billedCents' | 'billedMarkupCents'>} RowPrices
+ * @typedef {Pick<CostEvent, 'complete' | 'expectedCents' | 'expectedMarkupCents' | 'invoicedCents' | 'billedCents' | 'billedMarkupCents'>} RowPrices
  */
 
 /**
@@ -105,7 +117,7 @@ export function rowPrices(row, expected, projectRate, billing, change) {
     complete: row.complete,
     expectedCents: expected + changeCents + expectedMarkupCents,
     expectedMarkupCents,
-    actualCents: row.complete ? billedCents : null,
+    invoicedCents: billing ? billedCents : null,
     billedCents,
     billedMarkupCents,
   };
@@ -157,48 +169,65 @@ export function costEvents(payload) {
 
 /**
  * Running total by day. One point per day that has a cost, in date
- * order. An event with no value for the key adds nothing and makes no
- * point.
- * @param {CostEvent[]} events
- * @param {'expectedCents' | 'actualCents'} key
+ * order. The costs must come in date order.
+ * @param {SeriesPoint[]} costs
  * @returns {SeriesPoint[]}
  */
-export function cumulative(events, key) {
+export function cumulative(costs) {
   /** @type {SeriesPoint[]} */
   const points = [];
   let total = 0;
-  for (const event of events) {
-    const cents = event[key];
-    if (cents === null) continue;
+  for (const { date, cents } of costs) {
     total += cents;
     const last = points[points.length - 1];
-    if (last && last.date === event.date) last.cents = total;
-    else points.push({ date: event.date, cents: total });
+    if (last && last.date === date) last.cents = total;
+    else points.push({ date, cents: total });
   }
   return points;
 }
 
 /**
- * Totals per week from the first week with a cost to the last, with a
- * zero row for every empty week between them, so a bar chart shows the
- * gap instead of hiding it. A week starts on Sunday and is named by
- * that Sunday.
+ * One event per invoice, sorted by issue day.
+ * @param {ProjectPayload} payload
+ * @returns {InvoiceEvent[]}
+ */
+export function invoiceEvents(payload) {
+  return payload.invoices
+    .map((invoice) => ({
+      id: invoice.id,
+      title: invoiceName(invoice),
+      date: invoice.issuedDate,
+      cents: invoiceTotal(invoice),
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Totals per week from the first week with a cost or an invoice to the
+ * last, with a zero row for every empty week between them, so a bar
+ * chart shows the gap instead of hiding it. The estimates land on the
+ * week of their row, and the invoices on the week of their issue day.
+ * A week starts on Sunday and is named by that Sunday.
  * @param {CostEvent[]} events
+ * @param {InvoiceEvent[]} invoices
  * @returns {WeekTotal[]}
  */
-export function byWeek(events) {
-  if (events.length === 0) return [];
+export function byWeek(events, invoices) {
+  const dates = [...events, ...invoices].map((e) => e.date).sort();
+  if (dates.length === 0) return [];
   /** @type {Map<string, WeekTotal>} */
   const weeks = new Map();
-  const first = startOfWeek(events[0].date);
-  const last = startOfWeek(events[events.length - 1].date);
+  const first = startOfWeek(dates[0]);
+  const last = startOfWeek(dates[dates.length - 1]);
   for (let w = first; w <= last; w = addDays(w, 7)) {
     weeks.set(w, { week: w, expectedCents: 0, actualCents: 0 });
   }
-  for (const event of events) {
-    const row = /** @type {WeekTotal} */ (weeks.get(startOfWeek(event.date)));
-    row.expectedCents += event.expectedCents;
-    row.actualCents += event.actualCents ?? 0;
-  }
+  /** @param {string} date */
+  const week = (date) =>
+    /** @type {WeekTotal} */ (weeks.get(startOfWeek(date)));
+  for (const event of events)
+    week(event.date).expectedCents += event.expectedCents;
+  for (const invoice of invoices)
+    week(invoice.date).actualCents += invoice.cents;
   return [...weeks.values()];
 }

@@ -10,7 +10,12 @@ import { barChartModel, renderBarChart } from '../charts/barChart.js';
 import { lineChartModel, renderLineChart } from '../charts/lineChart.js';
 import { progress } from '../costs/progress.js';
 import { costSummary } from '../costs/summary.js';
-import { byWeek, costEvents, cumulative } from '../costs/timeline.js';
+import {
+  byWeek,
+  costEvents,
+  cumulative,
+  invoiceEvents,
+} from '../costs/timeline.js';
 import { formatDate } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { addDays, todayIso } from '../schedule/dates.js';
@@ -26,6 +31,7 @@ import { accruedLine, lineItemTable, weekTable } from './costTables.js';
 /** @typedef {import('../costs/summary.js').CostSummary} CostSummary */
 /** @typedef {import('../costs/progress.js').Progress} Progress */
 /** @typedef {import('../costs/timeline.js').CostEvent} CostEvent */
+/** @typedef {import('../costs/timeline.js').InvoiceEvent} InvoiceEvent */
 /** @typedef {import('../charts/lineChart.js').LineChartModel} LineChartModel */
 /** @typedef {import('../charts/lineChart.js').Marker} Marker */
 /** @typedef {import('../charts/barChart.js').BarChartModel} BarChartModel */
@@ -34,16 +40,17 @@ import { accruedLine, lineItemTable, weekTable } from './costTables.js';
 
 /**
  * The days the cumulative chart spans: from the project start or the
- * first cost, whichever is earlier, to a week past the last cost. The
+ * first cost or invoice, whichever is earlier, to a week past the last
+ * one. The
  * week gives the last step a flat run so it reads as a plateau and not
  * as a spike at the edge. Today does not stretch the axis, so a project
  * that finished months ago does not draw a long flat tail up to now.
  * @param {ProjectPayload} payload
- * @param {CostEvent[]} events
+ * @param {{ date: string }[]} dated the cost events and invoice events
  * @returns {{ start: string, end: string }}
  */
-export function chartRange(payload, events) {
-  const dates = events.map((e) => e.date);
+export function chartRange(payload, dated) {
+  const dates = dated.map((e) => e.date).sort();
   const first = dates[0] ?? payload.project.startDate;
   const last = dates[dates.length - 1] ?? payload.project.startDate;
   const start =
@@ -83,7 +90,7 @@ export function summaryTiles(summary, progress) {
     {
       label: 'Spent',
       value: formatCents(summary.spentCents),
-      note: 'paid on finished rows',
+      note: 'every invoice, paid or not',
       mark: 'actual',
     },
     {
@@ -129,7 +136,7 @@ export function materialsNote(progress) {
  * The label for one day on the cumulative chart: the day, what landed
  * on it, both running totals, and where that leaves the budget.
  * @param {Marker} marker
- * @param {string[]} titles the rows that land that day
+ * @param {string[]} titles the rows that land and the invoices issued that day
  * @param {number} budgetCents
  * @returns {string}
  */
@@ -141,8 +148,8 @@ export function describeMarker(marker, titles, budgetCents) {
       : `${formatCents(-left)} over budget`;
   const actual =
     marker.actualCents === null
-      ? 'nothing paid yet'
-      : `${formatCents(marker.actualCents)} paid so far`;
+      ? 'nothing invoiced yet'
+      : `${formatCents(marker.actualCents)} invoiced so far`;
   return [
     formatDate(marker.date),
     titles.join(', '),
@@ -161,7 +168,7 @@ export function describeWeek(bar) {
   return [
     `Week of ${formatDate(bar.week)}`,
     `${formatCents(bar.expectedCents)} expected`,
-    `${formatCents(bar.actualCents)} paid`,
+    `${formatCents(bar.actualCents)} invoiced`,
   ].join(' · ');
 }
 
@@ -169,17 +176,19 @@ export function describeWeek(bar) {
  * One target per marker on the cumulative chart, placed on the dot.
  * @param {LineChartModel} model
  * @param {CostEvent[]} events
+ * @param {InvoiceEvent[]} invoices
  * @param {number} budgetCents
  * @param {SVGElement} svg
  * @returns {PickTarget[]}
  */
-export function markerTargets(model, events, budgetCents, svg) {
+export function markerTargets(model, events, invoices, budgetCents, svg) {
   return model.markers.map((marker) => {
     const landing = events.filter((e) => e.date === marker.date);
+    const issued = invoices.filter((e) => e.date === marker.date);
     return {
       text: describeMarker(
         marker,
-        landing.map((e) => e.title),
+        [...landing, ...issued].map((e) => e.title),
         budgetCents,
       ),
       left: pct(marker.x, model.width),
@@ -189,7 +198,7 @@ export function markerTargets(model, events, budgetCents, svg) {
         `[data-date="${marker.date}"]`,
         'chart__mark--active',
       ),
-      detail: () => markerTip(marker, landing, budgetCents),
+      detail: () => markerTip(marker, landing, issued, budgetCents),
     };
   });
 }
@@ -257,11 +266,14 @@ export function mountCosts({ ctx, shell }) {
     }
     const today = todayIso();
     const summary = costSummary(events, payload.project.budgetCents);
-    const weeks = byWeek(events);
-    const range = chartRange(payload, events);
+    const invoices = invoiceEvents(payload);
+    const weeks = byWeek(events, invoices);
+    const range = chartRange(payload, [...events, ...invoices]);
     const line = lineChartModel({
-      expected: cumulative(events, 'expectedCents'),
-      actual: cumulative(events, 'actualCents'),
+      expected: cumulative(
+        events.map((e) => ({ date: e.date, cents: e.expectedCents })),
+      ),
+      actual: cumulative(invoices),
       budgetCents: payload.project.budgetCents,
       today,
       ...range,
@@ -290,7 +302,13 @@ export function mountCosts({ ctx, shell }) {
       chartCard(
         'Cost over time',
         lineSvg,
-        markerTargets(line, events, payload.project.budgetCents, lineSvg),
+        markerTargets(
+          line,
+          events,
+          invoices,
+          payload.project.budgetCents,
+          lineSvg,
+        ),
       ),
       chartCard(
         'Cost by week',
@@ -352,7 +370,7 @@ function weekLegend() {
   list.setAttribute('aria-label', 'Key');
   for (const [kind, text] of [
     ['expected', 'Estimate'],
-    ['actual', 'Paid on finished rows'],
+    ['actual', 'Invoiced'],
   ]) {
     const li = document.createElement('li');
     li.className = 'chart-legend__item';
@@ -408,7 +426,7 @@ function listCard(heading, table, line, summary) {
     const note = document.createElement('p');
     note.className = 'cost-markup-note u-muted';
     note.textContent =
-      'Every estimate and actual here includes the markup. The schedule and materials show base cost.';
+      'Every amount here includes the markup. The schedule and materials tables show base cost, and their Blended column matches the one here.';
     card.append(note);
   }
   return card;

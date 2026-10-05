@@ -3,13 +3,15 @@
 // every item on it is complete. Summing days per item instead would count
 // a day twice when two jobs overlap, and weekends inside a long job would
 // weigh as much as days of work. An item that covers only weekend days
-// adds nothing to either count. Materials bought is
-// a plain count of complete materials over all materials, and the count
-// of those still waiting on an invoice (complete, no actual price) rides
-// beside it. The two stay apart because a run of purchases says nothing
-// about work on site.
+// adds nothing to either count. Materials bought is a plain count of
+// complete materials over all materials. The count of those still
+// waiting on an invoice (complete, and no invoice line bills it) rides
+// beside it, so a price typed on a row does not count as invoiced. The
+// two stay apart because a run of purchases says nothing about work on
+// site.
 
 import { eachDay, weekday } from '../schedule/dates.js';
+import { billings } from './invoiced.js';
 
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 
@@ -21,7 +23,7 @@ import { eachDay, weekday } from '../schedule/dates.js';
  * @property {number} percentMaterials whole number, complete materials over all materials
  * @property {number} materialsBought complete materials
  * @property {number} materialsAll every material
- * @property {number} materialsUninvoiced complete materials with no actual price
+ * @property {number} materialsUninvoiced complete materials that no invoice line bills
  */
 
 /**
@@ -33,7 +35,7 @@ const percent = (done, total) =>
   total === 0 ? 0 : Math.round((done / total) * 100);
 
 /**
- * @param {Pick<ProjectPayload, 'schedule' | 'materials'>} payload
+ * @param {Pick<ProjectPayload, 'schedule' | 'materials' | 'invoices'>} payload
  * @returns {Progress}
  */
 export function progress(payload) {
@@ -47,6 +49,7 @@ export function progress(payload) {
   }
   const done = [...days.values()].filter(Boolean).length;
   const bought = payload.materials.filter((m) => m.complete);
+  const billed = billings(payload.invoices);
   return {
     percentWork: percent(done, days.size),
     workdaysDone: done,
@@ -54,6 +57,6 @@ export function progress(payload) {
     percentMaterials: percent(bought.length, payload.materials.length),
     materialsBought: bought.length,
     materialsAll: payload.materials.length,
-    materialsUninvoiced: bought.filter((m) => m.actualCents === null).length,
+    materialsUninvoiced: bought.filter((m) => !billed.has(m.id)).length,
   };
 }
