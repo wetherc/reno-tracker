@@ -14,6 +14,7 @@ import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
 import { focusKey } from '../ui/focusKey.js';
 import { openInvoiceEditor } from './invoiceEditor.js';
+import { lineNames } from './lineList.js';
 import {
   owedCell,
   payButton,
@@ -26,29 +27,6 @@ import {
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
 /** @typedef {import('../types.ts').Invoice} Invoice */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
-
-/**
- * The names of the rows an invoice bills, once each, in line order.
- * @param {Invoice} invoice
- * @param {ProjectPayload} payload
- * @returns {string}
- */
-export function billedNames(invoice, payload) {
-  /** @type {Map<string, string>} */
-  const names = new Map([
-    ...payload.schedule.map((s) => /** @type {const} */ ([s.id, s.title])),
-    ...payload.materials.map((m) => /** @type {const} */ ([m.id, m.name])),
-  ]);
-  const seen = new Set(
-    invoice.lines.map(
-      (l) =>
-        names.get(
-          /** @type {string} */ (l.scheduleItemId ?? l.materialItemId),
-        ) ?? '',
-    ),
-  );
-  return [...seen].join(', ');
-}
 
 /**
  * @param {string} a
@@ -78,7 +56,7 @@ export function mountInvoices({ ctx, shell }) {
    */
   function buildTable(payload, today) {
     /** @param {Invoice} invoice */
-    const bills = (invoice) => billedNames(invoice, payload);
+    const bills = (invoice) => lineNames(invoice, payload);
     /** @param {Invoice} invoice */
     const owed = (invoice) => balance(invoice).owedCents;
     const sum = payload.invoices.reduce((s, i) => s + invoiceTotal(i), 0);

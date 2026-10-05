@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import { billedNames, mountInvoices } from '../../../src/app/invoices.js';
+import { mountInvoices } from '../../../src/app/invoices.js';
+import { lineNames } from '../../../src/app/lineList.js';
 import { mountShell } from '../../../src/app/shell.js';
 import { createPrefs, memoryStorage } from '../../../src/storage/prefs.js';
 import {
@@ -78,10 +79,10 @@ const seed = {
   ],
 };
 
-test('billedNames lists each billed row once in line order', () => {
+test('lineNames lists each billed row once in line order', () => {
   const payload = /** @type {any} */ (seed);
-  assert.equal(billedNames(seed.invoices[0], payload), 'Demo, Vanity');
-  assert.equal(billedNames(seed.invoices[1], payload), '');
+  assert.equal(lineNames(seed.invoices[0], payload), 'Demo, Vanity');
+  assert.equal(lineNames(seed.invoices[1], payload), '');
 });
 
 test('show does nothing without a project', () => {

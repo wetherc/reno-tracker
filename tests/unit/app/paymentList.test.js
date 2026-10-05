@@ -149,7 +149,7 @@ test('payments fill, add at the amount due, remove, and save', async () => {
 test('a line amount change moves the readout', async () => {
   const { dialog, form } = await editor();
   const amount = form
-    .querySelector('.invoice-line')
+    .querySelector('.line-item')
     .querySelector('[inputmode="decimal"]');
   amount.value = '20';
   amount.dispatchEvent({ type: 'input' });

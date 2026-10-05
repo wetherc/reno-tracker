@@ -11,6 +11,7 @@ import {
   getProjectVariances,
 } from '../repo/projects.js';
 import { insertPayments } from '../repo/invoices.js';
+import { insertLines, LINE_KINDS } from '../repo/lines.js';
 import { now } from '../repo/rows.js';
 import { checkImport, EXPORT_FORMAT } from '../../entities/importFile.js';
 import { statement } from '../repo/statements.js';
@@ -154,12 +155,17 @@ export function importProject(db, file) {
           markupBasisPoints, retainageCents)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
-    const line = statement(
-      db,
-      `INSERT INTO invoice_lines (id, invoiceId, position, scheduleItemId,
-         materialItemId, description, amountCents)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    );
+    /** @param {import('../../types.ts').NewLineItem[]} lines */
+    const mappedLines = (lines) =>
+      lines.map((l) => ({
+        ...l,
+        scheduleItemId:
+          l.scheduleItemId === null ? null : mapped(l.scheduleItemId),
+        materialItemId:
+          l.materialItemId === null
+            ? null
+            : /** @type {string} */ (materialIds.get(l.materialItemId)),
+      }));
     for (const inv of file.invoices) {
       const id = randomUUID();
       invoice.run(
@@ -173,19 +179,7 @@ export function importProject(db, file) {
         inv.retainageCents,
       );
       insertPayments(db, id, inv.payments);
-      inv.lines.forEach((l, i) =>
-        line.run(
-          randomUUID(),
-          id,
-          i,
-          l.scheduleItemId === null ? null : mapped(l.scheduleItemId),
-          l.materialItemId === null
-            ? null
-            : /** @type {string} */ (materialIds.get(l.materialItemId)),
-          l.description,
-          l.amountCents,
-        ),
-      );
+      insertLines(db, LINE_KINDS.invoice, id, mappedLines(inv.lines));
     }
     return getProjectPayload(db, project.id);
   });

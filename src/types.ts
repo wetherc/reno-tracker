@@ -86,15 +86,19 @@ export interface MaterialItem {
   sortOrder: number;
 }
 
-// One bill from one party. Each line bills one schedule item or one
-// material: exactly one of scheduleItemId and materialItemId is set.
-export interface InvoiceLine {
+// One line of an invoice or a change order. Each line names one
+// schedule item or one material: exactly one of scheduleItemId and
+// materialItemId is set. The amount is base cost, before markup.
+export interface LineItem {
   id: string;
   scheduleItemId: string | null;
   materialItemId: string | null;
   description: string;
   amountCents: Cents;
 }
+
+// Each line of an invoice bills the row it names.
+export type InvoiceLine = LineItem;
 
 // One payment against an invoice. A deposit is a payment dated before
 // the invoice's issue day.
@@ -172,10 +176,13 @@ export type MaterialItemInput = Partial<
   >
 >;
 
-export type InvoiceLineInput = Pick<InvoiceLine, 'amountCents'> &
-  Partial<
-    Pick<InvoiceLine, 'scheduleItemId' | 'materialItemId' | 'description'>
-  >;
+export type LineItemInput = Pick<LineItem, 'amountCents'> &
+  Partial<Pick<LineItem, 'scheduleItemId' | 'materialItemId' | 'description'>>;
+
+export type InvoiceLineInput = LineItemInput;
+
+// A checked line with every field filled, before it gets its id.
+export type NewLineItem = Omit<LineItem, 'id'>;
 
 export type PaymentInput = Pick<Payment, 'paidDate' | 'amountCents'> &
   Partial<Pick<Payment, 'note'>>;
@@ -202,7 +209,7 @@ export type NewInvoice = Omit<
   Invoice,
   'id' | 'projectId' | 'lines' | 'payments'
 > & {
-  lines: Omit<InvoiceLine, 'id'>[];
+  lines: NewLineItem[];
   payments: Omit<Payment, 'id'>[];
 };
 

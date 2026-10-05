@@ -33,14 +33,14 @@ test('an invoice bills a schedule item and a material and sets their actual cost
     await dialog.getByLabel('From').fill('Pinch Plumbing');
     await dialog.getByLabel('Issued').fill('2026-10-16');
     await dialog.getByLabel('Due').fill('2026-11-15');
-    const lines = dialog.locator('.invoice-line');
+    const lines = dialog.locator('.line-item');
     await lines.nth(0).getByLabel('Bills').selectOption('Tile the floor');
     await lines.nth(0).getByLabel('Amount').fill('1,200');
     await dialog.getByRole('button', { name: 'Add line' }).click();
     await lines.nth(1).getByLabel('Bills').selectOption('Vanity');
     await lines.nth(1).getByLabel('Amount').fill('875.50');
     await lines.nth(1).getByLabel('Note').fill('Delivered');
-    await expect(dialog.locator('.invoice-lines__total')).toHaveText(
+    await expect(dialog.locator('.line-list__total')).toHaveText(
       'Total $2,075.50',
     );
     await page.screenshot({

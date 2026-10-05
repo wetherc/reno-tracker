@@ -7,53 +7,21 @@
 // and only the costs panel adds it.
 import { lineMarkups } from '../entities/invoice.js';
 import { formatCents } from '../format/money.js';
+import { sumsByRow } from './lineSums.js';
 
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /** @typedef {import('../types.ts').Invoice} Invoice */
 
-/**
- * @typedef {object} Billing
- * @property {number} cents the sum of the lines
- * @property {number} markupCents the row's share of the markup on those lines
- * @property {number} lines how many lines bill the row
- * @property {Invoice} first the invoice with the earliest issue day
- */
+/** @typedef {import('./lineSums.js').RowSum<Invoice>} Billing */
 
 /**
- * The billing of every row that some line bills, by row id. Schedule
- * item and material ids are UUIDs, so one map serves both.
+ * The billing of every row that some invoice line bills, by row id.
+ * Each row takes its share of the markup on its lines, at each
+ * invoice's rate.
  * @param {Invoice[]} invoices
  * @returns {Map<string, Billing>}
  */
-export function billings(invoices) {
-  /** @type {Map<string, Billing>} */
-  const byRow = new Map();
-  const ordered = [...invoices].sort((a, b) =>
-    a.issuedDate.localeCompare(b.issuedDate),
-  );
-  for (const invoice of ordered) {
-    const markups = lineMarkups(invoice);
-    invoice.lines.forEach((line, i) => {
-      const id = /** @type {string} */ (
-        line.scheduleItemId ?? line.materialItemId
-      );
-      const seen = byRow.get(id);
-      if (seen) {
-        seen.cents += line.amountCents;
-        seen.markupCents += markups[i];
-        seen.lines += 1;
-      } else {
-        byRow.set(id, {
-          cents: line.amountCents,
-          markupCents: markups[i],
-          lines: 1,
-          first: invoice,
-        });
-      }
-    });
-  }
-  return byRow;
-}
+export const billings = (invoices) => sumsByRow(invoices, lineMarkups);
 
 /**
  * A copy of the payload where every billed row's actualCents is the

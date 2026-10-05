@@ -3,7 +3,7 @@ import { withTransaction } from '../db/open.js';
 import { badRequest, notFound } from '../errors.js';
 import { diffTrackedFields } from '../../entities/variance.js';
 import { getProject } from './projects.js';
-import { checkUnbilled } from './invoices.js';
+import { checkUnlinked } from './lines.js';
 import { now, setClause, toScheduleItem, toVariance } from './rows.js';
 import { statement } from './statements.js';
 
@@ -139,7 +139,7 @@ export function setScheduleItemComplete(db, id, complete) {
  * @param {string} id
  */
 export function deleteScheduleItem(db, id) {
-  checkUnbilled(db, 'scheduleItemId', id, getScheduleItem(db, id).title);
+  checkUnlinked(db, 'scheduleItemId', id, getScheduleItem(db, id).title);
   const result = statement(db, 'DELETE FROM schedule_items WHERE id = ?').run(
     id,
   );

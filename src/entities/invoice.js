@@ -5,6 +5,16 @@
 // error names its field as lines.<index>.<name>, and a payment error as
 // payments.<index>.<name>, so a form can mark the control on that row.
 import {
+  cleanLines,
+  docName,
+  inSentence,
+  isObject,
+  lineDefaults,
+  lineListErrors,
+  lineSubtotal,
+  pickRows,
+} from './lineItems.js';
+import {
   checkBasisPoints,
   checkCents,
   checkDate,
@@ -15,17 +25,15 @@ import {
   show,
 } from './validate.js';
 
+export { lineDefaults, MAX_LINES, pickLines } from './lineItems.js';
+
 /** @typedef {import('../types.ts').Invoice} Invoice */
 /** @typedef {import('../types.ts').InvoiceInput} InvoiceInput */
-/** @typedef {import('../types.ts').InvoiceLineInput} InvoiceLineInput */
 /** @typedef {import('../types.ts').NewInvoice} NewInvoice */
 /** @typedef {import('../types.ts').PaymentInput} PaymentInput */
 /** @typedef {import('./validate.js').FieldError} FieldError */
 /** @typedef {{ lines: { amountCents: number }[] }} Lined */
 /** @typedef {Lined & Pick<Invoice, 'markupBasisPoints'>} Priced */
-
-/** The most lines one invoice takes. */
-export const MAX_LINES = 100;
 
 /** The fields an invoice body may carry. */
 export const INVOICE_FIELDS = /** @type {const} */ ([
@@ -53,12 +61,6 @@ const CHECKS = {
   retainageCents: checkCents,
 };
 
-const LINE_CHECKS = {
-  description: (/** @type {string} */ f, /** @type {unknown} */ v) =>
-    checkText(f, v, { max: 200 }),
-  amountCents: checkCents,
-};
-
 const PAYMENT_CHECKS = {
   paidDate: checkDate,
   amountCents: (/** @type {string} */ f, /** @type {unknown} */ v) =>
@@ -66,52 +68,6 @@ const PAYMENT_CHECKS = {
   note: (/** @type {string} */ f, /** @type {unknown} */ v) =>
     checkText(f, v, { max: 200 }),
 };
-
-/**
- * @param {unknown} value
- * @returns {value is Record<string, unknown>}
- */
-const isObject = (value) =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/** @param {unknown} v */
-const isId = (v) => typeof v === 'string' && v.length > 0 && v.length <= 100;
-
-/**
- * The problems of one line. A line bills exactly one row, so one of
- * scheduleItemId and materialItemId is an id and the other is null or
- * absent.
- * @param {unknown} line
- * @param {number} index
- * @returns {FieldError[]}
- */
-function lineErrors(line, index) {
-  const at = `lines.${index}`;
-  const label = `line ${index + 1}`;
-  if (!isObject(line)) {
-    return [
-      { field: at, message: `${label} must be an object, got ${show(line)}` },
-    ];
-  }
-  /** @type {FieldError[]} */
-  const errors = [];
-  const links = [line.scheduleItemId, line.materialItemId].filter(
-    (v) => v !== null && v !== undefined,
-  );
-  if (links.length !== 1 || !links.every(isId)) {
-    errors.push({
-      field: `${at}.item`,
-      message: `${label} must bill one schedule item or one material`,
-    });
-  }
-  for (const e of fieldErrors(line, LINE_CHECKS, ['amountCents'])) {
-    errors.push({
-      field: `${at}.${e.field}`,
-      message: `${label}: ${e.message}`,
-    });
-  }
-  return errors;
-}
 
 /**
  * The problems of one payment.
@@ -169,20 +125,7 @@ export function invoiceErrors(input, { partial = false, current } = {}) {
     partial ? [] : ['party', 'issuedDate'],
   );
   if ('lines' in input || !partial) {
-    const { lines } = input;
-    if (!Array.isArray(lines) || lines.length === 0) {
-      errors.push({
-        field: 'lines',
-        message: 'lines must list at least one line',
-      });
-    } else if (lines.length > MAX_LINES) {
-      errors.push({
-        field: 'lines',
-        message: `lines must list at most ${MAX_LINES} lines, got ${lines.length}`,
-      });
-    } else {
-      lines.forEach((line, i) => errors.push(...lineErrors(line, i)));
-    }
+    errors.push(...lineListErrors(input.lines, 'bill'));
   }
   if ('payments' in input) errors.push(...paymentListErrors(input.payments));
   if (errors.some((e) => e.field === 'issuedDate' || e.field === 'dueDate')) {
@@ -210,20 +153,6 @@ export function invoiceErrors(input, { partial = false, current } = {}) {
  */
 export const validateInvoice = (input, options) =>
   first(invoiceErrors(input, options));
-
-/**
- * One checked line with every field filled.
- * @param {InvoiceLineInput} line
- * @returns {NewInvoice['lines'][number]}
- */
-export function lineDefaults(line) {
-  return {
-    scheduleItemId: line.scheduleItemId ?? null,
-    materialItemId: line.materialItemId ?? null,
-    description: line.description ?? '',
-    amountCents: line.amountCents,
-  };
-}
 
 /**
  * Checked payments with every field filled, oldest paid day first. Two
@@ -261,33 +190,6 @@ export function invoiceDefaults(input, markupBasisPoints = 0) {
 }
 
 /**
- * Keeps only the given keys of each row, so an unknown key cannot land
- * on a stored row.
- * @param {unknown} rows a checked list of objects
- * @param {string[]} keys
- * @returns {Record<string, unknown>[]}
- */
-function pickRows(rows, keys) {
-  return /** @type {Record<string, unknown>[]} */ (rows).map((row) =>
-    Object.fromEntries(keys.filter((k) => k in row).map((k) => [k, row[k]])),
-  );
-}
-
-/**
- * @param {unknown} lines a checked list of lines
- * @returns {InvoiceLineInput[]}
- */
-export const pickLines = (lines) =>
-  /** @type {InvoiceLineInput[]} */ (
-    pickRows(lines, [
-      'scheduleItemId',
-      'materialItemId',
-      'description',
-      'amountCents',
-    ])
-  );
-
-/**
  * @param {unknown} payments a checked list of payments
  * @returns {PaymentInput[]}
  */
@@ -306,7 +208,7 @@ export function cleanInvoiceInput(body) {
   const { lines, payments, ...fields } = /** @type {InvoiceInput} */ (body);
   return {
     ...fields,
-    ...(lines && { lines: pickLines(lines).map(lineDefaults) }),
+    ...(lines && { lines: cleanLines(lines) }),
     ...(payments && { payments: paymentDefaults(pickPayments(payments)) }),
   };
 }
@@ -318,9 +220,7 @@ export function cleanInvoiceInput(body) {
  * @returns {string}
  */
 export function invoiceName(invoice) {
-  return invoice.number
-    ? `Invoice ${invoice.number} from ${invoice.party}`
-    : `An invoice from ${invoice.party}`;
+  return docName('Invoice', invoice);
 }
 
 /**
@@ -330,8 +230,7 @@ export function invoiceName(invoice) {
  * @returns {string}
  */
 export function invoiceNameInSentence(invoice) {
-  const name = invoiceName(invoice);
-  return name.charAt(0).toLowerCase() + name.slice(1);
+  return inSentence(invoiceName(invoice));
 }
 
 /**
@@ -377,9 +276,7 @@ export function lineMarkups(invoice) {
  * @param {Lined} invoice
  * @returns {number} the sum of the lines, before markup
  */
-export function invoiceSubtotal(invoice) {
-  return invoice.lines.reduce((sum, line) => sum + line.amountCents, 0);
-}
+export const invoiceSubtotal = lineSubtotal;
 
 /**
  * @param {Priced} invoice

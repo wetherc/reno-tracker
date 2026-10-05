@@ -1,7 +1,7 @@
 // Material rows in a LocalDb. A linked schedule item must belong to the
 // same project.
 import { badRequest, notFound } from './errors.js';
-import { checkUnbilled } from './invoices.js';
+import { checkUnlinked } from './lines.js';
 import { getProject } from './projects.js';
 import { getScheduleItem, nextSortOrder } from './schedule.js';
 import { newId } from './store.js';
@@ -88,6 +88,6 @@ export function setMaterialItemComplete(db, id, complete) {
  * @param {string} id
  */
 export function deleteMaterialItem(db, id) {
-  checkUnbilled(db, 'materialItemId', id, getMaterialItem(db, id).name);
+  checkUnlinked(db, 'materialItemId', id, getMaterialItem(db, id).name);
   db.materials = db.materials.filter((m) => m.id !== id);
 }

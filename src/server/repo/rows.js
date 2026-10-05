@@ -117,9 +117,9 @@ export function toMaterialItem(r) {
 
 /**
  * @param {Row} r
- * @returns {import('../../types.ts').InvoiceLine}
+ * @returns {import('../../types.ts').LineItem}
  */
-export function toInvoiceLine(r) {
+export function toLineItem(r) {
   return {
     id: text(r.id),
     scheduleItemId: textOrNull(r.scheduleItemId),
@@ -144,7 +144,7 @@ export function toPayment(r) {
 
 /**
  * @param {Row} r
- * @param {import('../../types.ts').InvoiceLine[]} lines
+ * @param {import('../../types.ts').LineItem[]} lines
  * @param {import('../../types.ts').Payment[]} payments
  * @returns {import('../../types.ts').Invoice}
  */

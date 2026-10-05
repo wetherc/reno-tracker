@@ -10,23 +10,16 @@ import {
   invoiceNameInSentence as nameInSentence,
   invoiceMarkup,
   invoiceSubtotal,
-  MAX_LINES,
 } from '../entities/invoice.js';
 import { formatCents } from '../format/money.js';
 import { formatPercent } from '../format/percent.js';
-import { button, iconButton } from '../ui/buttons.js';
+import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
-import {
-  dateField,
-  form,
-  moneyField,
-  percentField,
-  selectField,
-  textField,
-} from '../ui/formFields.js';
+import { dateField, form, percentField, textField } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
 import { todayIso } from '../schedule/dates.js';
 import { discardGuard } from './discardGuard.js';
+import { LINE_LABELS, lineList } from './lineList.js';
 import { PAYMENT_LABELS, paymentList } from './paymentList.js';
 import { showProblems } from './formErrors.js';
 import { MARKUP_MESSAGE } from './projectDialog.js';
@@ -34,7 +27,6 @@ import { MARKUP_MESSAGE } from './projectDialog.js';
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').Invoice} Invoice */
 /** @typedef {import('../types.ts').InvoiceInput} InvoiceInput */
-/** @typedef {import('../types.ts').InvoiceLineInput} InvoiceLineInput */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 /** @typedef {import('../ui/formFields.js').FieldHandle} FieldHandle */
 
@@ -44,8 +36,7 @@ export const INVOICE_LABELS = {
   issuedDate: 'Issued',
   dueDate: 'Due',
   markupBasisPoints: 'Markup',
-  amountCents: 'Amount',
-  description: 'Note',
+  ...LINE_LABELS,
   ...PAYMENT_LABELS,
 };
 
@@ -61,35 +52,6 @@ export function totalText({ subtotalCents, markupCents, markupBasisPoints }) {
   return `Lines ${formatCents(subtotalCents)} + ${formatPercent(markupBasisPoints)} markup ${formatCents(markupCents)} = ${total.toLowerCase()}`;
 }
 
-/** The choice a new line starts on, which bills nothing yet. */
-export const NO_ROW = '';
-
-/**
- * The select value for the row a line bills: "schedule:<id>" or
- * "material:<id>".
- * @param {Pick<InvoiceLineInput, 'scheduleItemId' | 'materialItemId'>} line
- * @returns {string}
- */
-export function rowValue(line) {
-  if (line.scheduleItemId) return `schedule:${line.scheduleItemId}`;
-  if (line.materialItemId) return `material:${line.materialItemId}`;
-  return NO_ROW;
-}
-
-/**
- * The links a select value stands for.
- * @param {string} value
- * @returns {Pick<InvoiceLineInput, 'scheduleItemId' | 'materialItemId'>}
- */
-export function readRow(value) {
-  const [kind, ...rest] = value.split(':');
-  const id = rest.join(':');
-  return {
-    scheduleItemId: kind === 'schedule' ? id : null,
-    materialItemId: kind === 'material' ? id : null,
-  };
-}
-
 let counter = 0;
 
 /**
@@ -101,12 +63,6 @@ export function openInvoiceEditor({ ctx, invoice }) {
   const editing = invoice !== undefined;
   const payload = /** @type {ProjectPayload} */ (ctx.payload);
   const projectId = payload.project.id;
-  const schedule = [...payload.schedule].sort((a, b) =>
-    a.startDate.localeCompare(b.startDate),
-  );
-  const materials = [...payload.materials].sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
 
   const number = textField({
     id: `${prefix}-number`,
@@ -141,124 +97,29 @@ export function openInvoiceEditor({ ctx, invoice }) {
       invoice?.markupBasisPoints ?? payload.project.markupBasisPoints,
     onInput: () => showTotal(),
   });
-  markup.el.classList.add('invoice-lines__markup');
+  markup.el.classList.add('invoice-markup');
 
-  /**
-   * @typedef {{
-   *   el: HTMLDivElement,
-   *   title: HTMLHeadingElement,
-   *   row: FieldHandle,
-   *   amount: ReturnType<typeof moneyField>,
-   *   note: FieldHandle,
-   *   remove: HTMLButtonElement,
-   * }} LineEditor
-   */
-  /** @type {LineEditor[]} */
-  const lines = [];
-  const list = document.createElement('div');
-  list.className = 'invoice-lines__list';
   const total = document.createElement('p');
-  total.className = 'invoice-lines__total';
+  total.className = 'line-list__total';
   total.setAttribute('aria-live', 'polite');
-  const addLine = button({
-    label: 'Add line',
-    icon: 'plus',
-    onClick: () => {
-      const line = lineEditor({ amountCents: 0 });
-      line.row.input.focus();
-    },
-  });
 
-  /**
-   * @param {InvoiceLineInput} value
-   * @returns {LineEditor}
-   */
-  function lineEditor(value) {
-    const n = ++counter;
-    const el = document.createElement('div');
-    el.className = 'invoice-line';
-    const title = document.createElement('h3');
-    title.className = 'invoice-line__title section-label';
-    const row = selectField({
-      id: `${prefix}-line-${n}-row`,
-      label: 'Bills',
-      value: NO_ROW,
-      options: [{ value: NO_ROW, label: 'Pick an item or a material' }],
-    });
-    row.el.classList.add('invoice-line__row');
-    for (const [label, choices] of /** @type {const} */ ([
-      ['Schedule', schedule.map((s) => [`schedule:${s.id}`, s.title])],
-      ['Materials', materials.map((m) => [`material:${m.id}`, m.name])],
-    ])) {
-      if (choices.length === 0) continue;
-      const group = document.createElement('optgroup');
-      group.label = label;
-      for (const [v, text] of choices) {
-        const option = document.createElement('option');
-        option.value = v;
-        option.append(text);
-        group.append(option);
-      }
-      row.input.append(group);
-    }
-    row.input.value = rowValue(value);
-    const amount = moneyField({
-      id: `${prefix}-line-${n}-amount`,
-      label: INVOICE_LABELS.amountCents,
-      cents: value.amountCents,
-      onInput: showTotal,
-    });
-    const note = textField({
-      id: `${prefix}-line-${n}-note`,
-      label: INVOICE_LABELS.description,
-      value: value.description ?? '',
-      placeholder: 'Optional',
-    });
-    note.el.classList.add('invoice-line__note');
-    const remove = iconButton({
-      icon: 'trash',
-      label: 'Remove line',
-      onClick: () => {
-        lines.splice(lines.indexOf(line), 1);
-        el.remove();
-        renumber();
-        addLine.focus();
-      },
-    });
-    remove.classList.add('invoice-line__remove');
-    el.append(title, remove, row.el, amount.el, note.el);
-    /** @type {LineEditor} */
-    const line = { el, title, row, amount, note, remove };
-    lines.push(line);
-    list.append(el);
-    renumber();
-    return line;
-  }
-
-  // Each line names its place, the last line cannot be removed, and Add
-  // line stops at the most lines an invoice takes.
-  function renumber() {
-    lines.forEach((line, i) => {
-      line.title.textContent = `Line ${i + 1}`;
-      line.remove.setAttribute('aria-label', `Remove line ${i + 1}`);
-      line.remove.title = `Remove line ${i + 1}`;
-      line.remove.disabled = lines.length === 1;
-    });
-    addLine.disabled = lines.length >= MAX_LINES;
-    showTotal();
-  }
+  /** @type {ReturnType<typeof lineList> | undefined} */
+  let lines;
 
   /** The lines and rate as typed, with junk read as zero. */
   const typed = () => ({
     markupBasisPoints: markup.basisPoints() ?? 0,
-    lines: lines.map((l) => ({ amountCents: l.amount.cents() ?? 0 })),
+    lines: lines?.amounts() ?? [],
   });
   const linesTotal = () => {
     const bill = typed();
     return invoiceSubtotal(bill) + invoiceMarkup(bill);
   };
 
+  // The line list calls this as it builds its first lines, before the
+  // payments exist.
   function showTotal() {
+    if (!lines) return;
     const bill = typed();
     total.textContent = totalText({
       subtotalCents: invoiceSubtotal(bill),
@@ -269,18 +130,15 @@ export function openInvoiceEditor({ ctx, invoice }) {
   }
 
   const payments = paymentList({ prefix, invoice, total: linesTotal });
-
-  for (const line of invoice?.lines ?? [{ amountCents: 0 }]) lineEditor(line);
-
-  const linesSet = document.createElement('fieldset');
-  linesSet.className = 'invoice-lines form__wide';
-  const legend = document.createElement('legend');
-  legend.className = 'card__title';
-  legend.textContent = 'Lines';
-  const footer = document.createElement('div');
-  footer.className = 'invoice-lines__footer';
-  footer.append(addLine, markup.el, total);
-  linesSet.append(legend, list, footer);
+  lines = lineList({
+    prefix,
+    payload,
+    lines: invoice?.lines,
+    rowLabel: 'Bills',
+    onChange: showTotal,
+  });
+  showTotal();
+  const linesSet = lines.fieldset(markup.el, total);
 
   const formEl = form({
     ariaLabel: editing ? 'Edit invoice' : 'New invoice',
@@ -297,15 +155,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
     payments.el,
   );
 
-  const lineText = () =>
-    JSON.stringify(
-      lines.map((l) => [
-        l.row.input.value,
-        l.amount.input.value,
-        l.note.input.value,
-      ]),
-    );
-  const initialLines = lineText();
+  const initialLines = lines.text();
   const initialPayments = payments.text();
 
   const save = button({
@@ -336,7 +186,8 @@ export function openInvoiceEditor({ ctx, invoice }) {
     wide: true,
     beforeClose: discardGuard(
       { ...head, markup },
-      () => lineText() !== initialLines || payments.text() !== initialPayments,
+      () =>
+        lines?.text() !== initialLines || payments.text() !== initialPayments,
     ),
     onClose: () => {
       unsubscribe();
@@ -356,12 +207,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
   /** @returns {Record<string, FieldHandle>} every field in form order */
   function allFields() {
     /** @type {Record<string, FieldHandle>} */
-    const fields = { ...head };
-    lines.forEach((line, i) => {
-      fields[`lines.${i}.item`] = line.row;
-      fields[`lines.${i}.amountCents`] = line.amount;
-      fields[`lines.${i}.description`] = line.note;
-    });
+    const fields = { ...head, ...lines?.fields() };
     fields.markupBasisPoints = markup;
     return { ...fields, ...payments.fields() };
   }
@@ -376,20 +222,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
       issuedDate: issuedDate.input.value,
       dueDate: dueDate.input.value || null,
       markupBasisPoints: markup.basisPoints() ?? 0,
-      lines: lines.map((line, i) => {
-        const cents = line.amount.cents();
-        if (cents === null) {
-          problems.push({
-            field: `lines.${i}.amountCents`,
-            message: `Line ${i + 1}: Amount must be dollars and cents, like 1,250.00`,
-          });
-        }
-        return {
-          ...readRow(line.row.input.value),
-          amountCents: cents ?? 0,
-          description: line.note.input.value.trim(),
-        };
-      }),
+      lines: /** @type {ReturnType<typeof lineList>} */ (lines).read(problems),
       ...payments.read(problems),
     };
     if (markup.basisPoints() === null) {

@@ -19,7 +19,13 @@ import { materialItemDefaults, validateMaterialItem } from './materialItem.js';
 import { PROJECT_FIELDS, projectDefaults, validateProject } from './project.js';
 import { checkBoolean, checkText, checkTimestamp, show } from './validate.js';
 import { findCycle } from '../schedule/graph.js';
-import { checkInvoices } from './importInvoices.js';
+import { checkDocs } from './importDocs.js';
+import {
+  cleanInvoiceInput,
+  INVOICE_FIELDS,
+  invoiceDefaults,
+  validateInvoice,
+} from './invoice.js';
 
 /** @typedef {import('./validate.js').FieldError} FieldError */
 /** @typedef {import('../types.ts').ImportRows} ImportRows */
@@ -59,6 +65,15 @@ const MATERIAL_FIELDS = [
   'markupBasisPoints',
   'expectedDate',
 ];
+
+/** @type {import('./importDocs.js').DocKind<ImportRows['invoices'][number]>} */
+const INVOICES = {
+  list: 'invoices',
+  fields: INVOICE_FIELDS,
+  validate: validateInvoice,
+  defaults: (fields) => invoiceDefaults(cleanInvoiceInput(fields)),
+  verb: 'bills',
+};
 
 /**
  * @param {unknown} value
@@ -278,11 +293,8 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
     };
   });
 
-  const invoices = checkInvoices(
-    body.invoices,
-    { items: new Set(titles.keys()), materials: materialIds },
-    fail,
-  );
+  const known = { items: new Set(titles.keys()), materials: materialIds };
+  const invoices = checkDocs(INVOICES, body.invoices, known, fail);
 
   return {
     project,

@@ -3,10 +3,9 @@ import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
 import {
   openInvoiceEditor,
-  readRow,
-  rowValue,
   totalText,
 } from '../../../src/app/invoiceEditor.js';
+import { readRow, rowValue } from '../../../src/app/lineList.js';
 import { MAX_LINES } from '../../../src/entities/invoice.js';
 import { todayIso } from '../../../src/schedule/dates.js';
 import {
@@ -30,7 +29,7 @@ const shownErrors = (form) =>
     .map((/** @type {any} */ e) => e.textContent);
 
 /** @param {any} form */
-const lineEls = (form) => form.querySelectorAll('.invoice-line');
+const lineEls = (form) => form.querySelectorAll('.line-item');
 
 /** @param {any} lineEl */
 const parts = (lineEl) => ({
@@ -43,7 +42,7 @@ const parts = (lineEl) => ({
 
 /** @param {any} dialog */
 const addLineButton = (dialog) =>
-  $(dialog.el).querySelector('.invoice-lines__footer').children[0];
+  $(dialog.el).querySelector('.line-list__footer').children[0];
 
 async function project() {
   const fx = setupSchedule({
@@ -105,7 +104,7 @@ test('a new invoice starts with one line and groups the rows it can bill', async
     ],
   );
   assert.equal(
-    form.querySelector('.invoice-lines__total').textContent,
+    form.querySelector('.line-list__total').textContent,
     'Total $0.00',
   );
   dialog.close();
@@ -150,7 +149,7 @@ test('lines add, total, remove, and save as one invoice', async () => {
   second.amount.value = 'lots';
   second.note.value = ' Bags ';
   second.amount.dispatchEvent({ type: 'input' });
-  const total = form.querySelector('.invoice-lines__total');
+  const total = form.querySelector('.line-list__total');
   assert.equal(total.textContent, 'Total $1,200.00');
 
   third.remove.click();
@@ -260,7 +259,7 @@ test('editing fills the lines, patches, and closes when the invoice is gone', as
     ],
   );
   assert.equal(
-    form.querySelector('.invoice-lines__total').textContent,
+    form.querySelector('.line-list__total').textContent,
     'Total $52.50',
   );
   assert.equal(el.children[2].children[2].textContent, 'Save');
@@ -360,10 +359,8 @@ test('a new invoice starts at the project markup and saves the typed rate', asyn
   await fx.ctx.openProject('p1');
   const dialog = openInvoiceEditor({ ctx: fx.ctx });
   const form = $(dialog.el).querySelector('form');
-  const markup = form
-    .querySelector('.invoice-lines__markup')
-    .querySelector('input');
-  const total = form.querySelector('.invoice-lines__total');
+  const markup = form.querySelector('.invoice-markup').querySelector('input');
+  const total = form.querySelector('.line-list__total');
   assert.equal(markup.value, '15');
   form.querySelectorAll('[type="text"]')[1].value = 'Pinch';
   const line = parts(lineEls(form)[0]);
@@ -414,7 +411,7 @@ test('an invoice opens on its own rate, not the project rate', async () => {
   });
   const form = $(dialog.el).querySelector('form');
   assert.equal(
-    form.querySelector('.invoice-lines__markup').querySelector('input').value,
+    form.querySelector('.invoice-markup').querySelector('input').value,
     '5',
   );
   assert.match(
