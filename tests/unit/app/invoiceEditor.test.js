@@ -34,6 +34,7 @@ const parts = (lineEl) => ({
   remove: lineEl.children[1],
   row: lineEl.querySelector('select'),
   amount: lineEl.querySelector('[inputmode="decimal"]'),
+  rate: lineEl.querySelectorAll('[inputmode="decimal"]')[1],
   note: lineEl.querySelectorAll('[type="text"]').at(-1),
 });
 
@@ -173,12 +174,14 @@ test('lines add, total, remove, and save as one invoice', async () => {
       scheduleItemId: 'a',
       materialItemId: null,
       amountCents: 120000,
+      markupBasisPoints: null,
       description: '',
     },
     {
       scheduleItemId: null,
       materialItemId: 'm1',
       amountCents: 3050,
+      markupBasisPoints: null,
       description: 'Bags',
     },
   ]);
@@ -336,18 +339,18 @@ test('a changed line asks before the editor closes', async () => {
   assert.equal(again.el.open, false);
 });
 
-test('totalText names the markup only when the rate is above zero', () => {
+test('totalText names the markup when there is one, and its rate when every line shares it', () => {
   assert.equal(
-    totalText({ subtotalCents: 100, markupCents: 0, markupBasisPoints: 0 }),
+    totalText({ subtotalCents: 100, markupCents: 0, rate: 0 }),
     'Total $1.00',
   );
   assert.equal(
-    totalText({
-      subtotalCents: 10_000,
-      markupCents: 1_250,
-      markupBasisPoints: 1_250,
-    }),
+    totalText({ subtotalCents: 10_000, markupCents: 1_250, rate: 1_250 }),
     'Lines $100.00 + 12.5% markup $12.50 = total $112.50',
+  );
+  assert.equal(
+    totalText({ subtotalCents: 10_000, markupCents: 1_700, rate: null }),
+    'Lines $100.00 + markup $17.00 = total $117.00',
   );
 });
 
@@ -387,6 +390,73 @@ test('a new invoice starts at the project markup and saves the typed rate', asyn
   assert.equal(fx.invoices()[0].markupBasisPoints, 1000);
 });
 
+test('a line rate overrides the invoice rate, and a blank one shows it', async () => {
+  const fx = setupSchedule({
+    schedule: [itemOf('a', { title: 'Demo' })],
+    materials: [materialOf('m1')],
+    markupBasisPoints: 1000,
+  });
+  await fx.ctx.openProject('p1');
+  const dialog = openInvoiceEditor({ ctx: fx.ctx });
+  const form = $(dialog.el).querySelector('form');
+  const markup = form
+    .querySelector('.line-list__markup')
+    .querySelector('input');
+  const total = form.querySelector('.line-list__total');
+  form.querySelectorAll('[type="text"]')[1].value = 'Pinch';
+  const first = parts(lineEls(form)[0]);
+  first.row.value = 'schedule:a';
+  first.amount.value = '100';
+  addLineButton(dialog).click();
+  const second = parts(lineEls(form)[1]);
+  second.row.value = 'material:m1';
+  second.amount.value = '100';
+  second.amount.dispatchEvent({ type: 'input' });
+  assert.equal(first.rate.value, '');
+  assert.equal(first.rate.placeholder, '10');
+  const hint = form.querySelector(
+    `#${first.rate.getAttribute('aria-describedby')}`,
+  );
+  assert.equal(hint.textContent, 'Blank takes the invoice rate, 10%');
+  assert.equal(
+    total.textContent,
+    'Lines $200.00 + 10% markup $20.00 = total $220.00',
+  );
+
+  second.rate.value = '25';
+  second.rate.dispatchEvent({ type: 'input' });
+  assert.equal(
+    total.textContent,
+    'Lines $200.00 + markup $35.00 = total $235.00',
+  );
+  markup.value = '20';
+  markup.dispatchEvent({ type: 'input' });
+  assert.equal(first.rate.placeholder, '20');
+  assert.equal(hint.textContent, 'Blank takes the invoice rate, 20%');
+  assert.equal(
+    total.textContent,
+    'Lines $200.00 + markup $45.00 = total $245.00',
+  );
+
+  second.rate.value = 'lots';
+  second.rate.dispatchEvent({ type: 'input' });
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.deepEqual(shownErrors(form), [
+    'Line 2: Markup must be a percent from 0 to 100, like 15 or 12.5',
+  ]);
+  assert.equal(dom.activeElement, second.rate);
+  second.rate.value = '25';
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  const [made] = fx.invoices();
+  assert.equal(made.markupBasisPoints, 2000);
+  assert.deepEqual(
+    made.lines.map((l) => l.markupBasisPoints),
+    [null, 2500],
+  );
+});
+
 test('an invoice opens on its own rate, not the project rate', async () => {
   const fx = setupSchedule({
     schedule: [itemOf('a')],
@@ -401,6 +471,14 @@ test('an invoice opens on its own rate, not the project rate', async () => {
             description: '',
             amountCents: 2_000,
             markupBasisPoints: null,
+          },
+          {
+            id: 'm',
+            scheduleItemId: 'a',
+            materialItemId: null,
+            description: '',
+            amountCents: 1_000,
+            markupBasisPoints: 3000,
           },
         ],
       }),
@@ -417,9 +495,13 @@ test('an invoice opens on its own rate, not the project rate', async () => {
     form.querySelector('.line-list__markup').querySelector('input').value,
     '5',
   );
+  const [plain, own] = lineEls(form).map(parts);
+  assert.equal(plain.rate.value, '');
+  assert.equal(plain.rate.placeholder, '5');
+  assert.equal(own.rate.value, '30');
   assert.match(
     form.querySelector('.payment-list__paid').textContent,
-    /of \$21\.00/,
+    /of \$34\.00/,
   );
   dialog.close();
 });

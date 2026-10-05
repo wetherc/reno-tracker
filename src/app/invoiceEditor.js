@@ -1,8 +1,10 @@
 // The editor for one invoice. The number, the party, and the two days
 // sit at the top. Under them, each line picks the schedule item or
-// material it bills, an amount, and an optional note. The markup rate
-// starts at the project rate. A running total follows the amounts and
-// the rate as they are typed. The payments and the retainage come last.
+// material it bills, an amount, a markup rate, and an optional note.
+// The invoice rate starts at the project rate, and a line with a blank
+// rate takes the invoice rate. A running total follows the amounts and
+// the rates as they are typed. The payments and the retainage come
+// last.
 import { ApiError } from '../api/errors.js';
 import {
   invoiceErrors,
@@ -11,6 +13,7 @@ import {
   invoiceMarkup,
   invoiceSubtotal,
 } from '../entities/invoice.js';
+import { sharedRate } from '../entities/lineItems.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
 import { dateField, form, percentField, textField } from '../ui/formFields.js';
@@ -33,7 +36,6 @@ export const INVOICE_LABELS = {
   party: 'From',
   issuedDate: 'Issued',
   dueDate: 'Due',
-  markupBasisPoints: 'Markup',
   ...LINE_LABELS,
   ...PAYMENT_LABELS,
 };
@@ -76,11 +78,12 @@ export function openInvoiceEditor({ ctx, invoice }) {
     value: invoice?.dueDate ?? '',
   });
   const head = { number, party, issuedDate, dueDate };
+  const startRate =
+    invoice?.markupBasisPoints ?? payload.project.markupBasisPoints;
   const markup = percentField({
     id: `${prefix}-markup`,
-    label: 'Markup (%)',
-    basisPoints:
-      invoice?.markupBasisPoints ?? payload.project.markupBasisPoints,
+    label: 'Invoice markup (%)',
+    basisPoints: startRate,
     onInput: () => showTotal(),
   });
   markup.el.classList.add('line-list__markup');
@@ -107,10 +110,11 @@ export function openInvoiceEditor({ ctx, invoice }) {
   function showTotal() {
     if (!lines) return;
     const bill = typed();
+    lines.setDocRate(bill.markupBasisPoints);
     total.textContent = totalText({
       subtotalCents: invoiceSubtotal(bill),
       markupCents: invoiceMarkup(bill),
-      markupBasisPoints: bill.markupBasisPoints,
+      rate: sharedRate(bill),
     });
     payments.update();
   }
@@ -121,6 +125,8 @@ export function openInvoiceEditor({ ctx, invoice }) {
     payload,
     lines: invoice?.lines,
     rowLabel: 'Bills',
+    docName: 'invoice',
+    docRate: startRate,
     onChange: showTotal,
   });
   showTotal();

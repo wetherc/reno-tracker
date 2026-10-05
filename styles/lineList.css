@@ -19,13 +19,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  container-type: inline-size;
 }
 
 /* One line: its title and remove button on top, then the row it names
-   across the full width, then the amount beside the note. */
+   across the full width, then the amount, the markup rate, and the
+   note. */
 .line-item {
   display: grid;
-  grid-template-columns: minmax(7rem, 1fr) minmax(0, 2fr) auto;
+  grid-template-columns: minmax(7rem, 1fr) 6rem minmax(0, 2fr) auto;
   gap: var(--space-2) var(--space-3);
   align-items: end;
   padding: var(--space-3);
@@ -35,13 +37,13 @@
 }
 
 .line-item__title {
-  grid-column: 1 / 3;
+  grid-column: 1 / 4;
   align-self: center;
   margin: 0;
 }
 
 .line-item__remove {
-  grid-column: 3;
+  grid-column: 4;
   grid-row: 1;
   justify-self: end;
 }
@@ -51,7 +53,27 @@
 }
 
 .line-item__note {
-  grid-column: 2 / -1;
+  grid-column: 3 / -1;
+}
+
+/* A narrow line puts the amount beside the rate, and the note on a row
+   of its own under them. */
+@container (max-width: 32rem) {
+  .line-item {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+
+  .line-item__title {
+    grid-column: 1 / 3;
+  }
+
+  .line-item__remove {
+    grid-column: 3;
+  }
+
+  .line-item__note {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Add line on the left, then any field of the document, such as the
@@ -71,7 +93,7 @@
 }
 
 .line-list__markup {
-  flex: 0 0 7rem;
+  flex: 0 0 11rem;
 }
 
 .line-list__total {

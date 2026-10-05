@@ -23,8 +23,11 @@ static site on GitHub Pages, where it keeps its data in the browser.
   day, an optional due day, and one or more lines. Each line bills one
   schedule item or one material. Each invoice also has a markup rate,
   the project manager's margin, which starts at the rate set on the
-  project. Its total is the sum of the lines plus that rate, and the
-  editor shows both parts as the lines are typed. A billed row's actual
+  project. Each line can have a rate of its own, and a line with a
+  blank rate takes the invoice rate. The rate field on a blank line
+  shows the invoice rate as its placeholder. The total is the sum of
+  the lines plus the markup of each line at its rate, and the editor
+  shows both parts as the lines are typed. A billed row's actual
   cost is the sum of its lines, and its editor shows that sum read only. A row that no
   line bills keeps the actual price typed on it. A billed row cannot be
   deleted until its lines are gone. An invoice edit writes no row to the
@@ -40,9 +43,10 @@ static site on GitHub Pages, where it keeps its data in the browser.
   material editors keep the typed estimate in the field and name the
   change order part under it. Each change order has its own markup
   rate, which starts at the project rate, so a contractor's discount on
-  one change goes in as a lower rate. Its total and each line's share
-  of the markup follow that rate, and the row's own rate applies only to
-  the estimate typed on the row. On the costs panel the change lands on
+  one change goes in as a lower rate. A line can have a rate of its
+  own in the same way as an invoice line. Its total and each line's
+  share of the markup follow those rates, and the row's own rate
+  applies only to the estimate typed on the row. On the costs panel the change lands on
   the row's own day. A complete
   row with an actual price counts that price in Projected, so an
   approved change on it raises Committed only. A row that a change order
@@ -493,8 +497,9 @@ and the calendar weeks.
 
 `responsive.css` contains every layout media query, and the one breakpoint
 is `@media (max-width: 68rem)`. A component that reflows on its own width
-uses a container query, not a breakpoint. The calendar grid is the one
-example.
+uses a container query, not a breakpoint. The calendar grid, the costs
+panel, and the line list of the invoice and change order editors use
+one.
 
 A flex child that contains text needs `min-width: 0`, or long content
 refuses to shrink. That guard appears many times across the sheets, and a

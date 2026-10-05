@@ -44,7 +44,7 @@ test('an approved change order raises the estimates of the rows it adds to', asy
       'Total $425.00',
     );
     // The contractor prices this change at 10%, under any project rate.
-    await dialog.getByLabel('Markup (%)').fill('10');
+    await dialog.getByLabel('Change order markup (%)').fill('10');
     await expect(dialog.locator('.line-list__total')).toHaveText(
       'Lines $425.00 + 10% markup $42.50 = total $467.50',
     );

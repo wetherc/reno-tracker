@@ -1,12 +1,19 @@
 // The line list of the invoice and change order editors. Each line picks
-// the schedule item or material it names, an amount, and an optional
-// note. The last line cannot be removed, and Add line stops at the most
-// lines a document takes.
+// the schedule item or material it names, an amount, a markup rate, and
+// an optional note. A blank rate takes the rate of the document, and
+// its placeholder shows that rate. The last line cannot be removed, and
+// Add line stops at the most lines a document takes.
 import { MAX_LINES } from '../entities/lineItems.js';
 import { formatCents } from '../format/money.js';
-import { formatPercent } from '../format/percent.js';
+import { formatPercent, percentToInput } from '../format/percent.js';
 import { button, iconButton } from '../ui/buttons.js';
-import { moneyField, selectField, textField } from '../ui/formFields.js';
+import {
+  moneyField,
+  percentField,
+  selectField,
+  textField,
+} from '../ui/formFields.js';
+import { MARKUP_MESSAGE } from './projectDialog.js';
 
 /** @typedef {import('../types.ts').LineItemInput} LineItemInput */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
@@ -15,8 +22,12 @@ import { moneyField, selectField, textField } from '../ui/formFields.js';
 
 export const LINE_LABELS = {
   amountCents: 'Amount',
+  markupBasisPoints: 'Markup',
   description: 'Note',
 };
+
+/** The label of the rate field on each line. */
+export const LINE_MARKUP_LABEL = 'Markup (%)';
 
 /** The choice a new line starts on, which names nothing yet. */
 export const NO_ROW = '';
@@ -73,14 +84,15 @@ export function lineNames(doc, payload) {
 
 /**
  * The running total under the lines. With no markup it names the total
- * only.
- * @param {{ subtotalCents: number, markupCents: number, markupBasisPoints: number }} sums
+ * only. It names the rate when every line takes the same one.
+ * @param {{ subtotalCents: number, markupCents: number, rate: number | null }} sums rate is the one rate of every line, or null when lines differ
  * @returns {string}
  */
-export function totalText({ subtotalCents, markupCents, markupBasisPoints }) {
+export function totalText({ subtotalCents, markupCents, rate }) {
   const total = `Total ${formatCents(subtotalCents + markupCents)}`;
-  if (markupBasisPoints === 0) return total;
-  return `Lines ${formatCents(subtotalCents)} + ${formatPercent(markupBasisPoints)} markup ${formatCents(markupCents)} = ${total.toLowerCase()}`;
+  if (rate === 0) return total;
+  const markup = rate === null ? 'markup' : `${formatPercent(rate)} markup`;
+  return `Lines ${formatCents(subtotalCents)} + ${markup} ${formatCents(markupCents)} = ${total.toLowerCase()}`;
 }
 
 let counter = 0;
@@ -91,6 +103,8 @@ let counter = 0;
  *   title: HTMLHeadingElement,
  *   row: FieldHandle,
  *   amount: ReturnType<typeof moneyField>,
+ *   rate: ReturnType<typeof percentField>,
+ *   hint: HTMLSpanElement,
  *   note: FieldHandle,
  *   remove: HTMLButtonElement,
  * }} LineEditor
@@ -102,16 +116,21 @@ let counter = 0;
  *   payload: ProjectPayload,
  *   lines: LineItemInput[] | undefined,
  *   rowLabel: string,
+ *   docName: string,
+ *   docRate: number,
  *   onChange: () => void,
- * }} config lines are the stored lines, or undefined for one blank line; rowLabel names the select, such as "Bills"
+ * }} config lines are the stored lines, or undefined for one blank line; rowLabel names the select, such as "Bills"; docName names the document in the rate hint, such as "invoice"; docRate is the rate that a blank line rate takes
  */
 export function lineList({
   prefix,
   payload,
   lines: start,
   rowLabel,
+  docName,
+  docRate: firstRate,
   onChange,
 }) {
+  let docRate = firstRate;
   const schedule = [...payload.schedule].sort((a, b) =>
     a.startDate.localeCompare(b.startDate),
   );
@@ -183,6 +202,19 @@ export function lineList({
       placeholder: 'Optional',
     });
     note.el.classList.add('line-item__note');
+    const rate = percentField({
+      id: `${prefix}-line-${n}-markup`,
+      label: LINE_MARKUP_LABEL,
+      basisPoints: value.markupBasisPoints ?? null,
+      blankIsNull: true,
+      onInput: onChange,
+    });
+    rate.el.classList.add('line-item__markup');
+    const hint = document.createElement('span');
+    hint.className = 'sr-only';
+    hint.id = `${prefix}-line-${n}-markup-hint`;
+    rate.input.setAttribute('aria-describedby', hint.id);
+    rate.el.append(hint);
     const remove = iconButton({
       icon: 'trash',
       label: 'Remove line',
@@ -194,13 +226,24 @@ export function lineList({
       },
     });
     remove.classList.add('line-item__remove');
-    el.append(title, remove, row.el, amount.el, note.el);
+    el.append(title, remove, row.el, amount.el, rate.el, note.el);
     /** @type {LineEditor} */
-    const line = { el, title, row, amount, note, remove };
+    const line = { el, title, row, amount, rate, hint, note, remove };
+    showDocRate(line);
     lines.push(line);
     list.append(el);
     renumber();
     return line;
+  }
+
+  /**
+   * Shows the document rate as the placeholder of a line's rate field.
+   * @param {LineEditor} line
+   */
+  function showDocRate(line) {
+    /** @type {HTMLInputElement} */ (line.rate.input).placeholder =
+      percentToInput(docRate);
+    line.hint.textContent = `Blank takes the ${docName} rate, ${formatPercent(docRate)}`;
   }
 
   function renumber() {
@@ -235,8 +278,20 @@ export function lineList({
       set.append(legend, list, footer);
       return set;
     },
-    /** @returns {{ amountCents: number }[]} the amounts as typed, with junk read as zero */
-    amounts: () => lines.map((l) => ({ amountCents: l.amount.cents() ?? 0 })),
+    /**
+     * Sets the rate that a blank line rate takes.
+     * @param {number} basisPoints
+     */
+    setDocRate(basisPoints) {
+      docRate = basisPoints;
+      lines.forEach(showDocRate);
+    },
+    /** @returns {{ amountCents: number, markupBasisPoints: number | null }[]} the amounts and rates as typed, with a junk amount read as zero and a junk rate as blank */
+    amounts: () =>
+      lines.map((l) => ({
+        amountCents: l.amount.cents() ?? 0,
+        markupBasisPoints: l.rate.basisPoints(),
+      })),
     /** @returns {Record<string, FieldHandle>} every field by its error name, in form order */
     fields() {
       /** @type {Record<string, FieldHandle>} */
@@ -244,13 +299,14 @@ export function lineList({
       lines.forEach((line, i) => {
         fields[`lines.${i}.item`] = line.row;
         fields[`lines.${i}.amountCents`] = line.amount;
+        fields[`lines.${i}.markupBasisPoints`] = line.rate;
         fields[`lines.${i}.description`] = line.note;
       });
       return fields;
     },
     /**
-     * The lines as typed. An amount that does not parse adds a problem
-     * and reads as zero.
+     * The lines as typed. An amount or a rate that does not parse adds
+     * a problem, and the amount reads as zero.
      * @param {FieldError[]} problems
      * @returns {LineItemInput[]}
      */
@@ -263,9 +319,17 @@ export function lineList({
             message: `Line ${i + 1}: Amount must be dollars and cents, like 1,250.00`,
           });
         }
+        const rate = line.rate.basisPoints();
+        if (rate === null && line.rate.input.value.trim() !== '') {
+          problems.push({
+            field: `lines.${i}.markupBasisPoints`,
+            message: `Line ${i + 1}: ${MARKUP_MESSAGE}`,
+          });
+        }
         return {
           ...readRow(line.row.input.value),
           amountCents: cents ?? 0,
+          markupBasisPoints: rate,
           description: line.note.input.value.trim(),
         };
       });
@@ -276,6 +340,7 @@ export function lineList({
         lines.map((l) => [
           l.row.input.value,
           l.amount.input.value,
+          l.rate.input.value,
           l.note.input.value,
         ]),
       ),

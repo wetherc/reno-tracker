@@ -1,17 +1,18 @@
 // The editor for one change order. The number, the party, the issue
 // day, and the status sit at the top, then the reason. Under them, each
-// line picks the schedule item or material it adds to, an amount, and
-// an optional note. The markup rate starts at the project rate, and a
-// contractor's discount on the change goes in as a lower rate. A running
-// total follows the amounts and the rate. Only an approved change order
-// adds its lines to the estimates.
+// line picks the schedule item or material it adds to, an amount, a
+// markup rate, and an optional note. The change order rate starts at
+// the project rate, and a contractor's discount on the change goes in
+// as a lower rate. A line with a blank rate takes the change order
+// rate. A running total follows the amounts and the rates. Only an
+// approved change order adds its lines to the estimates.
 import { ApiError } from '../api/errors.js';
 import {
   changeOrderErrors,
   changeOrderName,
   changeOrderNameInSentence as nameInSentence,
 } from '../entities/changeOrder.js';
-import { docMarkup, lineSubtotal } from '../entities/lineItems.js';
+import { docMarkup, lineSubtotal, sharedRate } from '../entities/lineItems.js';
 import { todayIso } from '../schedule/dates.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
@@ -114,10 +115,12 @@ export function openChangeOrderEditor({ ctx, order }) {
   total.setAttribute('aria-live', 'polite');
   /** @type {ReturnType<typeof lineList> | undefined} */
   let lines;
+  const startRate =
+    order?.markupBasisPoints ?? payload.project.markupBasisPoints;
   const markup = percentField({
     id: `${prefix}-markup`,
-    label: 'Markup (%)',
-    basisPoints: order?.markupBasisPoints ?? payload.project.markupBasisPoints,
+    label: 'Change order markup (%)',
+    basisPoints: startRate,
     onInput: () => showTotal(),
   });
   markup.el.classList.add('line-list__markup');
@@ -128,10 +131,11 @@ export function openChangeOrderEditor({ ctx, order }) {
       markupBasisPoints: markup.basisPoints() ?? 0,
       lines: lines?.amounts() ?? [],
     };
+    lines?.setDocRate(doc.markupBasisPoints);
     total.textContent = totalText({
       subtotalCents: lineSubtotal(doc),
       markupCents: docMarkup(doc),
-      markupBasisPoints: doc.markupBasisPoints,
+      rate: sharedRate(doc),
     });
   }
   lines = lineList({
@@ -139,6 +143,8 @@ export function openChangeOrderEditor({ ctx, order }) {
     payload,
     lines: order?.lines,
     rowLabel: 'Adds to',
+    docName: 'change order',
+    docRate: startRate,
     onChange: showTotal,
   });
   showTotal();

@@ -202,6 +202,7 @@ test('a new change order starts pending, totals its lines, and saves', async () 
       scheduleItemId: 'a',
       materialItemId: null,
       amountCents: 120000,
+      markupBasisPoints: null,
       description: '',
     },
   ]);
@@ -325,9 +326,16 @@ test('the markup starts at the project rate, moves the total, and saves', async 
   assert.equal(rate.getAttribute('aria-invalid'), 'true');
   assert.deepEqual(fx.log, []);
   rate.value = '5';
+  const lineRate = line.querySelectorAll('[inputmode="decimal"]')[1];
+  assert.equal(lineRate.placeholder, '5');
+  lineRate.value = '0';
+  lineRate.dispatchEvent({ type: 'input' });
+  assert.equal(total.textContent, 'Total $200.00');
   form.dispatchEvent({ type: 'submit' });
   await tick();
-  assert.equal(fx.changeOrders()[0].markupBasisPoints, 500);
+  const [made] = fx.changeOrders();
+  assert.equal(made.markupBasisPoints, 500);
+  assert.equal(made.lines[0].markupBasisPoints, 0);
 });
 
 test('a change order with markup names it under its total', async () => {

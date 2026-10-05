@@ -201,3 +201,73 @@ test('payments and retainage set what an invoice still owes', async ({
     await dropProject(request, project.id);
   }
 });
+
+test('a line rate overrides the invoice rate in the editor and the table', async ({
+  page,
+  request,
+}) => {
+  const project = await seedProject(
+    request,
+    { name: 'Line rate bath', startDate: '2026-10-01' },
+    [
+      {
+        title: 'Tile the floor',
+        startDate: '2026-10-13',
+        endDate: '2026-10-15',
+      },
+    ],
+  );
+  await request.patch(`/api/projects/${project.id}`, {
+    data: { markupBasisPoints: 1000 },
+  });
+  await request.post(`/api/projects/${project.id}/materials`, {
+    data: { name: 'Vanity' },
+  });
+  try {
+    await openProject(page, 'Line rate bath');
+    await page.getByRole('button', { name: 'Invoices' }).click();
+    await page.getByRole('button', { name: 'Add invoice' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('From').fill('Pinch Plumbing');
+    await dialog.getByLabel('Issued').fill('2026-10-16');
+    const lines = dialog.locator('.line-item');
+    await lines.nth(0).getByLabel('Bills').selectOption('Tile the floor');
+    await lines.nth(0).getByLabel('Amount').fill('1,000');
+    await expect(lines.nth(0).getByLabel('Markup (%)')).toHaveAttribute(
+      'placeholder',
+      '10',
+    );
+    await dialog.getByRole('button', { name: 'Add line' }).click();
+    await lines.nth(1).getByLabel('Bills').selectOption('Vanity');
+    await lines.nth(1).getByLabel('Amount').fill('500');
+    await lines.nth(1).getByLabel('Markup (%)').fill('20');
+    await lines.nth(1).getByLabel('Note').fill('Delivered');
+    await expect(dialog.locator('.line-list__total')).toHaveText(
+      'Lines $1,500.00 + markup $200.00 = total $1,700.00',
+    );
+    await page.screenshot({
+      path: 'test-results/invoice-line-rate.png',
+      animations: 'disabled',
+    });
+    await dialog.locator('.line-list__footer').scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: 'test-results/invoice-line-rate-footer.png',
+      animations: 'disabled',
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await lines.nth(1).scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: 'test-results/invoice-line-rate-narrow.png',
+      animations: 'disabled',
+    });
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await dialog.getByRole('button', { name: 'Add invoice' }).click();
+    await expect(dialog).toBeHidden();
+    const table = page.getByRole('table', {
+      name: 'Invoices for Line rate bath',
+    });
+    await expect(table.locator('tbody tr')).toContainText('$1,700.00');
+  } finally {
+    await dropProject(request, project.id);
+  }
+});
