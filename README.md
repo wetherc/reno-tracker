@@ -38,8 +38,12 @@ static site on GitHub Pages, where it keeps its data in the browser.
   show each revised estimate with its change order part under it, and
   their variances, totals, and Blended column read it. The item and
   material editors keep the typed estimate in the field and name the
-  change order part under it. On the costs panel the change lands on
-  the row's own day, and the row's markup rate applies to it. A complete
+  change order part under it. Each change order has its own markup
+  rate, which starts at the project rate, so a contractor's discount on
+  one change goes in as a lower rate. Its total and each line's share
+  of the markup follow that rate, and the row's own rate applies only to
+  the estimate typed on the row. On the costs panel the change lands on
+  the row's own day. A complete
   row with an actual price counts that price in Projected, so an
   approved change on it raises Committed only. A row that a change order
   names cannot be deleted until its lines are gone. A change order edit
@@ -234,7 +238,8 @@ item editor fetches the rows of its item from
 write while it is open. Export still includes the whole log.
 
 `src/costs/changed.js` sums the lines of the approved change orders per
-row. `costEvents` adds that sum to the estimate of each row, and the
+row, and each row's share of their markup at each change order's
+rate. `costEvents` adds that sum to the estimate of each row, and the
 schedule and materials tables add it to the Estimate column. The rows
 of the payload keep their typed estimates, so an editor saves back the
 typed value and never the revised one.

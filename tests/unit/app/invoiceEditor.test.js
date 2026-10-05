@@ -1,11 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import {
-  openInvoiceEditor,
-  totalText,
-} from '../../../src/app/invoiceEditor.js';
-import { readRow, rowValue } from '../../../src/app/lineList.js';
+import { openInvoiceEditor } from '../../../src/app/invoiceEditor.js';
+import { readRow, rowValue, totalText } from '../../../src/app/lineList.js';
 import { MAX_LINES } from '../../../src/entities/invoice.js';
 import { todayIso } from '../../../src/schedule/dates.js';
 import {
@@ -359,7 +356,9 @@ test('a new invoice starts at the project markup and saves the typed rate', asyn
   await fx.ctx.openProject('p1');
   const dialog = openInvoiceEditor({ ctx: fx.ctx });
   const form = $(dialog.el).querySelector('form');
-  const markup = form.querySelector('.invoice-markup').querySelector('input');
+  const markup = form
+    .querySelector('.line-list__markup')
+    .querySelector('input');
   const total = form.querySelector('.line-list__total');
   assert.equal(markup.value, '15');
   form.querySelectorAll('[type="text"]')[1].value = 'Pinch';
@@ -411,7 +410,7 @@ test('an invoice opens on its own rate, not the project rate', async () => {
   });
   const form = $(dialog.el).querySelector('form');
   assert.equal(
-    form.querySelector('.invoice-markup').querySelector('input').value,
+    form.querySelector('.line-list__markup').querySelector('input').value,
     '5',
   );
   assert.match(

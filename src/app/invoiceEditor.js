@@ -11,15 +11,13 @@ import {
   invoiceMarkup,
   invoiceSubtotal,
 } from '../entities/invoice.js';
-import { formatCents } from '../format/money.js';
-import { formatPercent } from '../format/percent.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
 import { dateField, form, percentField, textField } from '../ui/formFields.js';
 import { modal } from '../ui/Modal.js';
 import { todayIso } from '../schedule/dates.js';
 import { discardGuard } from './discardGuard.js';
-import { LINE_LABELS, lineList } from './lineList.js';
+import { LINE_LABELS, lineList, totalText } from './lineList.js';
 import { PAYMENT_LABELS, paymentList } from './paymentList.js';
 import { showProblems } from './formErrors.js';
 import { MARKUP_MESSAGE } from './projectDialog.js';
@@ -39,18 +37,6 @@ export const INVOICE_LABELS = {
   ...LINE_LABELS,
   ...PAYMENT_LABELS,
 };
-
-/**
- * The running total under the lines. With no markup it names the total
- * only.
- * @param {{ subtotalCents: number, markupCents: number, markupBasisPoints: number }} sums
- * @returns {string}
- */
-export function totalText({ subtotalCents, markupCents, markupBasisPoints }) {
-  const total = `Total ${formatCents(subtotalCents + markupCents)}`;
-  if (markupBasisPoints === 0) return total;
-  return `Lines ${formatCents(subtotalCents)} + ${formatPercent(markupBasisPoints)} markup ${formatCents(markupCents)} = ${total.toLowerCase()}`;
-}
 
 let counter = 0;
 
@@ -97,7 +83,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
       invoice?.markupBasisPoints ?? payload.project.markupBasisPoints,
     onInput: () => showTotal(),
   });
-  markup.el.classList.add('invoice-markup');
+  markup.el.classList.add('line-list__markup');
 
   const total = document.createElement('p');
   total.className = 'line-list__total';

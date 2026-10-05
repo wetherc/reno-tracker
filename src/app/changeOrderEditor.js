@@ -1,22 +1,24 @@
 // The editor for one change order. The number, the party, the issue
 // day, and the status sit at the top, then the reason. Under them, each
 // line picks the schedule item or material it adds to, an amount, and
-// an optional note, and a running total follows the amounts. Only an
-// approved change order adds its lines to the estimates.
+// an optional note. The markup rate starts at the project rate, and a
+// contractor's discount on the change goes in as a lower rate. A running
+// total follows the amounts and the rate. Only an approved change order
+// adds its lines to the estimates.
 import { ApiError } from '../api/errors.js';
 import {
   changeOrderErrors,
   changeOrderName,
   changeOrderNameInSentence as nameInSentence,
-  changeOrderTotal,
 } from '../entities/changeOrder.js';
-import { formatCents } from '../format/money.js';
+import { docMarkup, lineSubtotal } from '../entities/lineItems.js';
 import { todayIso } from '../schedule/dates.js';
 import { button } from '../ui/buttons.js';
 import { confirmDialog } from '../ui/ConfirmDialog.js';
 import {
   dateField,
   form,
+  percentField,
   selectField,
   textArea,
   textField,
@@ -24,7 +26,8 @@ import {
 import { modal } from '../ui/Modal.js';
 import { discardGuard } from './discardGuard.js';
 import { readable, showProblems } from './formErrors.js';
-import { LINE_LABELS, lineList } from './lineList.js';
+import { LINE_LABELS, lineList, totalText } from './lineList.js';
+import { MARKUP_MESSAGE } from './projectDialog.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ChangeOrder} ChangeOrder */
@@ -37,6 +40,7 @@ export const CHANGE_ORDER_LABELS = {
   party: 'From',
   issuedDate: 'Dated',
   approved: 'Status',
+  markupBasisPoints: 'Markup',
   description: 'Reason',
 };
 
@@ -110,14 +114,26 @@ export function openChangeOrderEditor({ ctx, order }) {
   total.setAttribute('aria-live', 'polite');
   /** @type {ReturnType<typeof lineList> | undefined} */
   let lines;
-  // The editor has no rate field yet. It saves the rate it opened with.
-  const markupBasisPoints =
-    order?.markupBasisPoints ?? payload.project.markupBasisPoints;
-  const showTotal = () => {
-    total.textContent = `Total ${formatCents(
-      changeOrderTotal({ markupBasisPoints, lines: lines?.amounts() ?? [] }),
-    )}`;
-  };
+  const markup = percentField({
+    id: `${prefix}-markup`,
+    label: 'Markup (%)',
+    basisPoints: order?.markupBasisPoints ?? payload.project.markupBasisPoints,
+    onInput: () => showTotal(),
+  });
+  markup.el.classList.add('line-list__markup');
+  // The line list calls this as it builds its first lines, while lines
+  // is still unset.
+  function showTotal() {
+    const doc = {
+      markupBasisPoints: markup.basisPoints() ?? 0,
+      lines: lines?.amounts() ?? [],
+    };
+    total.textContent = totalText({
+      subtotalCents: lineSubtotal(doc),
+      markupCents: docMarkup(doc),
+      markupBasisPoints: doc.markupBasisPoints,
+    });
+  }
   lines = lineList({
     prefix,
     payload,
@@ -139,7 +155,7 @@ export function openChangeOrderEditor({ ctx, order }) {
     issuedDate.el,
     approved.el,
     description.el,
-    lines.fieldset(total),
+    lines.fieldset(markup.el, total),
   );
   const initialLines = lines.text();
 
@@ -169,7 +185,10 @@ export function openChangeOrderEditor({ ctx, order }) {
     body: [formEl],
     actions,
     wide: true,
-    beforeClose: discardGuard(head, () => lines?.text() !== initialLines),
+    beforeClose: discardGuard(
+      { ...head, markup },
+      () => lines?.text() !== initialLines,
+    ),
     onClose: () => {
       unsubscribe();
       dialog.el.remove();
@@ -186,7 +205,11 @@ export function openChangeOrderEditor({ ctx, order }) {
   });
 
   /** @returns {Record<string, FieldHandle>} every field in form order */
-  const allFields = () => ({ ...head, ...lines?.fields() });
+  const allFields = () => ({
+    ...head,
+    ...lines?.fields(),
+    markupBasisPoints: markup,
+  });
 
   /** @returns {Required<ChangeOrderInput> | null} */
   function readForm() {
@@ -197,10 +220,13 @@ export function openChangeOrderEditor({ ctx, order }) {
       party: party.input.value.trim(),
       issuedDate: issuedDate.input.value,
       approved: approved.input.value === STATUS.approved,
-      markupBasisPoints,
+      markupBasisPoints: markup.basisPoints() ?? 0,
       description: description.input.value.trim(),
       lines: /** @type {ReturnType<typeof lineList>} */ (lines).read(problems),
     };
+    if (markup.basisPoints() === null) {
+      problems.push({ field: 'markupBasisPoints', message: MARKUP_MESSAGE });
+    }
     problems.push(...changeOrderErrors(input));
     return showProblems(
       allFields(),

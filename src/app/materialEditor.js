@@ -126,8 +126,9 @@ export function openMaterialEditor({ ctx, item }) {
       complete: item?.complete ?? false,
       expected: materialExpected(
         { allowanceCents: allowance, estimatedCents: estimate },
-        change?.cents ?? 0,
+        0,
       ),
+      change,
       actualCents: typed,
       markupBasisPoints: rate,
       projectRate,

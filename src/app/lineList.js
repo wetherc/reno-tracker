@@ -3,6 +3,8 @@
 // note. The last line cannot be removed, and Add line stops at the most
 // lines a document takes.
 import { MAX_LINES } from '../entities/lineItems.js';
+import { formatCents } from '../format/money.js';
+import { formatPercent } from '../format/percent.js';
 import { button, iconButton } from '../ui/buttons.js';
 import { moneyField, selectField, textField } from '../ui/formFields.js';
 
@@ -67,6 +69,18 @@ export function lineNames(doc, payload) {
     ),
   );
   return [...seen].join(', ');
+}
+
+/**
+ * The running total under the lines. With no markup it names the total
+ * only.
+ * @param {{ subtotalCents: number, markupCents: number, markupBasisPoints: number }} sums
+ * @returns {string}
+ */
+export function totalText({ subtotalCents, markupCents, markupBasisPoints }) {
+  const total = `Total ${formatCents(subtotalCents + markupCents)}`;
+  if (markupBasisPoints === 0) return total;
+  return `Lines ${formatCents(subtotalCents)} + ${formatPercent(markupBasisPoints)} markup ${formatCents(markupCents)} = ${total.toLowerCase()}`;
 }
 
 let counter = 0;

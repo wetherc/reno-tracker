@@ -1,9 +1,5 @@
 /* Invoices table and the invoice editor. */
 
-.invoice-markup {
-  flex: 0 0 7rem;
-}
-
 /* The owed tiles over the table. They wrap to as many rows as the
    panel needs. */
 .invoice-owed {

@@ -43,6 +43,11 @@ test('an approved change order raises the estimates of the rows it adds to', asy
     await expect(dialog.locator('.line-list__total')).toHaveText(
       'Total $425.00',
     );
+    // The contractor prices this change at 10%, under any project rate.
+    await dialog.getByLabel('Markup (%)').fill('10');
+    await expect(dialog.locator('.line-list__total')).toHaveText(
+      'Lines $425.00 + 10% markup $42.50 = total $467.50',
+    );
     await page.screenshot({
       path: 'test-results/change-order-editor.png',
       animations: 'disabled',
@@ -60,7 +65,7 @@ test('an approved change order raises the estimates of the rows it adds to', asy
     await expect(row).toContainText('Tile the floor, Vanity');
     await expect(row).toContainText('Pending');
     await expect(page.locator('.change-orders__note')).toHaveText(
-      '1 pending change order adds $425.00 once approved. The total counts approved change orders only.',
+      '1 pending change order adds $467.50 once approved. The total counts approved change orders only.',
     );
 
     // A pending change order leaves the estimate as typed.
@@ -94,7 +99,9 @@ test('an approved change order raises the estimates of the rows it adds to', asy
       .click();
     await expect(dialog.getByLabel('Raw estimate')).toHaveValue('1000.00');
     await expect(
-      dialog.getByText('Plus $300.00 from 1 approved change order line'),
+      dialog.getByText(
+        'Plus $300.00 from 1 approved change order line, before $30.00 markup',
+      ),
     ).toBeVisible();
     await dialog.getByRole('button', { name: 'Delete' }).click();
     await expect(page.locator('.toast').last()).toContainText(
@@ -114,7 +121,8 @@ test('an approved change order raises the estimates of the rows it adds to', asy
     await expect(vanity).toContainText('$1,025.00+$125.00 change orders');
 
     await page.getByRole('button', { name: 'Costs' }).click();
-    await expect(page.locator('.costs')).toContainText('$2,325.00');
+    // 1000 + 900 typed, 425 of change orders, and 42.50 markup on them.
+    await expect(page.locator('.costs')).toContainText('$2,367.50');
     await page.screenshot({
       path: 'test-results/change-order-costs.png',
       animations: 'disabled',

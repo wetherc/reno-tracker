@@ -35,22 +35,25 @@ export function estimateCell(cents, changeCents) {
 }
 
 /**
- * @param {{ cents: number, lines: number }} change
+ * @param {{ cents: number, markupCents: number, lines: number }} change
  * @returns {string}
  */
-export function changeHintText({ cents, lines }) {
+export function changeHintText({ cents, markupCents, lines }) {
   const what =
     lines === 1
       ? '1 approved change order line'
       : `${lines} approved change order lines`;
-  return `Plus ${formatCents(cents)} from ${what}`;
+  const sum = `Plus ${formatCents(cents)} from ${what}`;
+  return markupCents === 0
+    ? sum
+    : `${sum}, before ${formatCents(markupCents)} markup`;
 }
 
 /**
  * Puts the hint under an estimate field when the row has approved
  * change order lines.
  * @param {FieldHandle} field
- * @param {{ cents: number, lines: number } | undefined} change
+ * @param {{ cents: number, markupCents: number, lines: number } | undefined} change
  */
 export function addChangeHint(field, change) {
   if (!change) return;

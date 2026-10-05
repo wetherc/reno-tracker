@@ -259,12 +259,13 @@ test('costEvents adds a row rate over the project rate on estimates and typed pr
   );
 });
 
-test('costEvents adds approved change order lines to the estimate at the row rate', () => {
+test('costEvents adds approved change order lines to the estimate at the change order rate', () => {
   const events = costEvents({
     ...payload,
     project: { ...payload.project, markupBasisPoints: 1000 },
     changeOrders: [
       changeOrderOf('c1', {
+        markupBasisPoints: 500,
         lines: [
           lineOf({ scheduleItemId: 'a' }, 2000),
           lineOf({ materialItemId: 'm3' }, 300),
@@ -277,10 +278,13 @@ test('costEvents adds approved change order lines to the estimate at the row rat
     ],
   });
   const byId = new Map(events.map((e) => [e.id, e]));
-  // 10000 typed plus 2000 approved, with 10% on the sum.
-  assert.equal(byId.get('a')?.expectedCents, 13200);
-  assert.equal(byId.get('a')?.expectedMarkupCents, 1200);
-  assert.equal(byId.get('m3')?.expectedCents, 1100);
+  // 10000 typed at the 10% project rate, plus 2000 approved at the 5%
+  // change order rate.
+  assert.equal(byId.get('a')?.expectedCents, 13100);
+  assert.equal(byId.get('a')?.expectedMarkupCents, 1100);
+  // The change order rounds its markup once: 115 on 2300, so the second
+  // line takes 15.
+  assert.equal(byId.get('m3')?.expectedCents, 1085);
   // A pending change order adds nothing.
   assert.equal(byId.get('b')?.expectedCents, 33000);
 });

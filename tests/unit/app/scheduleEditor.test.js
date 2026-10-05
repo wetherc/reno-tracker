@@ -394,6 +394,7 @@ test('an item keeps its typed estimate, names its change orders, and cannot be d
       changeOrderOf('c1', {
         number: '4',
         party: 'Wreckers',
+        markupBasisPoints: 1000,
         lines: [
           lineOf({ scheduleItemId: 'a' }, 2000),
           lineOf({ scheduleItemId: 'a' }, 500),
@@ -417,11 +418,11 @@ test('an item keeps its typed estimate, names its change orders, and cannot be d
   assert.equal(
     form.querySelector(`#${estimate.getAttribute('aria-describedby')}`)
       .textContent,
-    'Plus $25.00 from 2 approved change order lines',
+    'Plus $25.00 from 2 approved change order lines, before $2.50 markup',
   );
   assert.equal(
     form.querySelector('.editor__projection').textContent,
-    'Projected $125.00 raw + $0.00 margin = $125.00 blended',
+    'Projected $125.00 raw + $2.50 margin = $127.50 blended',
   );
   $(dialog.el).children[2].children[0].click();
   await tick();

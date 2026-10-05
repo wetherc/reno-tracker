@@ -1,11 +1,13 @@
 // The change orders section: every change order of the open project as
 // a table with a totals row, and an Add button in the panel header. The
 // party opens the editor. Each row names the schedule items and
-// materials its lines add to, its status, and its total. The totals row
+// materials its lines add to, its status, and its total with the
+// markup, and names the markup under the total. The totals row
 // sums the approved change orders only, because a pending one adds
 // nothing to the estimates, and a note under the table names the
 // pending sum.
 import { changeOrderTotal } from '../entities/changeOrder.js';
+import { docMarkup } from '../entities/lineItems.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { readSort, sortText } from '../storage/prefs.js';
@@ -13,6 +15,7 @@ import { bareButton, button } from '../ui/buttons.js';
 import { dataTable, tableScroll } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
 import { focusKey } from '../ui/focusKey.js';
+import { stackedCell } from '../ui/stackedCell.js';
 import { openChangeOrderEditor } from './changeOrderEditor.js';
 import { lineNames } from './lineList.js';
 
@@ -38,6 +41,20 @@ export function statusBadge(order) {
     : 'badge badge--neutral';
   el.textContent = order.approved ? 'Approved' : 'Pending';
   return el;
+}
+
+/**
+ * The total of a change order, with its markup under it when it has
+ * some.
+ * @param {ChangeOrder} order
+ * @returns {Node | string}
+ */
+export function totalCell(order) {
+  const total = formatCents(changeOrderTotal(order));
+  const markup = docMarkup(order);
+  return markup === 0
+    ? total
+    : stackedCell(total, `${formatCents(markup)} markup`);
 }
 
 /**
@@ -156,7 +173,7 @@ export function mountChangeOrders({ ctx, shell }) {
           label: 'Total',
           align: 'end',
           compare: (a, b) => changeOrderTotal(a) - changeOrderTotal(b),
-          cell: (order) => formatCents(changeOrderTotal(order)),
+          cell: totalCell,
         },
       ],
     });

@@ -19,6 +19,7 @@ import { stackedCell } from '../ui/stackedCell.js';
  * @property {number | null} markupBasisPoints the row's rate, or null for the project rate
  * @property {number} projectRate
  * @property {{ cents: number, markupCents: number }} [billing] the row's invoice lines
+ * @property {{ cents: number, markupCents: number }} [change] the row's approved change order lines
  */
 
 /**
@@ -34,7 +35,9 @@ export const isBlank = (field) => field.input.value.trim() === '';
  * @returns {{ cents: number, markupCents: number }}
  */
 export function rowProjection(row) {
-  return projected(rowPrices(row, row.expected, row.projectRate, row.billing));
+  return projected(
+    rowPrices(row, row.expected, row.projectRate, row.billing, row.change),
+  );
 }
 
 /**

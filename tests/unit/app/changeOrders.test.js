@@ -295,3 +295,52 @@ test('a changed line asks before the editor closes', async () => {
   await tick();
   assert.equal($(dialog.el).open, false);
 });
+
+test('the markup starts at the project rate, moves the total, and saves', async () => {
+  const fx = await setup({ schedule: [itemOf('a')], markupBasisPoints: 1500 });
+  const dialog = openChangeOrderEditor({ ctx: fx.ctx });
+  const form = $(dialog.el).querySelector('form');
+  const rate = form.querySelector('.line-list__markup').querySelector('input');
+  assert.equal(rate.value, '15');
+  const line = form.querySelector('.line-item');
+  line.querySelector('select').value = 'schedule:a';
+  const amount = line.querySelector('[inputmode="decimal"]');
+  amount.value = '200';
+  amount.dispatchEvent({ type: 'input' });
+  const total = form.querySelector('.line-list__total');
+  assert.equal(
+    total.textContent,
+    'Lines $200.00 + 15% markup $30.00 = total $230.00',
+  );
+  rate.value = '5';
+  rate.dispatchEvent({ type: 'input' });
+  assert.equal(
+    total.textContent,
+    'Lines $200.00 + 5% markup $10.00 = total $210.00',
+  );
+  form.querySelectorAll('[type="text"]')[1].value = 'Pinch';
+  rate.value = 'lots';
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(rate.getAttribute('aria-invalid'), 'true');
+  assert.deepEqual(fx.log, []);
+  rate.value = '5';
+  form.dispatchEvent({ type: 'submit' });
+  await tick();
+  assert.equal(fx.changeOrders()[0].markupBasisPoints, 500);
+});
+
+test('a change order with markup names it under its total', async () => {
+  const { shell } = await setup({
+    schedule: [itemOf('a', { title: 'Demo' })],
+    changeOrders: [
+      changeOrderOf('c1', {
+        markupBasisPoints: 1000,
+        lines: [lineOf({ scheduleItemId: 'a' }, 2000)],
+      }),
+    ],
+  });
+  const cells = rows(shell)[0].children;
+  assert.equal(cells[5].textContent, '$22.00$2.00 markup');
+  assert.match($(table(shell).children[3]).textContent, /\$22\.00/);
+});

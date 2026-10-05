@@ -70,6 +70,10 @@
   margin-inline-start: auto;
 }
 
+.line-list__markup {
+  flex: 0 0 7rem;
+}
+
 .line-list__total {
   display: flex;
   align-items: center;

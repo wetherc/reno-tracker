@@ -147,7 +147,8 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     if (typed === null && !isBlank(actualCents)) return null;
     return {
       complete: item?.complete ?? false,
-      expected: expected + (change?.cents ?? 0),
+      expected,
+      change,
       actualCents: typed,
       markupBasisPoints: rate,
       projectRate,

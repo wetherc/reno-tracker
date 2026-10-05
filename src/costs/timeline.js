@@ -15,10 +15,12 @@
 // that the row keeps. A billed row adds its share of the markup on its
 // invoices, at each invoice's rate. Every other price adds the row's
 // own rate, or the project rate when the row has none, so an estimate
-// compares with the budget the same way an invoice does.
+// compares with the budget the same way an invoice does. The change
+// order lines in an estimate add their share of the markup at each
+// change order's rate instead of the row's.
 import { markupOf } from '../entities/lineItems.js';
 import { addDays, startOfWeek } from '../schedule/dates.js';
-import { addedCents, approvedChanges } from './changed.js';
+import { approvedChanges } from './changed.js';
 import { billings } from './invoiced.js';
 
 /** @typedef {import('../types.ts').MaterialItem} MaterialItem */
@@ -80,14 +82,17 @@ export function landingDate(item, payload) {
  * The price fields of one row, with markup. The editors call this on
  * the values a person types, so their totals match the costs panel.
  * @param {{ complete: boolean, actualCents: number | null, markupBasisPoints: number | null }} row
- * @param {number} expected the base estimate
+ * @param {number} expected the base estimate, without change orders
  * @param {number} projectRate the rate of a row with none of its own
  * @param {{ cents: number, markupCents: number }} [billing] the row's invoice lines, if any
+ * @param {{ cents: number, markupCents: number }} [change] the row's approved change order lines, if any
  * @returns {RowPrices}
  */
-export function rowPrices(row, expected, projectRate, billing) {
+export function rowPrices(row, expected, projectRate, billing, change) {
   const rate = row.markupBasisPoints ?? projectRate;
-  const expectedMarkupCents = markupOf(expected, rate);
+  const changeCents = change?.cents ?? 0;
+  const expectedMarkupCents =
+    markupOf(expected, rate) + (change?.markupCents ?? 0);
   const base = billing ? billing.cents : row.actualCents;
   const billedMarkupCents = billing
     ? billing.markupCents
@@ -98,7 +103,7 @@ export function rowPrices(row, expected, projectRate, billing) {
     base === null ? null : base + /** @type {number} */ (billedMarkupCents);
   return {
     complete: row.complete,
-    expectedCents: expected + expectedMarkupCents,
+    expectedCents: expected + changeCents + expectedMarkupCents,
     expectedMarkupCents,
     actualCents: row.complete ? billedCents : null,
     billedCents,
@@ -115,8 +120,6 @@ export function rowPrices(row, expected, projectRate, billing) {
 export function costEvents(payload) {
   const byRow = billings(payload.invoices);
   const changes = approvedChanges(payload.changeOrders);
-  /** @param {string} id */
-  const added = (id) => addedCents(changes, id);
   /**
    * @param {{ id: string, complete: boolean, actualCents: number | null, markupBasisPoints: number | null }} row
    * @param {number} expected the base estimate
@@ -127,6 +130,7 @@ export function costEvents(payload) {
       expected,
       payload.project.markupBasisPoints,
       byRow.get(row.id),
+      changes.get(row.id),
     );
   /** @type {CostEvent[]} */
   const events = [];
@@ -136,7 +140,7 @@ export function costEvents(payload) {
       source: 'schedule',
       title: item.title,
       date: item.endDate,
-      ...prices(item, item.estimatedCents + added(item.id)),
+      ...prices(item, item.estimatedCents),
     });
   }
   for (const item of payload.materials) {
@@ -145,7 +149,7 @@ export function costEvents(payload) {
       source: 'material',
       title: item.name,
       date: landingDate(item, payload).date,
-      ...prices(item, materialExpected(item, added(item.id))),
+      ...prices(item, materialExpected(item, 0)),
     });
   }
   return events.sort((a, b) => a.date.localeCompare(b.date));
