@@ -272,7 +272,9 @@ file keeps the typed prices.
 
 Every write on the client goes through `ctx.write` in
 `src/app/context.js`, which toasts the failure text or the success
-sentence and then refetches.
+sentence and then refetches. When the refetch fails after a stored
+write, a second toast says so and the write still counts as done, so
+an editor closes and a second Save does not add a second row.
 
 Each refetch rebuilds the panel, so the control that had focus is
 replaced. Every control that a rebuild replaces carries a `data-focus`
