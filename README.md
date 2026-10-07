@@ -512,6 +512,14 @@ uses a container query, not a breakpoint. The calendar grid, the costs
 panel, and the line list of the invoice and change order editors use
 one.
 
+Under the breakpoint each invoice shows as a card, and the line items
+table of the costs panel does the same in a panel under 44rem. Each
+card is a grid, and CSS generated content puts a small label over each
+value. The column headers stay as visually hidden text. The other
+tables keep a sideways scroll on a phone. Under the breakpoint the cost
+charts also draw from a 480 unit model in place of 960, so their text
+keeps its size.
+
 A flex child that contains text needs `min-width: 0`, or long content
 refuses to shrink. That guard appears many times across the sheets, and a
 panel that overflows its column usually lacks it.
