@@ -145,8 +145,11 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     if (expected === null) return null;
     if (rate === null && !isBlank(markupBasisPoints)) return null;
     if (typed === null && !isBlank(actualCents)) return null;
+    // The Complete box saves at once, so the live item in the payload
+    // has the current value and the item from open time may not.
+    const live = ctx.payload?.schedule.find((s) => s.id === item?.id);
     return {
-      complete: item?.complete ?? false,
+      complete: (live ?? item)?.complete ?? false,
       expected,
       change,
       actualCents: typed,
@@ -276,6 +279,7 @@ export function openScheduleEditor({ ctx, item, tab = 'details' }) {
     notes?.update(payload.notes);
     links?.update(payload);
     if (tabStrip?.current === 'changes') changes?.load();
+    projection.update();
     const fresh = payload.schedule.find((s) => s.id === item.id);
     if (fresh)
       keepFocus(

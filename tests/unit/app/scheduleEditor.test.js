@@ -141,6 +141,27 @@ test('the markup field sets a rate of the row and the line under the form follow
   assert.equal(fx.items()[0].markupBasisPoints, 2500);
 });
 
+test('the projection line follows the Complete box', async () => {
+  const fx = setupSchedule({
+    schedule: [
+      itemOf('a', { title: 'Demo', estimatedCents: 10000, actualCents: 5000 }),
+    ],
+  });
+  await fx.ctx.openProject('p1');
+  const el = $(openScheduleEditor({ ctx: fx.ctx, item: fx.items()[0] }).el);
+  const line = () => el.querySelector('.editor__projection').textContent;
+  const before = line();
+  const box = el.querySelector('.editor__complete').querySelector('input');
+  box.checked = true;
+  box.dispatchEvent({ type: 'change' });
+  await tick();
+  const after = line();
+  el.close();
+  assert.equal(fx.items()[0].complete, true);
+  assert.notEqual(after, before);
+  assert.match(after, /^Projected \$50\.00 raw/);
+});
+
 test('the projection line clears while a price does not parse', async () => {
   const fx = setupSchedule();
   await fx.ctx.openProject('p1');
