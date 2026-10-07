@@ -28,13 +28,14 @@ import { icon } from '../ui/icon.js';
  * @typedef {{
  *   item: ScheduleItem,
  *   late?: boolean,
+ *   startsEarly?: string[],
  *   row: GanttRow,
  *   dayWidth: number,
  *   chartWidth: number,
  *   onOpen: (item: ScheduleItem) => void,
  *   onMove: (item: ScheduleItem, patch: DatePatch, edge: DragEdge, refocus: boolean) => Promise<boolean>,
  *   onPreview: (text: string | null) => void,
- * }} GanttBarOptions late marks an open item past its end date. onMove saves and resolves true on success, and refocus asks for focus on the same part after the rebuild. onPreview receives the dates shown during a drag or a run of key presses, then null
+ * }} GanttBarOptions late marks an open item past its end date. startsEarly names each predecessor that ends after this item starts. onMove saves and resolves true on success, and refocus asks for focus on the same part after the rebuild. onPreview receives the dates shown during a drag or a run of key presses, then null
  */
 
 const ARROWS = { ArrowLeft: -1, ArrowRight: 1 };
@@ -71,6 +72,7 @@ export function moveMessage(item, patch) {
 export function ganttBar({
   item,
   late = false,
+  startsEarly = [],
   row,
   dayWidth,
   chartWidth,
@@ -95,9 +97,12 @@ export function ganttBar({
   const range = formatRange(item.startDate, item.endDate);
   const body = bareButton({
     className: 'gantt-bar__body',
-    ariaLabel: late
-      ? `${item.title}, ${range}, late`
-      : `${item.title}, ${range}`,
+    ariaLabel: [
+      item.title,
+      range,
+      ...(late ? ['late'] : []),
+      ...startsEarly.map((name) => `starts before ${name} ends`),
+    ].join(', '),
     children: [
       ...(item.complete ? [icon('check')] : late ? [icon('alert')] : []),
       text('gantt-bar__title', item.title),

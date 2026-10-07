@@ -187,6 +187,22 @@ test('connectors follow the links and a late start turns one red', async () => {
     'Cabinets waits on Rough plumbing but starts before it ends',
   );
   assert.equal(svg.querySelectorAll('marker').length, 2);
+  const labels = el
+    .querySelectorAll('.gantt-bar__body')
+    .map((/** @type {any} */ b) => b.getAttribute('aria-label'));
+  assert.ok(
+    labels.some(
+      (/** @type {string} */ l) =>
+        l.startsWith('Cabinets,') &&
+        l.endsWith(', starts before Rough plumbing ends'),
+    ),
+  );
+  assert.ok(
+    labels.every(
+      (/** @type {string} */ l) =>
+        !l.startsWith('Rough plumbing,') || !l.includes('starts before'),
+    ),
+  );
 });
 
 test('the today line is drawn only when today is on the grid', async (t) => {

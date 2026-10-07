@@ -80,11 +80,22 @@ export function ganttView({ ctx }) {
     rows.className = 'gantt__rows';
     rows.style.height = `${layout.height}px`;
     rows.append(links(layout, byId));
+    // The conflict mark on a connector is visual, so the successor bar
+    // names it for a screen reader.
+    /** @type {Map<string, string[]>} */
+    const startsEarly = new Map();
+    for (const { dependency, conflict } of layout.connectors) {
+      if (!conflict) continue;
+      const names = startsEarly.get(dependency.successorId) ?? [];
+      names.push(byId.get(dependency.predecessorId)?.title ?? '');
+      startsEarly.set(dependency.successorId, names);
+    }
     for (const row of layout.rows) {
       rows.append(
         ganttBar({
           item: row.item,
           late: isLate(row.item, today),
+          startsEarly: startsEarly.get(row.item.id),
           row,
           dayWidth: layout.dayWidth,
           chartWidth: layout.width,

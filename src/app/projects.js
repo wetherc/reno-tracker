@@ -136,7 +136,7 @@ export function mountProjects({ ctx, host, files }) {
     const confirmed = await confirmDialog({
       title: `Delete ${project.name}?`,
       message:
-        'Every schedule item, note, variance, and material in it goes too. There is no undo.',
+        'Every schedule item, note, change log entry, material, invoice, payment, and change order in it goes too. There is no undo.',
     });
     if (!confirmed) return;
     // The project closes only once the delete is stored, so a failed
