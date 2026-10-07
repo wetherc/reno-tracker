@@ -78,6 +78,41 @@ test('days list in order with month labels and a Today line', async () => {
   assert.match(line.getAttribute('aria-label'), /^Today, \w+day, /);
 });
 
+test('the Today line opens the group of its own month', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 9, 7, 12) });
+  /** @param {string[]} dates */
+  const kindsFor = async (dates) => {
+    const schedule = dates.map((d, i) =>
+      itemOf(`x${i}`, { startDate: d, endDate: d }),
+    );
+    return entries((await setup(schedule)).el);
+  };
+  const past = 'agenda-day agenda-day--past';
+  assert.deepEqual(await kindsFor(['2026-09-28', '2026-10-20']), [
+    'agenda__month',
+    past,
+    'agenda__month',
+    'agenda__today',
+    'agenda-day',
+  ]);
+  assert.deepEqual(await kindsFor(['2026-08-30']), [
+    'agenda__month',
+    past,
+    'agenda__month',
+    'agenda__today',
+  ]);
+  assert.deepEqual(await kindsFor(['2026-10-02']), [
+    'agenda__month',
+    past,
+    'agenda__today',
+  ]);
+  assert.deepEqual(await kindsFor(['2026-11-02']), [
+    'agenda__today',
+    'agenda__month',
+    'agenda-day',
+  ]);
+});
+
 test('a day names its starting and finishing items with their spans', async () => {
   const { el } = await setup(items);
   const days = el.querySelectorAll('.agenda-day');

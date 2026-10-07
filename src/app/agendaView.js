@@ -80,18 +80,28 @@ export function agendaView({ ctx }) {
       list.className = 'agenda__days';
       let month = '';
       let todayShown = false;
+      /** @param {string} date opens a month group when date starts one */
+      const enter = (date) => {
+        if (monthOf(date) === month) return;
+        month = monthOf(date);
+        list.append(monthLine(month));
+      };
+      // After an earlier month group, the Today line opens the group of
+      // today's month, so it does not read as part of the month before.
+      const markToday = () => {
+        todayShown = true;
+        if (month) enter(today);
+        list.append(todayLine());
+      };
       for (const day of days) {
         if (!todayShown && day.date >= today) {
-          todayShown = true;
-          if (day.date !== today) list.append(todayLine());
+          if (day.date === today) todayShown = true;
+          else markToday();
         }
-        if (monthOf(day.date) !== month) {
-          month = monthOf(day.date);
-          list.append(monthLine(month));
-        }
+        enter(day.date);
         list.append(dayEntry(day));
       }
-      if (!todayShown) list.append(todayLine());
+      if (!todayShown) markToday();
       return list;
     }
 
