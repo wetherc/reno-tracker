@@ -39,8 +39,10 @@ export function factList(facts) {
  *   subscribe: (redraw: () => void) => () => void,
  *   onEdit: (record: T) => void,
  *   actions?: (record: T, close: () => void) => HTMLElement[],
+ *   wide?: boolean,
  * }} config find returns null once the record is gone; actions adds
- * buttons before Edit
+ * buttons before Edit; wide gives a record with a line table the wide
+ * dialog and lays its facts out in two columns
  * @returns {import('./Modal.js').ModalHandle | null} null when the
  * record is already gone
  */
@@ -51,6 +53,7 @@ export function openRecordView({
   subscribe,
   onEdit,
   actions,
+  wide = false,
 }) {
   let record = find();
   if (record === null) return null;
@@ -60,6 +63,7 @@ export function openRecordView({
     title: title(record),
     body: [],
     actions: [footer],
+    wide,
     onClose: () => {
       unsubscribe();
       dialog.el.remove();

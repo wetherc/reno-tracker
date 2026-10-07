@@ -13,6 +13,18 @@
   flex-direction: column;
 }
 
+/* A wide view sets its facts in two columns, so the line table starts
+   higher in the dialog. Each column keeps its own dotted rules. */
+.modal--wide .record-view__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+  column-gap: var(--space-6);
+}
+
+.modal--wide .record-view__fact:last-child {
+  border-bottom: 1px dotted var(--border-strong);
+}
+
 .record-view__fact {
   gap: var(--space-4);
   padding: var(--space-2) 0;

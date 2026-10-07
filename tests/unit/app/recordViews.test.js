@@ -73,6 +73,7 @@ test('an invoice view lists facts, lines, payments, and balance', async () => {
   const handle = openInvoiceView({ ctx: fx.ctx, invoice: fx.invoices()[0] });
   const dialog = $(handle?.el);
   assert.ok(dialog.classList.contains('record-view'));
+  assert.ok(dialog.classList.contains('modal--wide'));
   assert.equal(
     dialog.querySelector('.modal__title').textContent,
     'Invoice 1043 from Pinch',
@@ -123,6 +124,7 @@ test('a change order view shows status and closes once it is deleted', async () 
   const dialog = $(
     openChangeOrderView({ ctx: fx.ctx, order: fx.changeOrders()[0] })?.el,
   );
+  assert.ok(dialog.classList.contains('modal--wide'));
   assert.ok(facts(dialog).some(([l, v]) => l === 'Status' && v === 'Pending'));
   assert.ok(
     facts(dialog).some(([l, v]) => l === 'Reason' && v === 'None given'),
@@ -160,6 +162,7 @@ test('a material view names its item and draws again after a refetch', async () 
   const dialog = $(
     openMaterialView({ ctx: fx.ctx, item: fx.materials()[0] })?.el,
   );
+  assert.equal(dialog.classList.contains('modal--wide'), false);
   assert.deepEqual(facts(dialog).slice(0, 2), [
     ['For', 'Counters'],
     ['Expected', 'Oct 28, 2026'],

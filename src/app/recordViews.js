@@ -129,6 +129,7 @@ export function openInvoiceView({ ctx, invoice }) {
     find: finder(ctx, (p) => p.invoices, invoice.id),
     subscribe: onPayload(ctx),
     onEdit: (current) => openInvoiceEditor({ ctx, invoice: current }),
+    wide: true,
     render: (current) => {
       const payload = /** @type {ProjectPayload} */ (ctx.payload);
       const b = balance(current);
@@ -180,6 +181,7 @@ export function openChangeOrderView({ ctx, order }) {
     find: finder(ctx, (p) => p.changeOrders, order.id),
     subscribe: onPayload(ctx),
     onEdit: (current) => openChangeOrderEditor({ ctx, order: current }),
+    wide: true,
     render: (current) => {
       const payload = /** @type {ProjectPayload} */ (ctx.payload);
       const status = document.createElement('span');
