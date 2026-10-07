@@ -9,6 +9,7 @@
 /** @typedef {{ note: Note, item: ScheduleItem }} NoteEntry */
 /** @typedef {{ date: string, entries: NoteEntry[] }} NoteDay date is YYYY-MM-DD */
 
+/** @type {Map<string, Intl.DateTimeFormat>} */
 const DAY_KEY = new Map();
 
 /**
@@ -23,8 +24,7 @@ export function localDayOf(iso, timeZone) {
   const key = timeZone ?? '';
   let format = DAY_KEY.get(key);
   if (!format) {
-    // en-CA prints numeric dates as YYYY-MM-DD.
-    format = new Intl.DateTimeFormat('en-CA', {
+    format = new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -32,7 +32,10 @@ export function localDayOf(iso, timeZone) {
     });
     DAY_KEY.set(key, format);
   }
-  return format.format(new Date(iso));
+  const parts = Object.fromEntries(
+    format.formatToParts(new Date(iso)).map(({ type, value }) => [type, value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
 /**
