@@ -446,8 +446,14 @@ textarea.field {
   text-align: left;
 }
 
-.row-select:hover {
-  background: var(--surface-sunken);
+/* The hover tint mixes the muted text color, because --surface-sunken
+   is near black in the dark theme and reads as a second current row. A
+   touch screen keeps hover on the last tapped row, so only a pointer
+   that can hover gets it. */
+@media (hover: hover) {
+  .row-select:hover {
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  }
 }
 
 .row-select--current {
