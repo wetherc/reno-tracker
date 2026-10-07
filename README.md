@@ -515,3 +515,20 @@ one.
 A flex child that contains text needs `min-width: 0`, or long content
 refuses to shrink. That guard appears many times across the sheets, and a
 panel that overflows its column usually lacks it.
+
+A table wider than its column scrolls inside a `.table-scroll` box.
+The box draws a soft shadow on each edge that has more columns past it.
+While the table overflows, the box also takes a tab stop and a name from
+the table caption, so the arrow keys can scroll it.
+
+### Focus and forms
+
+Every focused control draws a 2px solid outline in `--focus-ring` with a
+2px gap. The gap keeps the ring visible beside a filled control, such as
+a Gantt bar or a primary button. Forced colors mode keeps the outline in
+the system highlight color.
+
+A money, percent, or number field selects its whole value when it gains
+focus, so typed digits replace a saved amount. A click inside a field
+that has focus already places the caret. A required field shows a red
+asterisk after its label.

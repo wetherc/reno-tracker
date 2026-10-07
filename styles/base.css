@@ -330,6 +330,13 @@ textarea.field {
   color: var(--text-muted);
 }
 
+/* The input already tells a screen reader that it is required, so the
+   mark has empty alternative text. */
+.form__row:has(> :required) .form__label::after {
+  content: ' *' / '';
+  color: var(--danger);
+}
+
 .form__wide {
   grid-column: 1 / -1;
 }
