@@ -602,13 +602,20 @@ textarea.field {
   background: color-mix(in srgb, var(--overlay-bg) 55%, transparent);
 }
 
+/* The header sticks to the top of a dialog that scrolls, so the title
+   and the close button stay in view. Without it a field that scrolls
+   into view leaves a thin slice of the header at the top edge. */
 .modal__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
 }
 
 .modal__title {

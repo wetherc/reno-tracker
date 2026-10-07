@@ -118,3 +118,15 @@
 .record-view__table tfoot tr:last-child > * {
   color: var(--text);
 }
+
+/* Column heads such as Raw amount stay on one line on a phone. */
+.record-view__table thead th {
+  white-space: nowrap;
+}
+
+/* An empty list in a view reads as one plain line under its label. */
+.record-view .empty-state {
+  margin: 0;
+  padding: 0;
+  text-align: start;
+}

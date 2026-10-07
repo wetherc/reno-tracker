@@ -93,7 +93,14 @@
 }
 
 .line-list__markup {
-  flex: 0 0 11rem;
+  flex: 0 0 auto;
+  min-width: 11rem;
+}
+
+/* A long label such as Change order markup (%) stays on one line, so
+   the field lines up with Add line. */
+.line-list__markup .form__label {
+  white-space: nowrap;
 }
 
 .line-list__total {
