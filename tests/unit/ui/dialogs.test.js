@@ -147,6 +147,19 @@ test('confirmDialog resolves true on confirm and false otherwise', async () => {
   assert.equal(await escaped, false);
 });
 
+test('a toast in a dialog scrolls into view, and one in the page does not', () => {
+  const region = document.createElement('div');
+  const toaster = createToaster(region, {
+    setTimer: /** @type {any} */ (() => 0),
+  });
+  toaster.show('In the page');
+  assert.equal($(region.children[0]).scrolledInto, null);
+  const dialog = document.createElement('dialog');
+  dialog.append(region);
+  toaster.failure('Could not save');
+  assert.deepEqual($(region.children[1]).scrolledInto, { block: 'nearest' });
+});
+
 test('toaster shows, times out, and keeps failures', () => {
   const region = document.createElement('div');
   /** @type {Function[]} */

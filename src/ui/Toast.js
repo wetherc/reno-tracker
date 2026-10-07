@@ -94,6 +94,12 @@ export function createToaster(
     );
     shown.set(key, toast);
     region.append(el);
+    // In a dialog the region sits in the flow under the footer, so it
+    // covers no button. A tall dialog can have the region below its
+    // visible part, so the new toast scrolls into view.
+    if (region.closest('dialog')) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
     startTimer(toast);
     while (shown.size > MAX_TOASTS) {
       const all = [...shown.values()];

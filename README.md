@@ -503,7 +503,7 @@ placement) in the component's own class.
 | `.icon`                                              | the SVG wrapper that `icon()` applies                                                                                            |
 | `.tabs`, `__tab`, `__panel`                          | a tab strip over a stack of panels (the item editor)                                                                             |
 | `.modal` and its parts                               | the native `<dialog>`, built through `Modal.js`                                                                                  |
-| `.toast-region`, `.toast` + `--success`/`--danger`   | the write feedback in the corner, built through `Toast.js`                                                                       |
+| `.toast-region`, `.toast` + `--success`/`--danger`   | write feedback in the corner, or under the footer of an open dialog, built through `Toast.js`                                    |
 | `.sr-only`                                           | visually hidden, still announced                                                                                                 |
 
 More shared widgets live one sheet up in `widgets.css`, next to the widget

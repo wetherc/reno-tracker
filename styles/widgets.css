@@ -90,6 +90,19 @@
   z-index: 10;
 }
 
+/* Modal.js moves the region into an open dialog, because the rest of
+   the page is inert. There it sits in the flow after the footer, so a
+   toast never covers Cancel or Save. */
+.modal > .toast-region {
+  position: static;
+  width: auto;
+  padding: 0 var(--space-5) var(--space-4);
+}
+
+.modal > .toast-region:empty {
+  display: none;
+}
+
 .toast {
   display: flex;
   align-items: flex-start;
