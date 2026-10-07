@@ -531,8 +531,10 @@ textarea.field {
   color: var(--danger-contrast);
 }
 
+/* A mix of the muted text color shows on every surface in both
+   themes, where --surface-sunken is near the dark panel color. */
 .badge--neutral {
-  background: var(--surface-sunken);
+  background: color-mix(in srgb, var(--text-muted) 22%, transparent);
   color: var(--text);
 }
 

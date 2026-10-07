@@ -79,6 +79,7 @@ export function openChangeOrderEditor({ ctx, order }) {
     value: order?.number ?? '',
     placeholder: 'Optional',
   });
+  number.input.setAttribute('autofocus', '');
   const party = textField({
     id: `${prefix}-party`,
     label: CHANGE_ORDER_LABELS.party,
@@ -86,7 +87,6 @@ export function openChangeOrderEditor({ ctx, order }) {
     placeholder: 'Pinch Plumbing',
     required: true,
   });
-  party.input.setAttribute('autofocus', '');
   const issuedDate = dateField({
     id: `${prefix}-issued`,
     label: CHANGE_ORDER_LABELS.issuedDate,

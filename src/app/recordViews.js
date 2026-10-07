@@ -11,6 +11,7 @@ import { formatCents } from '../format/money.js';
 import { formatPercent } from '../format/percent.js';
 import { todayIso } from '../schedule/dates.js';
 import { button } from '../ui/buttons.js';
+import { emptyState } from '../ui/emptyState.js';
 import { factList, openRecordView } from '../ui/recordView.js';
 import { sectionLabel } from '../ui/sectionLabel.js';
 import { openChangeOrderEditor } from './changeOrderEditor.js';
@@ -147,7 +148,7 @@ export function openInvoiceView({ ctx, invoice }) {
       ];
       nodes.push(
         current.payments.length === 0
-          ? factList([['Payments', 'None yet']])
+          ? emptyState('No payments yet.')
           : simpleTable(
               ['Paid', 'Amount', 'Note'],
               current.payments.map((p) => [

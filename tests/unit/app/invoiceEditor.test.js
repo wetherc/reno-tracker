@@ -85,6 +85,7 @@ test('a new invoice starts with one line and groups the rows it can bill', async
   assert.equal(el.children[0].children[0].textContent, 'New invoice');
   const form = el.querySelector('form');
   assert.equal(form.querySelector('[type="date"]').value, todayIso());
+  assert.match(form.querySelector('[autofocus]').id, /-number$/);
   const [only] = lineEls(form);
   const line = parts(only);
   assert.equal(line.title.textContent, 'Line 1');

@@ -58,6 +58,7 @@ export function openInvoiceEditor({ ctx, invoice }) {
     value: invoice?.number ?? '',
     placeholder: 'Optional',
   });
+  number.input.setAttribute('autofocus', '');
   const party = textField({
     id: `${prefix}-party`,
     label: INVOICE_LABELS.party,
@@ -65,7 +66,6 @@ export function openInvoiceEditor({ ctx, invoice }) {
     placeholder: 'Pinch Plumbing',
     required: true,
   });
-  party.input.setAttribute('autofocus', '');
   const issuedDate = dateField({
     id: `${prefix}-issued`,
     label: INVOICE_LABELS.issuedDate,

@@ -99,9 +99,13 @@ test('an invoice with no payments says so and has no overpaid row', async () => 
   const dialog = $(
     openInvoiceView({ ctx: fx.ctx, invoice: fx.invoices()[0] })?.el,
   );
-  assert.deepEqual(
-    facts(dialog).find(([l]) => l === 'Payments'),
-    ['Payments', 'None yet'],
+  assert.equal(
+    facts(dialog).some(([l]) => l === 'Payments'),
+    false,
+  );
+  assert.equal(
+    dialog.querySelector('.empty-state').textContent,
+    'No payments yet.',
   );
   assert.equal(
     facts(dialog).some(([l]) => l === 'Overpaid'),
