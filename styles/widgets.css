@@ -134,9 +134,50 @@
    wrapper is the containing block of a visually hidden header label,
    which is absolutely placed and would widen the page from outside it. */
 
+/* A shadow shows on each edge that has more columns past it. The two
+   covers scroll with the content and hide a shadow once its edge is
+   reached, and the two shadows stay fixed to the box. */
 .table-scroll {
   position: relative;
   overflow-x: auto;
+  background:
+    linear-gradient(to right, var(--bg) 40%, transparent) left / 2.5rem 100%
+      no-repeat local,
+    linear-gradient(to left, var(--bg) 40%, transparent) right / 2.5rem 100%
+      no-repeat local,
+    radial-gradient(
+        farthest-side at 0 50%,
+        color-mix(in srgb, var(--text) 24%, transparent),
+        transparent
+      )
+      left / 0.875rem 100% no-repeat scroll,
+    radial-gradient(
+        farthest-side at 100% 50%,
+        color-mix(in srgb, var(--text) 24%, transparent),
+        transparent
+      )
+      right / 0.875rem 100% no-repeat scroll;
+}
+
+.card .table-scroll {
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(to right, var(--surface) 40%, transparent),
+    linear-gradient(to left, var(--surface) 40%, transparent),
+    radial-gradient(
+      farthest-side at 0 50%,
+      color-mix(in srgb, var(--text) 24%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      farthest-side at 100% 50%,
+      color-mix(in srgb, var(--text) 24%, transparent),
+      transparent
+    );
+}
+
+.table-scroll:focus-visible {
+  outline-offset: -2px;
 }
 
 .data-table {

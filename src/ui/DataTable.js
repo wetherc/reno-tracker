@@ -178,6 +178,28 @@ export function tableScroll(table) {
   const el = document.createElement('div');
   el.className = 'table-scroll';
   el.append(table);
+  // A box that scrolls needs a tab stop, so a keyboard user can scroll it
+  // with the arrow keys. A box that fits gets none, which keeps the tab
+  // order short.
+  if (typeof ResizeObserver === 'function') {
+    const name =
+      table.getAttribute('aria-label') ??
+      table.querySelector('caption')?.textContent;
+    new ResizeObserver(() => {
+      if (el.scrollWidth > el.clientWidth) {
+        el.tabIndex = 0;
+        el.setAttribute('role', 'region');
+        el.setAttribute(
+          'aria-label',
+          name ? `${name}, scrolls sideways` : 'Table, scrolls sideways',
+        );
+      } else {
+        el.removeAttribute('tabindex');
+        el.removeAttribute('role');
+        el.removeAttribute('aria-label');
+      }
+    }).observe(el);
+  }
   return el;
 }
 

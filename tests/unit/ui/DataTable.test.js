@@ -153,3 +153,38 @@ test('tableScroll wraps a table in the sideways scroller', () => {
   assert.equal(wrap.className, 'table-scroll');
   assert.equal(wrap.children[0], table.el);
 });
+
+test('tableScroll takes a tab stop and a name only while it overflows', () => {
+  /** @type {() => void} */
+  let fire = () => {};
+  const g = /** @type {any} */ (globalThis);
+  g.ResizeObserver = class {
+    /** @param {() => void} fn */
+    constructor(fn) {
+      fire = fn;
+    }
+    observe() {}
+  };
+  try {
+    const table = build();
+    const wrap = $(tableScroll(table.el));
+    wrap.scrollWidth = 900;
+    wrap.clientWidth = 300;
+    fire();
+    assert.equal(wrap.tabIndex, 0);
+    assert.equal(wrap.getAttribute('role'), 'region');
+    assert.match(wrap.getAttribute('aria-label'), /, scrolls sideways$/);
+    wrap.scrollWidth = 300;
+    fire();
+    assert.equal(wrap.getAttribute('tabindex'), null);
+    assert.equal(wrap.getAttribute('role'), null);
+    assert.equal(wrap.getAttribute('aria-label'), null);
+    const bare = $(tableScroll($(document.createElement('table'))));
+    bare.scrollWidth = 900;
+    bare.clientWidth = 300;
+    fire();
+    assert.equal(bare.getAttribute('aria-label'), 'Table, scrolls sideways');
+  } finally {
+    delete g.ResizeObserver;
+  }
+});
