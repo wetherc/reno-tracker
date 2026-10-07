@@ -5,6 +5,7 @@ import {
   chmodSync,
   mkdtempSync,
   mkdirSync,
+  readFileSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -139,7 +140,10 @@ test('MIME covers the types the client ships', () => {
 });
 
 test('projectRoot is the directory that holds package.json', () => {
-  assert.match(projectRoot(), /reno-tracker[^/]*$/);
+  const manifest = JSON.parse(
+    readFileSync(join(projectRoot(), 'package.json'), 'utf8'),
+  );
+  assert.equal(manifest.name, 'reno-tracker');
 });
 
 test('serveStatic streams files with the right headers and 404s the rest', async () => {
