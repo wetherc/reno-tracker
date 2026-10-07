@@ -23,6 +23,22 @@
     margin-left: auto;
   }
 
+  /* Four view names fit a 343px column only with tighter padding. */
+  .panel__tools .seg-switch__btn {
+    padding: 0 var(--space-2);
+  }
+
+  /* The name column is narrow here, so the Late badge becomes a dot and
+     the name keeps the room. The word stays in the accessibility tree,
+     and the late bar repeats the color in the chart. */
+  .gantt__head .badge {
+    width: 0.625rem;
+    height: 0.625rem;
+    padding: 0;
+    overflow: hidden;
+    color: transparent;
+  }
+
   .app__picker {
     flex-basis: 100%;
     order: 1;

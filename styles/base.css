@@ -27,7 +27,9 @@
   --warning: light-dark(#a86b0a, #e6b35a);
   --warning-contrast: light-dark(#1d1b18, #2a1d05);
 
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent);
+  /* A solid ring at full accent strength gives at least 3:1 against every
+     surface in both themes. A faded ring falls to about 2:1. */
+  --focus-ring: var(--accent);
   --shadow-tint: light-dark(#3a3128, #000000);
   --shadow-1: 0 1px 2px color-mix(in srgb, var(--shadow-tint) 12%, transparent);
   --shadow-2: 0 4px 12px color-mix(in srgb, var(--shadow-tint) 16%, transparent);
@@ -128,9 +130,31 @@ a {
   color: var(--accent);
 }
 
+/* The ring is an outline with a gap, so it shows beside a filled control
+   such as a Gantt bar or a primary button. Forced colors mode keeps an
+   outline and drops a box-shadow. */
 :focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+
+  /* System colors replace the fills that mark a status or a choice, so
+     those marks need a border or a system highlight to stay visible. */
+  .badge {
+    border: 1px solid CanvasText;
+  }
+
+  .seg-switch__btn--active,
+  .row-select--current {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
 }
 
 [hidden] {
@@ -219,6 +243,7 @@ a {
 }
 
 .btn--icon {
+  flex: none;
   width: 2.25rem;
   padding: 0;
   justify-content: center;
