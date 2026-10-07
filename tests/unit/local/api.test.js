@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createLocalApi } from '../../../src/local/api.js';
 import { memoryStorage } from '../../../src/storage/prefs.js';
 import { MAX_CHANGES_PER_ITEM } from '../../../src/local/schedule.js';
+import { file } from '../../server/importCases.js';
 
 function setup() {
   const storage = memoryStorage();
@@ -470,4 +471,35 @@ test('the browser keeps the newest change rows of each item', async () => {
   assert.equal(variances.length, MAX_CHANGES_PER_ITEM);
   assert.equal(variances[0].newValue, 'Demo 1');
   assert.equal(variances.at(-1)?.newValue, `Demo ${MAX_CHANGES_PER_ITEM}`);
+});
+
+test('import keeps the newest change rows of each item', async () => {
+  const { api } = setup();
+  const time = (/** @type {number} */ i) =>
+    new Date(Date.UTC(2026, 0, 1) + i * 60_000).toISOString();
+  const count = MAX_CHANGES_PER_ITEM + 10;
+  // The rows come newest first, so the cap has to sort them by time.
+  const many = Array.from({ length: count }, (_, i) => ({
+    scheduleItemId: 'a',
+    kind: 'scope',
+    field: 'title',
+    newValue: `Demo ${count - 1 - i}`,
+    loggedAt: time(count - 1 - i),
+  }));
+  const few = [0, 1].map((i) => ({
+    scheduleItemId: 'b',
+    kind: 'scope',
+    field: 'title',
+    newValue: `Tile ${i}`,
+    loggedAt: time(i),
+  }));
+  const copy = await api.importProject(
+    /** @type {any} */ (file({ variances: [...many, ...few] })),
+  );
+  const [a, b] = copy.schedule;
+  const kept = await api.listChanges(a.id);
+  assert.equal(kept.length, MAX_CHANGES_PER_ITEM);
+  assert.equal(kept[0].newValue, 'Demo 10');
+  assert.equal(kept.at(-1)?.newValue, `Demo ${count - 1}`);
+  assert.equal((await api.listChanges(b.id)).length, 2);
 });

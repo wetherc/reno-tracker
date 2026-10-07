@@ -184,7 +184,8 @@ does not replace a change from another tab.
 
 The browser holds about 5 MB per site, and the change log grows with
 every edit. The browser store therefore keeps the newest 50 change rows
-of each item and drops older ones. The server keeps every row. Save a
+of each item and drops older ones, after an edit and on a load. The
+server keeps every row. Save a
 project to a file to keep its full log.
 
 A tab keeps the page code it loaded. A tab that loaded a build with no

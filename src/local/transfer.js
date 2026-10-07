@@ -10,6 +10,7 @@ import {
   getProjectVariances,
 } from './projects.js';
 import { withIds } from './invoices.js';
+import { newestChanges } from './schedule.js';
 import { newId, now } from './store.js';
 
 /** @typedef {import('./store.js').LocalDb} LocalDb */
@@ -79,7 +80,9 @@ export function importProject(db, file) {
       successorId: mapped(d.successorId),
     });
   }
-  for (const v of file.variances) {
+  // The store keeps only the newest change rows of each item, as it does
+  // after an edit, because the browser holds about 5 MB per site.
+  for (const v of newestChanges(file.variances)) {
     db.variances.push({
       ...v,
       id: newId(),

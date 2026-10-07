@@ -84,6 +84,34 @@ export function createScheduleItem(db, projectId, input) {
 export const MAX_CHANGES_PER_ITEM = 50;
 
 /**
+ * Keeps the newest MAX_CHANGES_PER_ITEM change rows of each item, in
+ * their input order. Rows with the same time count as older the earlier
+ * they come in the input.
+ * @template {{ scheduleItemId: string, loggedAt: string }} R
+ * @param {R[]} rows
+ * @returns {R[]}
+ */
+export function newestChanges(rows) {
+  /** @type {Map<string, R[]>} */
+  const byItem = new Map();
+  for (const row of rows) {
+    const list = byItem.get(row.scheduleItemId);
+    if (list) list.push(row);
+    else byItem.set(row.scheduleItemId, [row]);
+  }
+  /** @type {Set<R>} */
+  const oldest = new Set();
+  for (const list of byItem.values()) {
+    if (list.length <= MAX_CHANGES_PER_ITEM) continue;
+    list
+      .sort((a, b) => compareText(a.loggedAt, b.loggedAt))
+      .slice(0, list.length - MAX_CHANGES_PER_ITEM)
+      .forEach((row) => oldest.add(row));
+  }
+  return oldest.size === 0 ? rows : rows.filter((row) => !oldest.has(row));
+}
+
+/**
  * Drops the oldest change rows of one item past MAX_CHANGES_PER_ITEM.
  * @param {LocalDb} db
  * @param {string} id
@@ -91,12 +119,10 @@ export const MAX_CHANGES_PER_ITEM = 50;
 function trimChanges(db, id) {
   const rows = db.variances.filter((v) => v.scheduleItemId === id);
   if (rows.length <= MAX_CHANGES_PER_ITEM) return;
-  const oldest = new Set(
-    rows
-      .sort((a, b) => compareText(a.loggedAt, b.loggedAt))
-      .slice(0, rows.length - MAX_CHANGES_PER_ITEM),
+  const kept = new Set(newestChanges(rows));
+  db.variances = db.variances.filter(
+    (v) => v.scheduleItemId !== id || kept.has(v),
   );
-  db.variances = db.variances.filter((v) => !oldest.has(v));
 }
 
 /**
