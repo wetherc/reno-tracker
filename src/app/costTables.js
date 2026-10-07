@@ -9,7 +9,7 @@ import { projected } from '../costs/summary.js';
 import { formatDate, formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { bareButton } from '../ui/buttons.js';
-import { dataTable } from '../ui/DataTable.js';
+import { byText, dataTable } from '../ui/DataTable.js';
 import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { openMaterialEditor } from './materialEditor.js';
@@ -40,12 +40,6 @@ const prices = (event) => ({
   estimatedCents: event.expectedCents,
   actualCents: event.billedCents === null ? null : projected(event).cents,
 });
-
-/**
- * @param {string} a
- * @param {string} b
- */
-const byText = (a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' });
 
 /**
  * Every cost in the project as one sortable table. The name opens the

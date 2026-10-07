@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import { dataTable, tableScroll } from '../../../src/ui/DataTable.js';
+import { byText, dataTable, tableScroll } from '../../../src/ui/DataTable.js';
 
 installDom();
 
@@ -43,6 +43,11 @@ const names = (table) =>
   $(table.body).children.map(
     (/** @type {any} */ tr) => tr.children[0].textContent,
   );
+
+test('byText ignores case and accents', () => {
+  assert.equal(byText('cafe', 'CAFÉ'), 0);
+  assert.ok(byText('apple', 'Banana') < 0);
+});
 
 test('renders caption, headers, and one row per item', () => {
   const table = build();

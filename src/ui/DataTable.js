@@ -17,6 +17,15 @@ import { icon } from './icon.js';
  * nowrap keeps a short value such as a date on one line
  */
 
+/**
+ * Compares two texts for a column sort, with no regard to case or
+ * accents.
+ * @param {string} a
+ * @param {string} b
+ */
+export const byText = (a, b) =>
+  a.localeCompare(b, 'en', { sensitivity: 'base' });
+
 /** @typedef {{ key: string, dir: 'asc' | 'desc' }} SortState */
 
 /**
