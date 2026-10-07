@@ -1,6 +1,10 @@
 // A sortable table. Columns declare how to render a cell and, when they
 // can be sorted, how to compare two rows. Header cells are buttons so a
 // keyboard reaches them, and the active column announces aria-sort.
+// Each cell names its column in data-col and data-label, so a narrow
+// layout can place a cell and print its column name without counting
+// columns. A narrow layout can also turn rows into grids, and Safari
+// then drops the table semantics, so every part states its role.
 import { icon } from './icon.js';
 
 /**
@@ -65,12 +69,16 @@ export function dataTable({
 }) {
   const el = document.createElement('table');
   el.className = 'data-table';
+  el.setAttribute('role', 'table');
   const captionEl = document.createElement('caption');
   captionEl.className = 'sr-only';
   captionEl.append(caption);
   const head = document.createElement('thead');
   const headRow = document.createElement('tr');
   const body = document.createElement('tbody');
+  head.setAttribute('role', 'rowgroup');
+  body.setAttribute('role', 'rowgroup');
+  headRow.setAttribute('role', 'row');
   head.append(headRow);
   el.append(captionEl, head, body);
   if (footer) el.append(footerRow(columns, footer));
@@ -82,6 +90,7 @@ export function dataTable({
   const headers = columns.map((column) => {
     const th = document.createElement('th');
     th.setAttribute('scope', 'col');
+    th.setAttribute('role', 'columnheader');
     th.className = cellClass('data-table__th', column);
     if (column.compare) {
       const btn = document.createElement('button');
@@ -140,12 +149,12 @@ export function dataTable({
       ...sorted().map((row) => {
         const tr = document.createElement('tr');
         tr.className = 'data-table__row';
+        tr.setAttribute('role', 'row');
         tr.dataset.key = rowKey(row);
         const extra = rowClass?.(row);
         if (extra) tr.classList.add(extra);
         for (const column of columns) {
-          const td = document.createElement('td');
-          td.className = cellClass('data-table__td', column);
+          const td = cellOf(column);
           td.append(column.cell(row));
           tr.append(td);
         }
@@ -218,17 +227,32 @@ function cellClass(base, column) {
 
 /**
  * @template R
+ * @param {Column<R>} column
+ * @returns {HTMLTableCellElement}
+ */
+function cellOf(column) {
+  const td = document.createElement('td');
+  td.className = cellClass('data-table__td', column);
+  td.setAttribute('role', 'cell');
+  td.dataset.col = column.key;
+  td.dataset.label = column.label;
+  return td;
+}
+
+/**
+ * @template R
  * @param {Column<R>[]} columns
  * @param {(Node | string)[]} cells
  * @returns {HTMLTableSectionElement}
  */
 function footerRow(columns, cells) {
   const foot = document.createElement('tfoot');
+  foot.setAttribute('role', 'rowgroup');
   const tr = document.createElement('tr');
   tr.className = 'data-table__foot';
+  tr.setAttribute('role', 'row');
   columns.forEach((column, i) => {
-    const td = document.createElement('td');
-    td.className = cellClass('data-table__td', column);
+    const td = cellOf(column);
     td.append(cells[i] ?? '');
     tr.append(td);
   });

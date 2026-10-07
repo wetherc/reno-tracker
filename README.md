@@ -535,8 +535,12 @@ and the calendar weeks.
 `responsive.css` contains every layout media query, and the one breakpoint
 is `@media (max-width: 68rem)`. A component that reflows on its own width
 uses a container query, not a breakpoint. The calendar grid, the costs
-panel, and the line list of the invoice and change order editors use
-one.
+panel, the invoices table, and the line list of the invoice and change
+order editors use one. The invoices table and the line items table of
+the costs panel turn each row into a card in a narrow panel. Each cell
+prints its column name from the `data-label` attribute that
+`DataTable.js` sets, and each part of the table states its ARIA role,
+because Safari drops the table semantics of a row drawn as a grid.
 
 Under the breakpoint each invoice shows as a card, and the line items
 table of the costs panel does the same in a panel under 44rem. Each

@@ -44,6 +44,35 @@ const names = (table) =>
     (/** @type {any} */ tr) => tr.children[0].textContent,
   );
 
+test('every cell names its column, and every part states its role', () => {
+  const table = build({ footer: ['Total', '600'] });
+  const el = $(table.el);
+  assert.equal(el.getAttribute('role'), 'table');
+  const [, head, body, foot] = el.children;
+  for (const group of [head, body, foot]) {
+    assert.equal(group.getAttribute('role'), 'rowgroup');
+    assert.equal(group.children[0].getAttribute('role'), 'row');
+  }
+  assert.equal(
+    head.children[0].children[1].getAttribute('role'),
+    'columnheader',
+  );
+  for (const row of [body.children[0], foot.children[0]]) {
+    assert.deepEqual(
+      row.children.map((/** @type {any} */ td) => [
+        td.getAttribute('role'),
+        td.dataset.col,
+        td.dataset.label,
+      ]),
+      [
+        ['cell', 'name', 'Name'],
+        ['cell', 'cost', 'Cost'],
+        ['cell', 'x', 'Actions'],
+      ],
+    );
+  }
+});
+
 test('byText ignores case and accents', () => {
   assert.equal(byText('cafe', 'CAFÉ'), 0);
   assert.ok(byText('apple', 'Banana') < 0);
