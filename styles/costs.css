@@ -1,9 +1,10 @@
-/* Costs panel: six summary tiles over two chart cards. The tiles are the
-   legend, so each of Budget, Committed, and Spent shows the mark of the
-   line that draws it. The tiles sit three, two, or one to a row by the
-   width of the panel, so six never leaves one tile alone on a last row.
-   The svg scales with its card through the viewBox, so text in it is
-   sized in svg units. */
+/* Costs panel: seven summary tiles over two chart cards. The tiles are
+   the legend, so each of Budget, Committed, and Spent shows the mark of
+   the line that draws it. In a wide panel those three share the first
+   row, Projected and Budget headroom share the second, and the two
+   progress tiles share the third. A narrower panel puts two tiles to a
+   row, and a lone last tile takes the whole row. The svg scales with its
+   card through the viewBox, so text in it is sized in svg units. */
 
 .costs {
   display: flex;
@@ -14,14 +15,31 @@
 
 .cost-tiles {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: var(--space-3);
   margin: 0;
+}
+
+.cost-tiles > * {
+  grid-column: span 2;
+}
+
+.cost-tiles > :nth-child(n + 4) {
+  grid-column: span 3;
 }
 
 @container (max-width: 44rem) {
   .cost-tiles {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cost-tiles > *,
+  .cost-tiles > :nth-child(n + 4) {
+    grid-column: auto;
+  }
+
+  .cost-tiles > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }
 

@@ -291,8 +291,11 @@
   align-items: flex-end;
 }
 
+/* The note stays on one line, so a margin note such as "$1,350.00
+   margin" does not add two lines to the height of its row. */
 .data-table .cell-stack__note {
   font-size: var(--text-label);
+  white-space: nowrap;
 }
 
 /* The party in a table of invoices or change orders, a button that
