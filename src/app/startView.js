@@ -36,14 +36,22 @@ export function startView(state, { onRetry, onNew, onLoad }) {
   }
   const actions = document.createElement('span');
   actions.className = 'empty-state__actions';
+  // A new or loaded project replaces this panel, so these keys find no
+  // match after the write. The panel title then takes focus.
   actions.append(
-    button({
-      label: 'Start a project',
-      icon: 'plus',
-      variant: 'primary',
-      onClick: onNew,
-    }),
-    button({ label: 'Load from a file', icon: 'upload', onClick: onLoad }),
+    focusKey(
+      button({
+        label: 'Start a project',
+        icon: 'plus',
+        variant: 'primary',
+        onClick: onNew,
+      }),
+      'start:new',
+    ),
+    focusKey(
+      button({ label: 'Load from a file', icon: 'upload', onClick: onLoad }),
+      'start:load',
+    ),
   );
   return emptyState('No project open.', { action: actions });
 }

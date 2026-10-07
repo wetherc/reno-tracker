@@ -53,6 +53,10 @@ test('an empty list invites a new project or a file', () => {
     buttons.map((/** @type {any} */ b) => b.textContent),
     ['Start a project', 'Load from a file'],
   );
+  assert.deepEqual(
+    buttons.map((/** @type {any} */ b) => b.getAttribute('data-focus')),
+    ['start:new', 'start:load'],
+  );
   buttons.forEach((/** @type {any} */ b) => b.click());
   assert.deepEqual(a.calls, ['new', 'load']);
 });
