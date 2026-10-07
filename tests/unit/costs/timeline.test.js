@@ -4,6 +4,7 @@ import {
   byWeek,
   costEvents,
   cumulative,
+  markupOf,
   invoiceEvents,
   landingDate,
   materialExpected,
@@ -371,4 +372,15 @@ test('costEvents adds approved change order lines to the estimate at the change 
   assert.equal(byId.get('m3')?.expectedCents, 1085);
   // A pending change order adds nothing.
   assert.equal(byId.get('b')?.expectedCents, 33000);
+});
+
+test('markupOf stays exact past the safe-integer limit', () => {
+  assert.equal(markupOf(10_000, 1500), 1500);
+  assert.equal(markupOf(5, 1000), 1);
+  // Each product below passes 2^53 cent basis points.
+  const big = 1_000_000_000_001;
+  assert.equal(markupOf(big, 10_000), big);
+  assert.equal(markupOf(big, 9999), 999_900_000_001);
+  assert.equal(markupOf(-big, 9999), -999_900_000_001);
+  assert.equal(markupOf(-1_000_000_000_000, 9999), -999_900_000_000);
 });

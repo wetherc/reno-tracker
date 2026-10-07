@@ -22,7 +22,6 @@
 // order lines in an estimate add their share of the markup at each
 // change order's rate instead of the row's.
 import { invoiceName, invoiceTotal } from '../entities/invoice.js';
-import { markupOf } from '../entities/lineItems.js';
 import { addDays, startOfWeek } from '../schedule/dates.js';
 import { approvedChanges } from './changed.js';
 import { billings } from './invoiced.js';
@@ -89,6 +88,24 @@ export function landingDate(item, payload) {
 /**
  * @typedef {Pick<CostEvent, 'complete' | 'expectedCents' | 'expectedMarkupCents' | 'invoicedCents' | 'billedCents' | 'billedMarkupCents'>} RowPrices
  */
+
+/**
+ * A rate applied to an amount, rounded half up to whole cents. A sum
+ * of many money fields times a rate can pass 2^53, where a Number
+ * product loses cents, so a product past that limit runs in BigInt.
+ * @param {number} cents
+ * @param {number} basisPoints
+ * @returns {number}
+ */
+export function markupOf(cents, basisPoints) {
+  const product = cents * basisPoints;
+  if (Number.isSafeInteger(product)) return Math.round(product / 10_000);
+  const twice = 2n * BigInt(cents) * BigInt(basisPoints) + 10_000n;
+  // BigInt division truncates toward zero, so a negative quotient
+  // steps down one to round toward minus infinity.
+  const q = twice / 20_000n;
+  return Number(twice < 0n && q * 20_000n !== twice ? q - 1n : q);
+}
 
 /**
  * The price fields of one row, with markup. The editors call this on
