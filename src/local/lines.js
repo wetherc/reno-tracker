@@ -4,6 +4,7 @@
 // on the server.
 import { changeOrderName } from '../entities/changeOrder.js';
 import { invoiceName } from '../entities/invoice.js';
+import { compareText } from './compareText.js';
 import { badRequest, conflict } from './errors.js';
 import { newId } from './store.js';
 
@@ -66,7 +67,7 @@ export function checkUnlinked(db, key, id, name) {
     const docs = db[kind.list];
     const doc = docs
       .filter((d) => d.lines.some((l) => l[key] === id))
-      .sort((a, b) => a.issuedDate.localeCompare(b.issuedDate))[0];
+      .sort((a, b) => compareText(a.issuedDate, b.issuedDate))[0];
     if (doc) {
       throw conflict(
         `${kind.name(doc)} ${kind.verb} ${name}. Remove that line first.`,

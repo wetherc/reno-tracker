@@ -6,6 +6,7 @@
 // server keeps every row.
 import { diffTrackedFields } from '../entities/variance.js';
 import { findCycle } from '../schedule/graph.js';
+import { compareText } from './compareText.js';
 import { badRequest, conflict, notFound } from './errors.js';
 import { checkUnlinked } from './lines.js';
 import { getProject } from './projects.js';
@@ -92,7 +93,7 @@ function trimChanges(db, id) {
   if (rows.length <= MAX_CHANGES_PER_ITEM) return;
   const oldest = new Set(
     rows
-      .sort((a, b) => a.loggedAt.localeCompare(b.loggedAt))
+      .sort((a, b) => compareText(a.loggedAt, b.loggedAt))
       .slice(0, rows.length - MAX_CHANGES_PER_ITEM),
   );
   db.variances = db.variances.filter((v) => !oldest.has(v));
@@ -133,7 +134,7 @@ export function listChanges(db, id) {
   getScheduleItem(db, id);
   return db.variances
     .filter((v) => v.scheduleItemId === id)
-    .sort((a, b) => a.loggedAt.localeCompare(b.loggedAt));
+    .sort((a, b) => compareText(a.loggedAt, b.loggedAt));
 }
 
 /**

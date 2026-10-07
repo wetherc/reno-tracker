@@ -1,6 +1,7 @@
 // Project rows and the whole-project payload, read from and written to a
 // LocalDb. Deleting a project drops every row that belongs to it, which
 // matches the ON DELETE CASCADE rules of the SQLite schema.
+import { compareText } from './compareText.js';
 import { badRequest, notFound } from './errors.js';
 import { newId, now, removeRows } from './store.js';
 
@@ -16,7 +17,7 @@ import { newId, now, removeRows } from './store.js';
 export function listProjects(db) {
   return [...db.projects].sort(
     (a, b) =>
-      b.createdAt.localeCompare(a.createdAt) || a.name.localeCompare(b.name),
+      compareText(b.createdAt, a.createdAt) || compareText(a.name, b.name),
   );
 }
 
@@ -76,8 +77,8 @@ export function getProjectPayload(db, id) {
     .sort(
       (a, b) =>
         a.sortOrder - b.sortOrder ||
-        a.startDate.localeCompare(b.startDate) ||
-        a.title.localeCompare(b.title),
+        compareText(a.startDate, b.startDate) ||
+        compareText(a.title, b.title),
     );
   const items = new Set(schedule.map((s) => s.id));
   return {
@@ -86,18 +87,16 @@ export function getProjectPayload(db, id) {
     dependencies: db.dependencies.filter((d) => d.projectId === id),
     notes: db.notes
       .filter((n) => items.has(n.scheduleItemId))
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+      .sort((a, b) => compareText(a.createdAt, b.createdAt)),
     materials: db.materials
       .filter((m) => m.projectId === id)
-      .sort(
-        (a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name),
-      ),
+      .sort((a, b) => a.sortOrder - b.sortOrder || compareText(a.name, b.name)),
     invoices: db.invoices
       .filter((i) => i.projectId === id)
-      .sort((a, b) => a.issuedDate.localeCompare(b.issuedDate)),
+      .sort((a, b) => compareText(a.issuedDate, b.issuedDate)),
     changeOrders: db.changeOrders
       .filter((c) => c.projectId === id)
-      .sort((a, b) => a.issuedDate.localeCompare(b.issuedDate)),
+      .sort((a, b) => compareText(a.issuedDate, b.issuedDate)),
   };
 }
 
@@ -113,7 +112,7 @@ export function getProjectVariances(db, id) {
   );
   return db.variances
     .filter((v) => items.has(v.scheduleItemId))
-    .sort((a, b) => a.loggedAt.localeCompare(b.loggedAt));
+    .sort((a, b) => compareText(a.loggedAt, b.loggedAt));
 }
 
 /**
