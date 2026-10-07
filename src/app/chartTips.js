@@ -13,7 +13,16 @@ import { formatCents } from '../format/money.js';
 /** @typedef {import('../costs/timeline.js').CostEvent} CostEvent */
 /** @typedef {import('../costs/timeline.js').InvoiceEvent} InvoiceEvent */
 
-/** @typedef {{ label: string, value: string, mark?: 'budget' | 'expected' | 'actual', over?: boolean }} TipTotal */
+/**
+ * @typedef {{
+ *   label: string,
+ *   value: string,
+ *   mark?: 'budget' | 'expected' | 'actual',
+ *   swatch?: 'expected' | 'actual',
+ *   over?: boolean,
+ * }} TipTotal mark is the line of the cost chart and swatch the fill of
+ * a week bar
+ */
 
 /**
  * @param {Marker} marker
@@ -75,11 +84,15 @@ export function weekTip(bar) {
     `Week of ${formatDate(bar.week)}`,
     [],
     [
-      { label: 'Estimate', value: formatCents(bar.expectedCents) },
+      {
+        label: 'Estimate',
+        value: formatCents(bar.expectedCents),
+        swatch: 'expected',
+      },
       {
         label: 'Invoiced',
         value: formatCents(bar.actualCents),
-        mark: 'actual',
+        swatch: 'actual',
       },
     ],
   );
@@ -124,6 +137,12 @@ function tip(heading, rows, totals) {
       mark.className = `cost-tile__mark cost-tile__mark--${total.mark}`;
       mark.setAttribute('aria-hidden', 'true');
       dt.append(mark);
+    }
+    if (total.swatch) {
+      const swatch = document.createElement('span');
+      swatch.className = `chart-legend__swatch chart-legend__swatch--${total.swatch}`;
+      swatch.setAttribute('aria-hidden', 'true');
+      dt.append(swatch);
     }
     dt.append(total.label);
     const dd = document.createElement('dd');

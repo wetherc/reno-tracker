@@ -90,6 +90,13 @@ test('weekTip shows the two totals and no row list', () => {
     ['Estimate', 'Invoiced'],
   );
   assert.deepEqual(
+    [...tip.querySelectorAll('.chart-legend__swatch')].map((m) => m.className),
+    [
+      'chart-legend__swatch chart-legend__swatch--expected',
+      'chart-legend__swatch chart-legend__swatch--actual',
+    ],
+  );
+  assert.deepEqual(
     [...tip.querySelectorAll('dd')].map((dd) => dd.textContent),
     ['$400.00', '$100.00'],
   );
