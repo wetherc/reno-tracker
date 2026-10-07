@@ -26,7 +26,17 @@ test('parsePercent reads typed percents exactly', () => {
 });
 
 test('parsePercent rejects junk and rates over 100', () => {
-  for (const bad of ['100.01', '101', '-5', '12.345', '.5', 'abc', '1e2']) {
+  for (const bad of [
+    '100.01',
+    '101',
+    '-5',
+    '12.345',
+    '.5',
+    'abc',
+    '1e2',
+    '1 5',
+    '1 5%',
+  ]) {
     assert.equal(parsePercent(bad), null, bad);
   }
 });

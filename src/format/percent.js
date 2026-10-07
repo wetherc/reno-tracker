@@ -26,13 +26,13 @@ export function formatPercent(basisPoints) {
 
 /**
  * Reads text a person typed into a percent field. Accepts "15", "15%",
- * "12.5", "7.25", and blank (zero), up to 100. Returns null for
- * anything else.
+ * "12.5", "7.25", and blank (zero), up to 100. Spaces count only at
+ * the ends and before the percent sign. Returns null for anything else.
  * @param {string} text
  * @returns {number | null} whole basis points
  */
 export function parsePercent(text) {
-  const clean = text.replace(/[%\s]/g, '');
+  const clean = text.trim().replace(/\s*%$/, '');
   if (clean === '') return 0;
   const match = /^(\d{1,3})(?:\.(\d{0,2}))?$/.exec(clean);
   if (!match) return null;

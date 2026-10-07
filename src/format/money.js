@@ -17,20 +17,24 @@ export function formatCents(cents) {
 
 /**
  * Reads text a person typed into a money field. Accepts "$1,234.56",
- * "1234.5", "1234", and blank (zero). Returns null for anything else,
- * and for a number too long to hold exactly, because JSON writes
- * Infinity as null.
+ * "1234.5", "1234", and blank (zero). A comma must split the whole
+ * dollars into groups of three, so "1,50" is null and not 150 dollars.
+ * Spaces count only at the ends. Returns null for anything else, and
+ * for a number too long to hold exactly, because JSON writes Infinity
+ * as null. "-0" reads as 0.
  * @param {string} text
  * @returns {number | null} whole cents
  */
 export function parseMoney(text) {
-  const clean = text.replace(/[$,\s]/g, '');
-  if (clean === '') return 0;
-  if (!/^-?\d*(\.\d{0,2})?$/.test(clean) || clean === '.' || clean === '-') {
-    return null;
-  }
-  const cents = Math.round(Number(clean) * 100);
-  return Number.isSafeInteger(cents) ? cents : null;
+  const trimmed = text.trim().replace(/^(-?)\$/, '$1');
+  if (trimmed === '') return 0;
+  const match = /^(-?)(\d{1,3}(?:,\d{3})+|\d*)(\.\d{0,2})?$/.exec(trimmed);
+  if (!match || /^-?\.?$/.test(trimmed)) return null;
+  const cents = Math.round(
+    Number(`${match[2].replaceAll(',', '')}${match[3] ?? ''}`) * 100,
+  );
+  if (!Number.isSafeInteger(cents)) return null;
+  return match[1] && cents !== 0 ? -cents : cents;
 }
 
 /**

@@ -28,6 +28,19 @@ test('parseMoney accepts typed money and rejects junk', () => {
   assert.equal(parseMoney('9'.repeat(400)), null);
 });
 
+test('parseMoney takes commas only as thousands groups', () => {
+  assert.equal(parseMoney('-$1,234'), -123400);
+  assert.equal(parseMoney('12,345.6'), 1234560);
+  for (const bad of ['1,50', '12,5', '1,0,0', ',100', '1 000', '1,0000']) {
+    assert.equal(parseMoney(bad), null, bad);
+  }
+});
+
+test('parseMoney reads negative zero as zero', () => {
+  assert.ok(Object.is(parseMoney('-0'), 0));
+  assert.ok(Object.is(parseMoney('-0.00'), 0));
+});
+
 test('centsToInput', () => {
   assert.equal(centsToInput(123456), '1234.56');
   assert.equal(centsToInput(5), '0.05');
