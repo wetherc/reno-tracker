@@ -27,7 +27,8 @@ export function niceStep(rough) {
 export function moneyAxis(maxCents, count = 4) {
   const top = Math.max(maxCents, 100);
   const step = niceStep(top / count);
-  const max = Math.ceil(top / step) * step;
+  const ceiling = Math.ceil(top / step) * step;
+  const max = ceiling === maxCents ? ceiling + step : ceiling;
   /** @type {number[]} */
   const values = [];
   for (let v = 0; v <= max; v += step) values.push(v);

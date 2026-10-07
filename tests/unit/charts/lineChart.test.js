@@ -32,10 +32,11 @@ test('lineChartModel places the axes and lines on a fixed frame', () => {
     model.yTicks.map((t) => [t.label, t.y]),
     [
       ['$0', 100],
-      ['$200', 78],
-      ['$400', 56],
-      ['$600', 34],
-      ['$800', 12],
+      ['$200', 82.4],
+      ['$400', 64.8],
+      ['$600', 47.2],
+      ['$800', 29.6],
+      ['$1k', 12],
     ],
   );
   assert.deepEqual(
@@ -59,12 +60,14 @@ test('lineChartModel places the axes and lines on a fixed frame', () => {
       ['2026-11-15', '15', 311.6],
     ],
   );
-  assert.equal(model.budgetY, 12);
+  // The budget sits on a step, so the axis gets one more step and the
+  // budget line stays under the frame.
+  assert.equal(model.budgetY, 29.6);
   assert.equal(model.todayX, 226.4);
   // Flat from the start, one step at each landing day, flat to the end.
-  assert.equal(model.expectedPath, 'M112.8 100H112.8V78H169.6V45H340');
+  assert.equal(model.expectedPath, 'M112.8 100H112.8V82.4H169.6V56H340');
   // The actual line runs flat to the end after its last step.
-  assert.equal(model.actualPath, 'M112.8 100H112.8V72.5H340');
+  assert.equal(model.actualPath, 'M112.8 100H112.8V78H340');
 });
 
 test('lineChartModel thins the week labels when the weeks sit close', () => {
@@ -90,14 +93,14 @@ test('lineChartModel marks each day a cost lands on, on the expected line', () =
     {
       date: '2026-10-11',
       x: 112.8,
-      y: 78,
+      y: 82.4,
       expectedCents: 20000,
       actualCents: 25000,
     },
     {
       date: '2026-10-21',
       x: 169.6,
-      y: 45,
+      y: 56,
       expectedCents: 50000,
       actualCents: 25000,
     },
@@ -134,16 +137,16 @@ test('lineChartModel steps the actual line at a row that lands after today', () 
       { date: '2026-11-10', cents: 45000 },
     ],
   });
-  assert.equal(model.actualPath, 'M112.8 100H112.8V72.5H283.2V50.5H340');
+  assert.equal(model.actualPath, 'M112.8 100H112.8V78H283.2V60.4H340');
 });
 
 test('lineChartModel keeps today off the axis when it is outside the range', () => {
   const before = lineChartModel({ ...input, today: '2026-09-01' });
   assert.equal(before.todayX, null);
-  assert.equal(before.actualPath, 'M112.8 100H112.8V72.5H340');
+  assert.equal(before.actualPath, 'M112.8 100H112.8V78H340');
   const after = lineChartModel({ ...input, today: '2027-01-01' });
   assert.equal(after.todayX, null);
-  assert.equal(after.actualPath, 'M112.8 100H112.8V72.5H340');
+  assert.equal(after.actualPath, 'M112.8 100H112.8V78H340');
 });
 
 test('lineChartModel with no points draws only the frame', () => {
@@ -188,12 +191,12 @@ test('renderLineChart draws a titled svg with grid, budget, today, and lines', (
   const title = svg.querySelector('title');
   assert.equal(title.textContent, 'Cost over time');
   assert.equal(svg.getAttribute('aria-labelledby'), title.id);
-  // Five money lines and one month line, at Nov 1. The October line
+  // Six money lines and one month line, at Nov 1. The October line
   // sits on the y axis and is left out.
-  assert.equal(svg.querySelectorAll('.chart__grid').length, 6);
+  assert.equal(svg.querySelectorAll('.chart__grid').length, 7);
   assert.equal(svg.querySelectorAll('.chart__grid--month').length, 1);
-  // Five money labels, seven day numbers, two months, and Today.
-  assert.equal(svg.querySelectorAll('.chart__tick').length, 15);
+  // Six money labels, seven day numbers, two months, and Today.
+  assert.equal(svg.querySelectorAll('.chart__tick').length, 16);
   assert.equal(svg.querySelectorAll('.chart__tick-mark').length, 7);
   assert.equal(svg.querySelectorAll('.chart__tick--week')[0].textContent, '4');
   assert.equal(
@@ -201,7 +204,7 @@ test('renderLineChart draws a titled svg with grid, budget, today, and lines', (
     '235.1',
   );
   assert.equal(svg.querySelector('.chart__today-label').textContent, 'Today');
-  assert.equal(svg.querySelector('.chart__budget').getAttribute('y1'), '12');
+  assert.equal(svg.querySelector('.chart__budget').getAttribute('y1'), '29.6');
   assert.equal(svg.querySelector('.chart__today').getAttribute('x1'), '226.4');
   assert.equal(
     svg.querySelector('.chart__expected').getAttribute('d'),
@@ -216,12 +219,12 @@ test('renderLineChart draws a titled svg with grid, budget, today, and lines', (
   assert.equal(marks[1].getAttribute('data-date'), '2026-10-21');
   const dot = marks[1].querySelector('.chart__marker');
   assert.equal(dot.getAttribute('cx'), '169.6');
-  assert.equal(dot.getAttribute('cy'), '45');
+  assert.equal(dot.getAttribute('cy'), '56');
   // The plumb line drops from the dot to the axis.
   const plumb = marks[1].querySelector('.chart__plumb');
   assert.deepEqual(
     ['x1', 'y1', 'y2'].map((a) => plumb.getAttribute(a)),
-    ['169.6', '45', '100'],
+    ['169.6', '56', '100'],
   );
 });
 

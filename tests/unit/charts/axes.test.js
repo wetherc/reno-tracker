@@ -23,12 +23,15 @@ test('moneyAxis tops out on a nice step above the largest value', () => {
     max: 6_000_000,
     values: [0, 2_000_000, 4_000_000, 6_000_000],
   });
+  // A largest value on a step gets one more step above it, so it
+  // does not sit on the frame.
   assert.deepEqual(moneyAxis(100_000), {
-    max: 100_000,
-    values: [0, 50_000, 100_000],
+    max: 150_000,
+    values: [0, 50_000, 100_000, 150_000],
   });
+  assert.equal(moneyAxis(4_000_000).max, 5_000_000);
   assert.deepEqual(moneyAxis(0), { max: 100, values: [0, 50, 100] });
-  assert.deepEqual(moneyAxis(1_000_000, 10).values.length, 11);
+  assert.deepEqual(moneyAxis(1_000_000, 10).values.length, 12);
 });
 
 test('linear and dayScale map onto a length', () => {

@@ -219,7 +219,7 @@ test('markerTargets and weekTargets place a target on each mark, in percent', ()
     $(dots[1].detail?.()).querySelector('.chart-tip__row').textContent,
     'Invoice 7$70.00',
   );
-  assert.deepEqual([dots[0].left, dots[0].top], [31.69, 55.71]);
+  assert.deepEqual([dots[0].left, dots[0].top], [31.69, 58.86]);
   assert.equal(dots[0].width, undefined);
   dots[2].highlight?.(true);
   assert.equal(dot.className, 'chart__mark--active');

@@ -34,22 +34,25 @@ test('barChartModel gives each week a slot with a bar in it', () => {
     model.yTicks.map((t) => [t.label, t.y]),
     [
       ['$0', 100],
-      ['$200', 78],
-      ['$400', 56],
-      ['$600', 34],
-      ['$800', 12],
+      ['$200', 82.4],
+      ['$400', 64.8],
+      ['$600', 47.2],
+      ['$800', 29.6],
+      ['$1k', 12],
     ],
   );
+  // The tallest bar sits on a step, so the axis gets one more step and
+  // the bar stays under the frame.
   assert.deepEqual(
     model.bars.map((b) => [b.label, b.x, b.width, b.expectedY, b.actualY]),
     [
-      ['1', 78.5, 55, 56, 89],
+      ['1', 78.5, 55, 64.8, 91.2],
       ['8', 178.5, 55, 100, 100],
-      ['15', 278.5, 55, 12, 100],
+      ['15', 278.5, 55, 29.6, 100],
     ],
   );
-  assert.equal(model.bars[0].expectedHeight, 44);
-  assert.equal(model.bars[0].actualHeight, 11);
+  assert.equal(model.bars[0].expectedHeight, 35.2);
+  assert.equal(model.bars[0].actualHeight, 8.8);
   assert.equal(model.bars[0].expectedCents, 40000);
   // The month is named once, under its first bar, with the year.
   assert.deepEqual(model.monthTicks, [
@@ -114,7 +117,7 @@ test('renderBarChart draws one expected bar per week and an actual bar where pai
   assert.equal(paid.length, 1);
   assert.equal(paid[0].getAttribute('x'), '78.5');
   assert.equal(paid[0].getAttribute('width'), '55');
-  assert.equal(paid[0].getAttribute('height'), '11');
+  assert.equal(paid[0].getAttribute('height'), '8.8');
   const days = svg
     .querySelectorAll('.chart__tick--week')
     .map((/** @type {any} */ t) => t.textContent);
