@@ -68,12 +68,12 @@ test('entries are newest first with old, new, and reason', () => {
   const change = first.children[1];
   assert.equal(change.children[0].textContent, 'Raw actual');
   assert.equal(change.children[1].tagName, 'S');
-  assert.equal(change.children[1].textContent, 'blank');
-  assert.equal(change.children[2].textContent, '$999.00');
+  assert.equal(change.children[1].textContent, 'from blank');
+  assert.equal(change.children[2].textContent, 'to $999.00');
   assert.equal(first.children[2].textContent, 'Final invoice');
   assert.equal(second.children.length, 2);
   assert.equal(second.children[1].children[0].textContent, 'End');
-  assert.equal(second.children[1].children[2].textContent, 'Oct 8, 2026');
+  assert.equal(second.children[1].children[2].textContent, 'to Oct 8, 2026');
 });
 
 test('changesPanel shows the fetched rows, drops an overtaken load, and names a failure', async () => {

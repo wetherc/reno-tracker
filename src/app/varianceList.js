@@ -98,10 +98,12 @@ export function varianceList(variances) {
     field.append(FIELD_LABELS[v.field] ?? v.field);
     const old = document.createElement('s');
     old.className = 'variance-entry__old';
-    old.append(showValue(v.field, v.oldValue));
+    // The strike-through and the arrow are visual only, so a screen
+    // reader hears "from" and "to".
+    old.append(srOnly('from '), showValue(v.field, v.oldValue));
     const next = document.createElement('span');
     next.className = 'variance-entry__new';
-    next.append(showValue(v.field, v.newValue));
+    next.append(srOnly('to '), showValue(v.field, v.newValue));
     change.append(field, old, next);
 
     li.append(when, change);
@@ -114,4 +116,12 @@ export function varianceList(variances) {
     list.append(li);
   }
   return list;
+}
+
+/** @param {string} words */
+function srOnly(words) {
+  const el = document.createElement('span');
+  el.className = 'sr-only';
+  el.append(words);
+  return el;
 }

@@ -263,8 +263,8 @@ test('editing shows tabs, logs a reason, and follows the payload', async () => {
   await tick();
   const entry = again.querySelector('.variance-entry');
   assert.equal(entry.children[1].children[0].textContent, 'Raw estimate');
-  assert.equal(entry.children[1].children[1].textContent, '$500.00');
-  assert.equal(entry.children[1].children[2].textContent, '$650.00');
+  assert.equal(entry.children[1].children[1].textContent, 'from $500.00');
+  assert.equal(entry.children[1].children[2].textContent, 'to $650.00');
   assert.equal(entry.children[2].textContent, 'Plumber quote came in higher');
 
   // A note written from the notes tab appears without reopening.

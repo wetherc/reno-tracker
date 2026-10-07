@@ -188,6 +188,12 @@
   text-decoration: line-through;
 }
 
+.variance-entry__new::before {
+  content: '\2192' / '';
+  margin-right: var(--space-2);
+  color: var(--text-muted);
+}
+
 .variance-entry__reason {
   color: var(--text-muted);
   font-style: italic;
