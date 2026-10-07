@@ -170,6 +170,7 @@ test('changing the select opens that project and reports a failure', async () =>
   select.dispatchEvent({ type: 'change' });
   await tick();
   assert.deepEqual(toasts, ['bad no project zzz']);
+  assert.equal(select.value, 'b');
   assert.deepEqual(log, ['get a', 'get b']);
 });
 
@@ -240,16 +241,20 @@ test('delete asks first, then opens the next project', async () => {
   assert.equal(select.hidden, true);
 });
 
-test('a failed delete reopens the project', async () => {
+test('a failed delete keeps the project open', async () => {
   const { ctx, remove, toasts, setProjects } = setup();
   setProjects([projectOf('locked', 'Locked')]);
   await ctx.loadProjects();
   await ctx.openProject('locked');
+  /** @type {(string | null)[]} */
+  const seen = [];
+  ctx.on('payload', (p) => seen.push(p?.project.id ?? null));
   $(remove).click();
   await tick();
   $(dom.body.children[0].children[2].children[1]).click();
   await tick();
   assert.equal(ctx.payload?.project.id, 'locked');
+  assert.deepEqual(seen, []);
   assert.deepEqual(toasts, ['bad locked']);
 });
 

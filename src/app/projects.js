@@ -48,9 +48,11 @@ export function mountProjects({ ctx, host, files }) {
   select.id = 'project-select';
   select.className = 'field picker__select';
   select.addEventListener('change', () => {
-    ctx
-      .openProject(select.value)
-      .catch((error) => ctx.toaster.failure(describeFailure(error)));
+    ctx.openProject(select.value).catch((error) => {
+      ctx.toaster.failure(describeFailure(error));
+      // The open project did not change, so the select goes back to it.
+      render();
+    });
   });
 
   const edit = iconButton({
@@ -137,12 +139,17 @@ export function mountProjects({ ctx, host, files }) {
         'Every schedule item, note, variance, and material in it goes too. There is no undo.',
     });
     if (!confirmed) return;
-    ctx.closeProject();
-    const outcome = await ctx.write((api) => api.deleteProject(project.id), {
-      done: `Deleted ${project.name}`,
-      reload: true,
-    });
-    const next = outcome.ok ? byName(ctx.projects)[0]?.id : project.id;
+    // The project closes only once the delete is stored, so a failed
+    // delete leaves it open, and the refetch after the write does not ask
+    // for the deleted project.
+    const outcome = await ctx.write(
+      async (api) => {
+        await api.deleteProject(project.id);
+        ctx.closeProject();
+      },
+      { done: `Deleted ${project.name}`, reload: true },
+    );
+    const next = outcome.ok && byName(ctx.projects)[0]?.id;
     if (next) await ctx.openProject(next);
   }
 
