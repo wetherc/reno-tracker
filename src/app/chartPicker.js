@@ -3,13 +3,15 @@
 // scales with the figure. Each button's label is the full text for its
 // point, so a screen reader hears the numbers as focus lands on it.
 // Pointing at or focusing a target turns the matching mark on. The
-// arrow keys move between targets, Home and End jump to the ends. The
+// arrow keys move between targets, Home and End jump to the ends. A
+// target that a key moves to scrolls into the chart's scroll box. The
 // chart is one tab stop: only the last focused target, or the first one,
 // is in the tab order, so Tab moves past a chart of many points at once.
 // A target with a detail also opens a callout box beside its anchor. The
 // box sits above the anchor and flips below it near the top of the
 // figure, and it hangs from its left or right edge near the sides so
-// it never leaves the figure.
+// it never leaves the figure. When neither fits, the box sits above and
+// moves down so its heading stays inside the figure.
 import { bareButton } from '../ui/buttons.js';
 
 /**
@@ -52,7 +54,36 @@ function fitsIn(el, frame) {
   return box.top >= bound.top && box.bottom <= bound.bottom;
 }
 
-const STEP = { ArrowLeft: -1, ArrowRight: 1 };
+/**
+ * How far the element hangs past the top of the frame, in pixels. Zero
+ * when it does not, or when the DOM cannot measure.
+ * @param {HTMLElement} el
+ * @param {HTMLElement} frame
+ */
+function overTop(el, frame) {
+  if (typeof el.getBoundingClientRect !== 'function') return 0;
+  return Math.max(
+    0,
+    frame.getBoundingClientRect().top - el.getBoundingClientRect().top,
+  );
+}
+
+/**
+ * Scrolls the nearest sideways scroll box around the element so the
+ * element shows inside it. The page itself does not move.
+ * @param {HTMLElement} el
+ */
+export function revealIn(el) {
+  const box = el.closest?.('.cost-scroll');
+  if (!box || typeof el.getBoundingClientRect !== 'function') return;
+  const at = el.getBoundingClientRect();
+  const view = box.getBoundingClientRect();
+  if (at.left < view.left) box.scrollLeft -= view.left - at.left;
+  else if (at.right > view.right) box.scrollLeft += at.right - view.right;
+}
+
+// Up and Right step forward, Down and Left step back, as on a slider.
+const STEP = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 };
 
 /**
  * @param {{ targets: PickTarget[] }} config
@@ -93,7 +124,18 @@ export function chartPicker({ targets }) {
     tip.className = tipPlacement(anchor, 'above');
     if (fitsIn(tip, layer)) return;
     tip.className = tipPlacement(anchor, 'below');
-    if (!fitsIn(tip, layer)) tip.className = tipPlacement(anchor, 'above');
+    if (fitsIn(tip, layer)) return;
+    // Neither fits, so the box sits above and moves down until its top,
+    // where the date heading is, shows inside the figure.
+    tip.className = tipPlacement(anchor, 'above');
+    const over = overTop(tip, layer);
+    if (over > 0) tip.style.top = `calc(${anchor.top}% + ${over}px)`;
+  }
+
+  /** The target whose button has focus, or null. */
+  function focused() {
+    const at = buttons.indexOf(/** @type {any} */ (document.activeElement));
+    return at < 0 ? null : targets[at];
   }
 
   const buttons = targets.map((target, i) => {
@@ -111,9 +153,8 @@ export function chartPicker({ targets }) {
       el.style.height = `${target.height ?? 0}%`;
     }
     el.addEventListener('pointerenter', () => pick(target));
-    el.addEventListener('pointerleave', () => {
-      if (document.activeElement !== el) pick(null);
-    });
+    // Leaving one target goes back to the focused target, if any.
+    el.addEventListener('pointerleave', () => pick(focused()));
     el.tabIndex = i === 0 ? 0 : -1;
     el.addEventListener('focus', () => {
       for (const other of buttons) other.tabIndex = other === el ? 0 : -1;
@@ -137,6 +178,7 @@ export function chartPicker({ targets }) {
       // pointerleave clears the pick. The next target is always beside a
       // visible one, so the focus moves without a scroll.
       buttons[to].focus({ preventScroll: true });
+      revealIn(buttons[to]);
       pick(targets[to]);
     });
     return el;

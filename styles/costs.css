@@ -134,6 +134,11 @@
   cursor: pointer;
 }
 
+.chart-picker__target:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 .chart-picker__target--column {
   width: auto;
   height: auto;

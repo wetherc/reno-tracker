@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
-import { chartPicker, tipPlacement } from '../../../src/app/chartPicker.js';
+import {
+  chartPicker,
+  revealIn,
+  tipPlacement,
+} from '../../../src/app/chartPicker.js';
 
 const dom = installDom();
 
@@ -138,4 +142,89 @@ test('the arrow keys move between targets and Home and End jump', () => {
   assert.equal(press(first, 'ArrowLeft'), true);
   assert.equal(press(first, 'Enter'), true);
   assert.deepEqual(lit, ['a on', 'a off', 'c on', 'c off', 'a on']);
+});
+
+test('leaving one target goes back to the focused target', () => {
+  const { layer, lit } = setup();
+  const [first, , third] = layer.children;
+  first.focus();
+  first.dispatchEvent({ type: 'focus' });
+  third.dispatchEvent({ type: 'pointerenter' });
+  third.dispatchEvent({ type: 'pointerleave' });
+  assert.deepEqual(lit, ['a on', 'a off', 'c on', 'c off', 'a on']);
+  first.blur();
+  third.dispatchEvent({ type: 'pointerenter' });
+  third.dispatchEvent({ type: 'pointerleave' });
+  assert.equal(lit.at(-1), 'c off');
+});
+
+test('the up and down keys step like a slider', () => {
+  const { layer } = setup();
+  const [first, second] = layer.children;
+  first.focus();
+  /** @param {any} el @param {string} key */
+  const press = (el, key) => el.dispatchEvent({ type: 'keydown', key });
+  assert.equal(press(first, 'ArrowUp'), false);
+  assert.equal(dom.activeElement, second);
+  assert.equal(press(second, 'ArrowDown'), false);
+  assert.equal(dom.activeElement, first);
+  assert.equal(press(first, 'ArrowDown'), true);
+});
+
+test('a callout that fits neither way moves down into the figure', () => {
+  const { layer } = setup();
+  const [, , column] = layer.children;
+  const tip = layer.children[3];
+  layer.getBoundingClientRect = () => ({ top: 0, bottom: 80 });
+  tip.getBoundingClientRect = () => ({ top: -50, bottom: 100 });
+  column.dispatchEvent({ type: 'pointerenter' });
+  assert.equal(tip.className, 'chart-tip chart-tip--above chart-tip--end');
+  assert.equal(tip.style.top, 'calc(40% + 50px)');
+});
+
+test('a callout that fits below flips below', () => {
+  const { layer } = setup();
+  const [, , column] = layer.children;
+  const tip = layer.children[3];
+  layer.getBoundingClientRect = () => ({ top: 0, bottom: 80 });
+  tip.getBoundingClientRect = () =>
+    tip.className.includes('below')
+      ? { top: 10, bottom: 50 }
+      : { top: -10, bottom: 30 };
+  column.dispatchEvent({ type: 'pointerenter' });
+  assert.equal(tip.className, 'chart-tip chart-tip--below chart-tip--end');
+  assert.equal(tip.style.top, '40%');
+});
+
+test('a callout that hangs below but not above keeps its anchor', () => {
+  const { layer } = setup();
+  const [, , column] = layer.children;
+  const tip = layer.children[3];
+  layer.getBoundingClientRect = () => ({ top: 0, bottom: 80 });
+  tip.getBoundingClientRect = () => ({ top: 10, bottom: 100 });
+  column.dispatchEvent({ type: 'pointerenter' });
+  assert.equal(tip.style.top, '40%');
+});
+
+test('revealIn scrolls the box sideways to show the element', () => {
+  const box = {
+    scrollLeft: 100,
+    getBoundingClientRect: () => ({ left: 0, right: 300 }),
+  };
+  /** @param {number} left @param {number} right */
+  const at = (left, right) =>
+    $({
+      closest: () => box,
+      getBoundingClientRect: () => ({ left, right }),
+    });
+  revealIn(at(-40, -16));
+  assert.equal(box.scrollLeft, 60);
+  revealIn(at(310, 334));
+  assert.equal(box.scrollLeft, 94);
+  revealIn(at(100, 124));
+  assert.equal(box.scrollLeft, 94);
+  // No scroll box, or no layout, leaves everything alone.
+  revealIn($({ closest: () => null }));
+  revealIn($({ closest: () => box }));
+  assert.equal(box.scrollLeft, 94);
 });
