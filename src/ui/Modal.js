@@ -9,8 +9,17 @@ let counter = 0;
 
 // showModal() makes the rest of the page inert, so a toast in the page
 // cannot be dismissed while a dialog is open. The toast region moves
-// into the open dialog and goes back to its old place when it closes.
+// into the newest open dialog. When that dialog closes, the region goes
+// to the newest dialog still open, or to its place in the page. A
+// dialog can open before the close event of another one fires, as when
+// Edit in a view opens the editor, so the order of close events does not
+// decide where the region goes.
 const TOASTS = 'toasts';
+
+/** @type {HTMLDialogElement[]} open dialogs that took the region, oldest first */
+const holders = [];
+/** @type {ParentNode | null} the place of the region in the page */
+let home = null;
 
 /**
  * @typedef {{
@@ -90,13 +99,11 @@ export function modal({
   let opener = null;
   /** @type {string | null} */
   let openerKey = null;
-  /** @type {{ region: HTMLElement, parent: ParentNode } | null} */
-  let moved = null;
   el.addEventListener('close', () => {
-    if (moved?.region.parentNode === el) {
-      moved.parent.append(moved.region);
-    }
-    moved = null;
+    const held = holders.indexOf(el);
+    if (held >= 0) holders.splice(held, 1);
+    const region = document.getElementById(TOASTS);
+    if (region?.parentNode === el) (holders.at(-1) ?? home)?.append(region);
     if (opener?.isConnected && 'focus' in opener) {
       /** @type {HTMLElement} */ (opener).focus();
     } else {
@@ -120,7 +127,8 @@ export function modal({
       el.showModal();
       const region = document.getElementById(TOASTS);
       if (region?.parentNode) {
-        moved = { region, parent: region.parentNode };
+        if (holders.length === 0) home = region.parentNode;
+        holders.push(el);
         el.append(region);
       }
     },

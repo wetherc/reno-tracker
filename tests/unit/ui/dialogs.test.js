@@ -78,6 +78,27 @@ test('modal moves the toast region inside while open and back after', () => {
   inner.el.remove();
 });
 
+test('modal sends the toast region home when an older dialog closes last', () => {
+  // The browser fires the close event of a dialog after the next task,
+  // so Edit in a view opens the editor before the view has closed.
+  const region = document.createElement('div');
+  region.id = 'toasts';
+  dom.body.append($(region));
+  const view = modal({ title: 'View' });
+  const editor = modal({ title: 'Edit' });
+  dom.body.append($(view.el), $(editor.el));
+  view.open();
+  editor.open();
+  assert.equal($(region).parentNode, editor.el);
+  view.close();
+  view.el.remove();
+  assert.equal($(region).parentNode, editor.el);
+  editor.close();
+  assert.equal($(region).parentNode, dom.body);
+  region.remove();
+  editor.el.remove();
+});
+
 test('modal focuses the control that took the place of a removed opener', () => {
   const m = modal({ title: 'Edit' });
   const opener = focusKey(document.createElement('button'), 'row-1:open');
