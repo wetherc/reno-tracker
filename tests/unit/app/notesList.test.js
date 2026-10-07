@@ -67,6 +67,11 @@ test('adding a note requires text, then clears the box', async () => {
   assert.deepEqual(toasts, ['ok Note added']);
   assert.equal(draft.value, '');
   assert.equal(composer.querySelector('.form__error').hidden, true);
+  assert.equal(draft.getAttribute('data-focus'), 'a:note-draft');
+  assert.equal(
+    composer.querySelector('button[type="submit"]').getAttribute('data-focus'),
+    'a:add-note',
+  );
 });
 
 test('editing swaps the body for a form and saves', async () => {
@@ -166,6 +171,8 @@ test('delete asks first and shows the empty state when none remain', async () =>
   $(dom.body.children[0].children[2].children[1]).click();
   await tick();
   assert.deepEqual(log, ['unnote n2', 'unnote n1']);
+  // The deleted note's buttons are gone, so the new-note box has focus.
+  assert.equal(dom.activeElement, list.el.querySelector('textarea'));
   assert.equal(ul.hidden, true);
   assert.equal(
     $(list.el.querySelector('.empty-state')).textContent,

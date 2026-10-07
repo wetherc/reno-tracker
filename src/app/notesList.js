@@ -36,7 +36,11 @@ export function notesList({ ctx, itemId, notes }) {
     label: 'New note',
     placeholder: 'What happened, what was decided, who said so.',
   });
-  const add = button({ label: 'Add note', variant: 'primary', type: 'submit' });
+  focusKey(draft.input, `${itemId}:note-draft`);
+  const add = focusKey(
+    button({ label: 'Add note', variant: 'primary', type: 'submit' }),
+    `${itemId}:add-note`,
+  );
   const composer = form({ ariaLabel: 'Write a note', onSubmit: submitDraft });
   composer.append(draft.el, formActions([add]));
 
@@ -91,20 +95,26 @@ export function notesList({ ctx, itemId, notes }) {
       }),
       `${note.id}:edit-note`,
     );
-    const remove = iconButton({
-      icon: 'trash',
-      label: 'Delete note',
-      onClick: async () => {
-        const yes = await confirmDialog({
-          title: 'Delete this note?',
-          message: note.body,
-        });
-        if (!yes) return;
-        await ctx.write((api) => api.deleteNote(note.id), {
-          done: 'Note deleted',
-        });
-      },
-    });
+    const remove = focusKey(
+      iconButton({
+        icon: 'trash',
+        label: 'Delete note',
+        onClick: async () => {
+          const yes = await confirmDialog({
+            title: 'Delete this note?',
+            message: note.body,
+          });
+          if (!yes) return;
+          const outcome = await ctx.write((api) => api.deleteNote(note.id), {
+            done: 'Note deleted',
+          });
+          // The note and its buttons are gone, so the new-note box takes
+          // focus.
+          if (outcome.ok) draft.input.focus();
+        },
+      }),
+      `${note.id}:delete-note`,
+    );
     meta.append(when, edit, remove);
     li.append(meta, body);
     return li;
@@ -123,7 +133,10 @@ export function notesList({ ctx, itemId, notes }) {
       value: note.body,
     });
     focusKey(field.input, `${note.id}:note-text`);
-    const save = button({ label: 'Save', variant: 'primary', type: 'submit' });
+    const save = focusKey(
+      button({ label: 'Save', variant: 'primary', type: 'submit' }),
+      `${note.id}:save-note`,
+    );
     const cancel = button({ label: 'Cancel', onClick: () => restore() });
     const editor = form({
       ariaLabel: 'Edit note',

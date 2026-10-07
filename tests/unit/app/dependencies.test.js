@@ -119,6 +119,10 @@ test('an unlinked item offers the others and links one', async () => {
     'Waits on nothing. It can start any time.',
   );
   const select = picker.querySelector('select');
+  assert.equal(
+    picker.querySelector('button').getAttribute('data-focus'),
+    'c:link',
+  );
   assert.deepEqual(
     select.children.map((/** @type {any} */ o) => o.textContent),
     ['Demo', 'Rough plumbing'],

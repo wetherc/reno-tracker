@@ -7,6 +7,7 @@ import { ApiError } from '../api/errors.js';
 import { gapDays } from '../schedule/dates.js';
 import { button, iconButton } from '../ui/buttons.js';
 import { emptyState } from '../ui/emptyState.js';
+import { focusKey } from '../ui/focusKey.js';
 import { form, selectField } from '../ui/formFields.js';
 import { sectionLabel } from '../ui/sectionLabel.js';
 
@@ -56,7 +57,10 @@ export function dependencyLinks({ ctx, item }) {
 
   /** @type {ReturnType<typeof selectField> | null} */
   let picker = null;
-  const link = button({ label: 'Link', icon: 'link', type: 'submit' });
+  const link = focusKey(
+    button({ label: 'Link', icon: 'link', type: 'submit' }),
+    `${item.id}:link`,
+  );
   const pickerForm = form({ ariaLabel: 'Add a predecessor', onSubmit: add });
   pickerForm.classList.add('links__picker');
 
