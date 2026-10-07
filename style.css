@@ -3,6 +3,7 @@
    cascade order is stated in exactly one place. */
 @import url('styles/base.css');
 @import url('styles/widgets.css');
+@import url('styles/recordView.css');
 @import url('styles/layout.css');
 @import url('styles/schedule.css');
 @import url('styles/notes.css');

@@ -18,6 +18,7 @@ import { focusKey } from '../ui/focusKey.js';
 import { stackedCell } from '../ui/stackedCell.js';
 import { openChangeOrderEditor } from './changeOrderEditor.js';
 import { lineNames } from './lineList.js';
+import { openChangeOrderView } from './recordViews.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
@@ -130,7 +131,7 @@ export function mountChangeOrders({ ctx, shell }) {
               bareButton({
                 className: 'doc-party',
                 label: order.party,
-                onClick: () => openChangeOrderEditor({ ctx, order }),
+                onClick: () => openChangeOrderView({ ctx, order }),
               }),
               `${order.id}:open`,
             ),

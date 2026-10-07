@@ -8,7 +8,7 @@ import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { completeToggle } from './completeToggle.js';
 import { lateBadge } from './lateBadge.js';
-import { openScheduleEditor } from './scheduleEditor.js';
+import { openScheduleView } from './recordViews.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ScheduleItem} ScheduleItem */
@@ -56,7 +56,7 @@ function row(ctx, item, today) {
     children: item.complete
       ? [icon('check', { label: 'Complete' }), item.title]
       : [item.title],
-    onClick: () => openScheduleEditor({ ctx, item }),
+    onClick: () => openScheduleView({ ctx, item }),
   });
   focusKey(title, `${item.id}:day`);
   const range = document.createElement('span');

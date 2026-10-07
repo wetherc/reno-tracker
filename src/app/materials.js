@@ -22,6 +22,7 @@ import {
   totalCostVariance,
   varianceCell,
 } from './scheduleTable.js';
+import { openMaterialView } from './recordViews.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
@@ -166,7 +167,7 @@ export function mountMaterials({ ctx, shell }) {
                 children: item.complete
                   ? [icon('check', { label: 'Bought' }), item.name]
                   : [item.name],
-                onClick: () => openMaterialEditor({ ctx, item }),
+                onClick: () => openMaterialView({ ctx, item }),
               }),
               `${item.id}:open`,
             ),

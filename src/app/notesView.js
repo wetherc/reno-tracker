@@ -7,7 +7,7 @@ import { notesByDay } from '../notes/byDay.js';
 import { bareButton, button } from '../ui/buttons.js';
 import { emptyState } from '../ui/emptyState.js';
 import { focusKey } from '../ui/focusKey.js';
-import { openScheduleEditor } from './scheduleEditor.js';
+import { openScheduleView } from './recordViews.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
@@ -73,7 +73,7 @@ export function mountNotes({ ctx, shell }) {
     const open = bareButton({
       className: 'note__item',
       children: [item.title],
-      onClick: () => openScheduleEditor({ ctx, item, tab: 'notes' }),
+      onClick: () => openScheduleView({ ctx, item }),
     });
     focusKey(open, `${note.id}:item`);
     meta.append(open);

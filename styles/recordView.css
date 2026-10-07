@@ -1,0 +1,108 @@
+/* The read-only view of a saved record. Facts read like a statement:
+   the label on the left, the value on the right, and a dotted rule
+   between rows that guides the eye across. */
+.record-view .modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.record-view__facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.record-view__fact {
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: 1px dotted var(--border-strong);
+}
+
+.record-view__fact:last-child {
+  border-bottom: 0;
+}
+
+.record-view__fact dd {
+  margin: 0;
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.record-view__description {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: var(--line-body);
+}
+
+.record-view__note {
+  margin: 0;
+  font-size: var(--text-label);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.record-view .section-label {
+  margin: var(--space-2) 0 0;
+}
+
+.record-view__table {
+  width: 100%;
+}
+
+.record-view__table tfoot tr:last-child > * {
+  font-weight: 700;
+}
+
+/* The buttons of the view sit in the dialog footer as if they were its
+   own children. */
+.record-view__actions {
+  display: contents;
+}
+
+.record-view__table {
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.record-view__table th,
+.record-view__table td {
+  padding: var(--space-2) var(--space-2);
+  text-align: right;
+  vertical-align: baseline;
+  border-bottom: 1px solid var(--border);
+}
+
+.record-view__table > * > tr > :first-child {
+  padding-left: 0;
+  text-align: left;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.record-view__table > * > tr > :last-child {
+  padding-right: 0;
+}
+
+.record-view__table thead th {
+  font-size: var(--text-label);
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.record-view__table tfoot > tr > * {
+  border-bottom: 0;
+  padding-block: var(--space-1);
+  color: var(--text-muted);
+}
+
+.record-view__table tfoot tr:first-child > * {
+  padding-top: var(--space-3);
+}
+
+.record-view__table tfoot tr:last-child > * {
+  color: var(--text);
+}

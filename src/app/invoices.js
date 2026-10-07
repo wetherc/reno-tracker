@@ -22,6 +22,7 @@ import {
   statusBadge,
   statusText,
 } from './invoiceOwed.js';
+import { openInvoiceView } from './recordViews.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
@@ -85,7 +86,7 @@ export function mountInvoices({ ctx, shell }) {
               bareButton({
                 className: 'doc-party',
                 label: invoice.party,
-                onClick: () => openInvoiceEditor({ ctx, invoice }),
+                onClick: () => openInvoiceView({ ctx, invoice }),
               }),
               `${invoice.id}:open`,
             ),

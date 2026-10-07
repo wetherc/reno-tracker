@@ -185,12 +185,13 @@ test('focus with no day to land on is dropped', async () => {
   assert.deepEqual(entries(el), ['agenda__today']);
 });
 
-test('a title opens the editor and the checkbox marks the item done', async () => {
+test('a title opens the view and the checkbox marks the item done', async () => {
   const { el, log } = await setup(items);
   el.querySelectorAll('.agenda-row__title')[1].click();
   const dialog = $(dom.body.children[0]);
   assert.equal(dialog.tagName, 'DIALOG');
-  assert.match(dialog.textContent, /Rough plumbing/);
+  assert.ok(dialog.classList.contains('record-view'));
+  assert.equal(dialog.querySelector('.modal__title').textContent, 'Demo');
   dialog.close();
   const box = el.querySelectorAll('.agenda-row')[2].children[0];
   box.checked = true;

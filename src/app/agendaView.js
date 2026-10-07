@@ -17,7 +17,7 @@ import { icon } from '../ui/icon.js';
 import { sectionLabel } from '../ui/sectionLabel.js';
 import { completeToggle } from './completeToggle.js';
 import { lateBadge } from './lateBadge.js';
-import { openScheduleEditor } from './scheduleEditor.js';
+import { openScheduleView } from './recordViews.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
@@ -157,7 +157,7 @@ export function agendaView({ ctx }) {
         children: item.complete
           ? [icon('check', { label: 'Complete' }), item.title]
           : [item.title],
-        onClick: () => openScheduleEditor({ ctx, item }),
+        onClick: () => openScheduleView({ ctx, item }),
       });
       focusKey(title, `${item.id}:open`);
       // The toggle takes the first column, and the title stacks over

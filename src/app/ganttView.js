@@ -14,7 +14,7 @@ import { focusKey } from '../ui/focusKey.js';
 import { completeToggle } from './completeToggle.js';
 import { fitLabels, ganttBar, moveMessage } from './ganttBar.js';
 import { lateBadge } from './lateBadge.js';
-import { openScheduleEditor } from './scheduleEditor.js';
+import { openScheduleView } from './recordViews.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
@@ -99,7 +99,7 @@ export function ganttView({ ctx }) {
           row,
           dayWidth: layout.dayWidth,
           chartWidth: layout.width,
-          onOpen: (item) => openScheduleEditor({ ctx, item }),
+          onOpen: (item) => openScheduleView({ ctx, item }),
           onMove: move,
           onPreview: (text) => {
             status.textContent = text ?? '';
@@ -170,7 +170,7 @@ export function ganttView({ ctx }) {
     const name = bareButton({
       className: 'gantt__name',
       label: item.title,
-      onClick: () => openScheduleEditor({ ctx, item }),
+      onClick: () => openScheduleView({ ctx, item }),
     });
     focusKey(name, `${item.id}:open`);
     const head = document.createElement('div');

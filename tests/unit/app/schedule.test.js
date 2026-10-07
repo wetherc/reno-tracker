@@ -263,11 +263,26 @@ test('the checkbox writes complete and rolls back on failure', async () => {
   assert.deepEqual(toasts.at(-1), 'ok Reopened Demo');
 });
 
-test('title and notes count open the editor on the right tab', async () => {
+test('title and notes count open the view or the editor on the right tab', async () => {
   const { shell } = await setup({ schedule: [itemOf('a', { title: 'Demo' })] });
   const [demo] = rows(shell);
+  /** @param {string} label */
+  const viewButton = (label) =>
+    $(dom.body.children[0])
+      .querySelectorAll('button')
+      .find((/** @type {any} */ b) => b.textContent === label);
   demo.children[1].children[0].children[0].click();
+  assert.ok($(dom.body.children[0]).classList.contains('record-view'));
+  viewButton('Changes').click();
   let dialog = $(dom.body.children[0]);
+  assert.equal(
+    dialog.querySelectorAll('[role="tab"]')[3].getAttribute('aria-selected'),
+    'true',
+  );
+  dialog.close();
+  demo.children[1].children[0].children[0].click();
+  viewButton('Edit').click();
+  dialog = $(dom.body.children[0]);
   assert.equal(
     dialog.querySelectorAll('[role="tab"]')[0].getAttribute('aria-selected'),
     'true',

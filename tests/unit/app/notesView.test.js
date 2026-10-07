@@ -74,13 +74,20 @@ test('lists every note under its day, newest first, with its item', async () => 
   assert.doesNotMatch(cards[1].children[0].children[1].textContent, /edited/);
 });
 
-test('the item name opens the editor on the Notes tab', async () => {
+test('the item name opens the view, and its Notes button the Notes tab', async () => {
   const { shell } = await setup({
     schedule: [itemOf('a')],
     notes: [noteOf('n1', 'a', 'Hello', '2026-09-01T10:00:00Z')],
   });
   const open = $(shell.body.children[0]).querySelector('.note__item');
   open.click();
+  const view = $(document.body).querySelector('dialog');
+  assert.ok(view.classList.contains('record-view'));
+  assert.match(view.textContent, /1 note/);
+  view
+    .querySelectorAll('button')
+    .find((/** @type {any} */ b) => b.textContent === 'Notes')
+    .click();
   const dialog = $(document.body).querySelector('dialog');
   assert.equal(dialog.querySelector('.modal__title').textContent, 'Item a');
   const selected = dialog

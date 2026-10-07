@@ -30,7 +30,7 @@ import { focusKey, keepFocus } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { isLate } from '../entities/scheduleItem.js';
 import { dayListParts } from './calendarDay.js';
-import { openScheduleEditor } from './scheduleEditor.js';
+import { openScheduleView } from './recordViews.js';
 
 /** @typedef {import('./context.js').AppContext} AppContext */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
@@ -234,7 +234,7 @@ export function calendarView({ ctx, onMore }) {
           ...(item.complete ? [icon('check')] : late ? [icon('alert')] : []),
           span('cal-bar__title', item.title),
         ],
-        onClick: () => openScheduleEditor({ ctx, item }),
+        onClick: () => openScheduleView({ ctx, item }),
       });
       // An item that spans weeks has one bar per week, and each needs its
       // own key so focus comes back to the bar that had it.

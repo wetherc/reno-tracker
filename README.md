@@ -15,7 +15,21 @@ static site on GitHub Pages, where it keeps its data in the browser.
   tracked field that a save changes, with an optional reason.
 - Notes on each schedule item, and a Notes section that lists every note
   in the project under the day it was written, newest first. Each note
-  names its item, and that name opens the item's editor on its Notes tab.
+  names its item, and that name opens the view of the item.
+- A read-only view of each saved record. A click on a saved schedule
+  item, material, invoice, or change order opens its view in a dialog,
+  and the Edit button in the view opens the editor. Delete is in the
+  editor only. A new record opens the editor at once. The view of a
+  schedule item shows its dates, party, raw costs, rate, blended total,
+  links, and note count, and its Notes and Changes buttons open the
+  editor on that tab. The view of a material shows its item, expected
+  day, allowance, estimate, actual price, and rate. The view of an
+  invoice or a change order lists each line with its raw amount and
+  rate, marked "(invoice rate)" or "(change order rate)" when the line
+  takes the rate of its document, then the subtotal, markup, and total.
+  An invoice view also lists the payments, the retainage, the open
+  balance, and the status. A view draws again after each refetch, and
+  it closes when its record is deleted.
 - A bill of materials for non-labor costs. Each material has an allowance,
   an estimated cost, an actual cost, and an expected day. A material with
   no estimate counts its allowance as its expected cost.
@@ -498,6 +512,18 @@ they were built for: `.disclosure` / `__chevron` / `--open`,
 `__value` / `--row`, `.chip-list`, `.cell-stack` / `__note` for an
 amount over a small note in a table cell, and `.doc-party` for the party
 button in the invoice and change order tables.
+
+`src/ui/recordView.js` builds the read-only view dialog, and
+`styles/recordView.css` styles it. `factList` writes label and value
+rows as a `<dl>` with the `.fact-line--row` classes, and
+`openRecordView` takes a finder, a render function, and a subscribe
+function, so the view draws again on each payload and closes when the
+finder returns null. `src/app/recordViews.js` builds the view of each
+record type on top of it.
+
+While a dialog is open, `Modal.js` moves the `#toasts` region into the
+dialog and moves it back on close. `showModal()` makes the rest of the
+page inert, and a toast outside the dialog then takes no clicks.
 
 ### Layout and responsiveness
 
