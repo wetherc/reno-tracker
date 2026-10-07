@@ -88,16 +88,20 @@ export function readSort(value) {
   return { key: match[1], dir: match[2] === 'asc' ? 'asc' : 'desc' };
 }
 
-/** @returns {StorageLike} localStorage when usable, else memory */
+/**
+ * localStorage when usable, else memory. `kept` is false for memory, so
+ * the page can warn that its rows go away when the page closes.
+ * @returns {{ storage: StorageLike, kept: boolean }}
+ */
 export function browserStorage() {
   try {
     const store = globalThis.localStorage;
     if (store) {
       store.getItem(PREFIX + 'probe');
-      return store;
+      return { storage: store, kept: true };
     }
   } catch {
     // Fall through to memory.
   }
-  return memoryStorage();
+  return { storage: memoryStorage(), kept: false };
 }

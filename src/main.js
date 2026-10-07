@@ -26,10 +26,16 @@ function byId(id) {
 }
 
 trackFocus(document);
-const storage = browserStorage();
+const { storage, kept } = browserStorage();
 const prefs = createPrefs(storage);
 const toaster = createToaster(byId('toasts'));
-const api = createBackend(readBackend(document), storage, window);
+const backend = readBackend(document);
+const api = createBackend(backend, storage, window);
+if (backend === 'local' && !kept) {
+  toaster.failure(
+    'This browser blocks site storage, so your projects will not be kept after the page closes. Save each project to a file before you leave.',
+  );
+}
 const ctx = createContext({ api, prefs, toaster });
 
 mountTheme(byId('theme-toggle'), prefs);

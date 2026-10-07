@@ -49,7 +49,8 @@ test('prefs swallow storage errors', () => {
 });
 
 test('browserStorage falls back to memory without localStorage', () => {
-  const store = browserStorage();
+  const { storage: store, kept } = browserStorage();
+  assert.equal(kept, false);
   store.setItem('a', '1');
   assert.equal(store.getItem('a'), '1');
   store.removeItem('a');
@@ -63,7 +64,7 @@ test('browserStorage uses localStorage when it is present', () => {
     configurable: true,
   });
   try {
-    assert.equal(browserStorage(), fake);
+    assert.deepEqual(browserStorage(), { storage: fake, kept: true });
   } finally {
     // @ts-ignore test cleanup
     delete globalThis.localStorage;
@@ -78,7 +79,8 @@ test('browserStorage falls back when localStorage throws', () => {
     configurable: true,
   });
   try {
-    const store = browserStorage();
+    const { storage: store, kept } = browserStorage();
+    assert.equal(kept, false);
     store.setItem('x', 'y');
     assert.equal(store.getItem('x'), 'y');
   } finally {

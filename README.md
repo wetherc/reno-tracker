@@ -174,7 +174,9 @@ Each project then lives in the browser's `localStorage` under its own
 key, `reno-tracker:project:<id>`, on the device and in the browser profile
 that wrote it. The Save button in the project picker writes a project to a
 JSON file, and Load reads that file back, so a project can move between
-the static site and a local server, or between two browsers.
+the static site and a local server, or between two browsers. When the
+browser blocks `localStorage`, the store keeps the projects in memory,
+and a danger toast at load says that they go away when the page closes.
 
 The store parses every project once and keeps the rows in memory, so a
 refetch after a write parses nothing. A write stores only the project it
