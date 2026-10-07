@@ -133,6 +133,18 @@ export function materialsNote(progress) {
 }
 
 /**
+ * The width of the chart model in svg units. Under the layout
+ * breakpoint the figure is about 30rem wide, so a model of the same
+ * width draws the axis text at its own size. A 960 model there scales
+ * the text down to about 6px.
+ * @param {{ matchMedia?: (query: string) => { matches: boolean } }} [win]
+ * @returns {number}
+ */
+export function chartWidth(win = globalThis) {
+  return win.matchMedia?.('(max-width: 68rem)').matches ? 480 : 960;
+}
+
+/**
  * The label for one day on the cumulative chart: the day, what landed
  * on it, both running totals, and and the budget less the expected total.
  * @param {Marker} marker
@@ -277,8 +289,9 @@ export function mountCosts({ ctx, shell }) {
       budgetCents: payload.project.budgetCents,
       today,
       ...range,
+      width: chartWidth(),
     });
-    const bars = barChartModel({ weeks });
+    const bars = barChartModel({ weeks, width: chartWidth() });
 
     const root = document.createElement('div');
     root.className = 'costs';

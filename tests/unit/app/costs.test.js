@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { installDom } from '../domShim.js';
 import {
   chartRange,
+  chartWidth,
   describeMarker,
   describeWeek,
   markerTargets,
@@ -567,4 +568,13 @@ test('the line items sort by each money column', async () => {
   // open estimate, so it counts the estimate.
   sortBy('Vs estimate');
   assert.deepEqual(names(), ['Demo', 'Trim', 'Tile']);
+});
+
+test('chartWidth draws a narrow model under the breakpoint', () => {
+  /** @param {boolean} matches */
+  const win = (matches) => ({ matchMedia: () => ({ matches }) });
+  assert.equal(chartWidth(win(true)), 480);
+  assert.equal(chartWidth(win(false)), 960);
+  assert.equal(chartWidth({}), 960);
+  assert.equal(chartWidth(), 960);
 });
