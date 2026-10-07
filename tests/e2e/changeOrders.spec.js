@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { dropProject, openProject, seedProject } from './seed.js';
+import { dropProject, openProject, seedProject, editRecord } from './seed.js';
 
 test('an approved change order raises the estimates of the rows it adds to', async ({
   page,
@@ -76,6 +76,7 @@ test('an approved change order raises the estimates of the rows it adds to', asy
 
     await page.getByRole('button', { name: 'Change orders' }).click();
     await table.getByRole('button', { name: 'Pinch Plumbing' }).click();
+    await editRecord(page);
     await dialog.getByLabel('Status').selectOption('approved');
     await dialog.getByRole('button', { name: 'Save' }).click();
     await expect(dialog).toBeHidden();
@@ -97,6 +98,7 @@ test('an approved change order raises the estimates of the rows it adds to', asy
     await tile
       .getByRole('button', { name: 'Tile the floor', exact: true })
       .click();
+    await editRecord(page);
     await expect(dialog.getByLabel('Raw estimate')).toHaveValue('1000.00');
     await expect(
       dialog.getByText(
@@ -111,6 +113,11 @@ test('an approved change order raises the estimates of the rows it adds to', asy
       path: 'test-results/change-order-item-editor.png',
       animations: 'disabled',
     });
+    // A failure toast stays in the dialog until it is dismissed.
+    await page
+      .locator('.toast--danger')
+      .getByRole('button', { name: 'Dismiss' })
+      .click();
     await dialog.getByRole('button', { name: 'Cancel' }).click();
     await expect(dialog).toBeHidden();
 
@@ -132,6 +139,11 @@ test('an approved change order raises the estimates of the rows it adds to', asy
     await page.getByRole('radio', { name: 'Dark' }).click();
     await page.getByRole('button', { name: 'Change orders' }).click();
     await table.getByRole('button', { name: 'Pinch Plumbing' }).click();
+    await page.screenshot({
+      path: 'test-results/change-order-view-dark.png',
+      animations: 'disabled',
+    });
+    await editRecord(page);
     await page.screenshot({
       path: 'test-results/change-order-editor-dark.png',
       animations: 'disabled',

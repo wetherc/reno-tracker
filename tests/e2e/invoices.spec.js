@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { dropProject, openProject, seedProject } from './seed.js';
+import { dropProject, openProject, seedProject, editRecord } from './seed.js';
 
 test('an invoice bills a schedule item and a material and sets their actual cost', async ({
   page,
@@ -70,6 +70,11 @@ test('an invoice bills a schedule item and a material and sets their actual cost
       .getByRole('button', { name: 'Pinch Plumbing', exact: true })
       .click();
     await page.screenshot({
+      path: 'test-results/invoice-view-dark.png',
+      animations: 'disabled',
+    });
+    await editRecord(page);
+    await page.screenshot({
       path: 'test-results/invoice-editor-dark.png',
       animations: 'disabled',
     });
@@ -81,6 +86,7 @@ test('an invoice bills a schedule item and a material and sets their actual cost
     const vanity = page.locator('tbody tr', { hasText: 'Vanity' });
     await expect(vanity).toContainText('$875.50');
     await vanity.getByRole('button', { name: 'Vanity' }).click();
+    await editRecord(page);
     await expect(dialog.getByLabel('Actual')).toHaveValue('875.50');
     await expect(dialog.getByLabel('Actual')).toHaveAttribute('readonly', '');
     await expect(dialog.getByText('The sum of 1 invoice line')).toBeVisible();
@@ -146,6 +152,7 @@ test('payments and retainage set what an invoice still owes', async ({
       .first()
       .click();
     const dialog = page.getByRole('dialog');
+    await editRecord(page);
     const payments = dialog.locator('.payment-list');
     await expect(payments.locator('.payment-list__empty')).toBeVisible();
     await payments.getByRole('button', { name: 'Add payment' }).click();

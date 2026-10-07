@@ -1,12 +1,27 @@
-// The Playwright test with one automatic check: a page that breaks the
-// server's Content-Security-Policy fails the test. Chromium reports each
-// blocked load or style in the console and does not throw.
+// The Playwright test with two automatic fixtures. A page that breaks the
+// server's Content-Security-Policy fails the test, because Chromium
+// reports each blocked load or style in the console and does not throw.
+// Each test of the server project starts from an empty database, so a
+// test that fails before it deletes its project cannot change the next
+// test.
 import { test as base, expect } from '@playwright/test';
 
 export { expect };
 
-/** @type {import('@playwright/test').Fixtures<{ cspGuard: null }, {}, import('@playwright/test').PlaywrightTestArgs>} */
+/** @type {import('@playwright/test').Fixtures<{ cspGuard: null, emptyDb: null }, {}, import('@playwright/test').PlaywrightTestArgs & import('@playwright/test').PlaywrightTestOptions>} */
 const fixtures = {
+  emptyDb: [
+    async ({ request }, use, testInfo) => {
+      if (testInfo.project.name === 'server') {
+        const projects = await (await request.get('/api/projects')).json();
+        for (const { id } of projects) {
+          await request.delete(`/api/projects/${id}`);
+        }
+      }
+      await use(null);
+    },
+    { auto: true },
+  ],
   cspGuard: [
     async ({ page }, use) => {
       /** @type {string[]} */

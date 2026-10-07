@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { editRecord } from './seed.js';
 
 test('list materials, tie one to the schedule, buy one, read the totals', async ({
   page,
@@ -60,6 +61,7 @@ test('list materials, tie one to the schedule, buy one, read the totals', async 
 
   // Buying the tile at a real price moves the variance.
   await table.getByRole('button', { name: 'Porcelain tile' }).click();
+  await editRecord(page);
   await dialog.getByLabel('Actual').fill('1,180');
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog).toBeHidden();
@@ -82,6 +84,7 @@ test('list materials, tie one to the schedule, buy one, read the totals', async 
 
   // Delete the vanity from the editor.
   await table.getByRole('button', { name: 'Vanity' }).click();
+  await editRecord(page);
   await dialog.getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByRole('dialog').last()).toContainText('Delete Vanity?');
   await page

@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { editRecord } from './seed.js';
 
 /**
  * @param {import('@playwright/test').Page} page
@@ -54,9 +55,10 @@ test('the calendar draws bars, folds the overflow, and turns months', async ({
   await expect(cal.locator('.cal__title')).toHaveText('November 2026');
   await expect(drywall).toHaveClass(/cal-bar--before/);
 
-  // A bar opens the editor for its item, and the editor marks it
-  // complete without a save.
+  // A bar opens the view of its item. Its editor marks it complete
+  // without a save.
   await drywall.click();
+  await editRecord(page);
   await expect(dialog.getByLabel('Title')).toHaveValue('Drywall');
   await dialog.getByLabel('Drywall complete').check();
   await expect(page.getByText('Marked Drywall complete')).toBeVisible();

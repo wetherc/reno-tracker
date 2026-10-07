@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { editRecord } from './seed.js';
 
 /**
  * @param {import('@playwright/test').Page} page
@@ -77,8 +78,10 @@ test('the agenda lists days, marks today, filters finished work, and lands on a 
   await expect(days).toHaveCount(6);
   await page.getByRole('radio', { name: 'All', exact: true }).click();
 
-  // A title opens the editor.
+  // A title opens the read-only view, and Edit opens the editor.
   await agenda.getByRole('button', { name: 'Drywall' }).last().click();
+  await expect(dialog.getByRole('heading', { name: 'Drywall' })).toBeVisible();
+  await editRecord(page);
   await expect(dialog.getByLabel('Title')).toHaveValue('Drywall');
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog).toBeHidden();

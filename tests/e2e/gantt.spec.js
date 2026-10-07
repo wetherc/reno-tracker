@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { editRecord } from './seed.js';
 
 /**
  * @param {import('@playwright/test').Page} page
@@ -24,6 +25,7 @@ async function addItem(page, title, start, end) {
 async function link(page, successor, predecessor) {
   const dialog = page.getByRole('dialog');
   await page.getByRole('button', { name: successor, exact: true }).click();
+  await editRecord(page);
   await dialog.getByRole('tab', { name: 'Waits on' }).click();
   await dialog.getByLabel('Has to finish first').selectOption(predecessor);
   await dialog.getByRole('button', { name: 'Link', exact: true }).click();
@@ -123,7 +125,7 @@ test('the gantt draws bars in order, links them, and moves a bar by key and by d
 
   // The change log has the drag.
   await gantt.getByRole('button', { name: 'Rough plumbing' }).first().click();
-  await dialog.getByRole('tab', { name: 'Changes' }).click();
+  await dialog.getByRole('button', { name: 'Changes', exact: true }).click();
   await expect(dialog.getByText('Oct 8, 2026').first()).toBeVisible();
   await dialog.getByRole('button', { name: 'Close' }).click();
 

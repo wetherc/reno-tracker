@@ -23,7 +23,7 @@ async function addItem(page, { title, who, start, end }) {
 async function addNote(page, title, body) {
   const dialog = page.getByRole('dialog');
   await page.getByRole('button', { name: title, exact: true }).click();
-  await dialog.getByRole('tab', { name: 'Notes' }).click();
+  await dialog.getByRole('button', { name: 'Notes', exact: true }).click();
   await dialog.getByLabel('New note').fill(body);
   await dialog.getByRole('button', { name: 'Add note' }).click();
   await expect(dialog.locator('.note__body').first()).toHaveText(body);
@@ -87,6 +87,7 @@ test('the notes section reads every note by day and opens the item', async ({
 
   await list.getByRole('button', { name: 'Rough plumbing' }).click();
   const editor = page.getByRole('dialog', { name: 'Rough plumbing' });
+  await editor.getByRole('button', { name: 'Notes', exact: true }).click();
   await expect(editor.getByRole('tab', { name: 'Notes' })).toHaveAttribute(
     'aria-selected',
     'true',

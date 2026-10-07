@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { editRecord } from './seed.js';
 
 /**
  * @param {import('@playwright/test').Page} page
@@ -61,6 +62,7 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
   await table
     .getByRole('button', { name: 'Rough plumbing', exact: true })
     .click();
+  await editRecord(page);
   await expect(dialog.getByRole('tab', { name: 'Details' })).toHaveAttribute(
     'aria-selected',
     'true',
@@ -77,7 +79,7 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
   await table
     .getByRole('button', { name: 'Rough plumbing', exact: true })
     .click();
-  await dialog.getByRole('tab', { name: 'Changes' }).click();
+  await dialog.getByRole('button', { name: 'Changes', exact: true }).click();
   const entries = dialog.locator('.variance-entry');
   await expect(entries).toHaveCount(2);
   await expect(entries.first()).toContainText('Slab needed a second pour');
@@ -101,6 +103,7 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
   await dialog.getByRole('button', { name: 'Close' }).click();
 
   await table.getByRole('button', { name: 'Cabinets', exact: true }).click();
+  await editRecord(page);
   await dialog.getByRole('tab', { name: 'Waits on' }).click();
   await dialog.getByLabel('Has to finish first').selectOption('Rough plumbing');
   await dialog.getByRole('button', { name: 'Link', exact: true }).click();
@@ -112,6 +115,7 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
   await dialog.getByRole('button', { name: 'Close' }).click();
 
   await table.getByRole('button', { name: 'Demo', exact: true }).click();
+  await editRecord(page);
   await dialog.getByRole('tab', { name: 'Waits on' }).click();
   await expect(dialog.getByRole('list', { name: 'Holds up' })).toContainText(
     'Rough plumbing',
@@ -127,7 +131,7 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
     .click();
 
   // A note from the notes tab shows without closing.
-  await dialog.getByRole('tab', { name: 'Notes' }).click();
+  await dialog.getByRole('button', { name: 'Notes', exact: true }).click();
   await dialog.getByLabel('New note').fill('Inspector booked for the 15th.');
   await dialog.getByRole('button', { name: 'Add note' }).click();
   await expect(dialog.locator('.note__body')).toHaveText(
@@ -160,6 +164,7 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
 
   // Delete Cabinets from the editor.
   await table.getByRole('button', { name: 'Cabinets', exact: true }).click();
+  await editRecord(page);
   await dialog.getByRole('button', { name: 'Delete' }).click();
   await expect(page.getByRole('dialog').last()).toContainText(
     'Delete Cabinets?',

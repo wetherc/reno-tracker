@@ -49,3 +49,15 @@ export async function openProject(page, name) {
 export async function dropProject(request, id) {
   await request.delete(`/api/projects/${id}`);
 }
+
+/**
+ * Presses Edit in the open read-only view of a saved record, which
+ * opens its editor.
+ * @param {import('@playwright/test').Page} page
+ */
+export async function editRecord(page) {
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Edit', exact: true })
+    .click();
+}

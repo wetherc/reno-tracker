@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { dropProject, openProject, seedProject } from './seed.js';
+import { dropProject, openProject, seedProject, editRecord } from './seed.js';
 
 test('focus stays on the control after a write rebuilds the panel', async ({
   page,
@@ -29,6 +29,7 @@ test('focus stays on the control after a write rebuilds the panel', async ({
   await title.focus();
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog');
+  await editRecord(page);
   await dialog.getByLabel('End').fill('2026-10-12');
   await page.keyboard.press('Enter');
   await expect(dialog).toBeHidden();
@@ -37,6 +38,7 @@ test('focus stays on the control after a write rebuilds the panel', async ({
   ).toBeFocused();
 
   await page.keyboard.press('Enter');
+  await editRecord(page);
   await dialog.getByRole('checkbox', { name: 'Framing complete' }).focus();
   await page.keyboard.press('Space');
   await expect(
