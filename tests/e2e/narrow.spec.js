@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { dropProject, openProject, seedProject } from './seed.js';
+import { dropProject, editRecord, openProject, seedProject } from './seed.js';
 
 test.use({ hasTouch: true });
 
@@ -61,6 +61,11 @@ test('no section or view scrolls sideways on a 390px phone', async ({
     .getByRole('button', { name: 'Pacific Plumbing and Heating', exact: true })
     .click();
   await expect(page.getByRole('dialog')).toBeVisible();
+  expect(await width(), 'invoice view').toBe(390);
+  await editRecord(page);
+  await expect(
+    page.getByRole('dialog').getByLabel('Invoice no.'),
+  ).toBeVisible();
   expect(await width(), 'invoice editor').toBe(390);
   await page.screenshot({
     path: 'test-results/invoice-editor-narrow.png',
@@ -76,6 +81,11 @@ test('no section or view scrolls sideways on a 390px phone', async ({
     .getByRole('button', { name: 'Pacific Plumbing and Heating', exact: true })
     .click();
   await expect(page.getByRole('dialog')).toBeVisible();
+  expect(await width(), 'change order view').toBe(390);
+  await editRecord(page);
+  await expect(
+    page.getByRole('dialog').getByLabel('Change order no.'),
+  ).toBeVisible();
   expect(await width(), 'change order editor').toBe(390);
   await page.keyboard.press('Escape');
   await nav.getByRole('button', { name: 'Schedule' }).click();

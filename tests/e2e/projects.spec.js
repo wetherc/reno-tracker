@@ -87,7 +87,10 @@ test('save a project to a file and load it back as a new project', async ({
   expect(download.suggestedFilename()).toMatch(
     /^garage-\d{4}-\d{2}-\d{2}\.json$/,
   );
-  const path = await download.path();
+  // The file keeps its suggested name, so the load toast names it the
+  // way it names a file that a person picks.
+  const path = test.info().outputPath(download.suggestedFilename());
+  await download.saveAs(path);
   await expect(page.locator('.toast').last()).toContainText('Saved garage-');
 
   const choosing = page.waitForEvent('filechooser');
@@ -95,7 +98,7 @@ test('save a project to a file and load it back as a new project', async ({
   const chooser = await choosing;
   await chooser.setFiles(path);
   await expect(page.locator('.toast').last()).toContainText(
-    /Loaded Garage \(loaded [A-Z][a-z]{2} \d{1,2}\) from/,
+    /Loaded Garage \(loaded [A-Z][a-z]{2} \d{1,2}\) from garage-\d{4}-\d{2}-\d{2}\.json$/,
   );
   const select = page.getByLabel('Project', { exact: true });
   // The copy gets the load day in its name, and the list sorts by name.
