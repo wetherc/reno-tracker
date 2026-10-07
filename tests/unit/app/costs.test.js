@@ -158,11 +158,11 @@ test('describeMarker and describeMonth read one mark out in words', () => {
   };
   assert.equal(
     describeMarker(marker, ['Demo', 'Grout'], 500000),
-    'Oct 3, 2026 · Demo, Grout · $1,000.00 expected so far · nothing invoiced yet · $4,000.00 of budget left',
+    'Oct 3, 2026 · Demo, Grout · $1,000.00 expected so far · nothing invoiced yet · $4,000.00 budget less expected',
   );
   assert.equal(
     describeMarker({ ...marker, actualCents: 110000 }, ['Demo'], 90000),
-    'Oct 3, 2026 · Demo · $1,000.00 expected so far · $1,100.00 invoiced so far · $100.00 over budget',
+    'Oct 3, 2026 · Demo · $1,000.00 expected so far · $1,100.00 invoiced so far · $100.00 expected over budget',
   );
   assert.equal(
     describeWeek({

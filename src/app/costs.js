@@ -134,7 +134,7 @@ export function materialsNote(progress) {
 
 /**
  * The label for one day on the cumulative chart: the day, what landed
- * on it, both running totals, and where that leaves the budget.
+ * on it, both running totals, and and the budget less the expected total.
  * @param {Marker} marker
  * @param {string[]} titles the rows that land and the invoices issued that day
  * @param {number} budgetCents
@@ -144,8 +144,8 @@ export function describeMarker(marker, titles, budgetCents) {
   const left = budgetCents - marker.expectedCents;
   const budget =
     left >= 0
-      ? `${formatCents(left)} of budget left`
-      : `${formatCents(-left)} over budget`;
+      ? `${formatCents(left)} budget less expected`
+      : `${formatCents(-left)} expected over budget`;
   const actual =
     marker.actualCents === null
       ? 'nothing invoiced yet'

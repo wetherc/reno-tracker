@@ -45,8 +45,16 @@ export function markerTip(marker, landing, issued, budgetCents) {
         mark: 'actual',
       },
       left >= 0
-        ? { label: 'Budget left', value: formatCents(left), mark: 'budget' }
-        : { label: 'Over budget', value: formatCents(-left), over: true },
+        ? {
+            label: 'Budget less expected',
+            value: formatCents(left),
+            mark: 'budget',
+          }
+        : {
+            label: 'Expected over budget',
+            value: formatCents(-left),
+            over: true,
+          },
     ],
   );
 }

@@ -36,7 +36,7 @@ test('markerTip lists the rows that land, the invoices issued, and the running t
   );
   assert.deepEqual(
     [...tip.querySelectorAll('dt')].map((dt) => dt.textContent),
-    ['Expected so far', 'Invoiced so far', 'Budget left'],
+    ['Expected so far', 'Invoiced so far', 'Budget less expected'],
   );
   assert.deepEqual(
     [...tip.querySelectorAll('dd')].map((dd) => dd.textContent),
@@ -58,7 +58,7 @@ test('markerTip turns the budget line red once the total passes it', () => {
   );
   const [, invoiced, over] = tip.querySelectorAll('dt');
   assert.equal(invoiced.textContent, 'Invoiced so far');
-  assert.equal(over.textContent, 'Over budget');
+  assert.equal(over.textContent, 'Expected over budget');
   assert.equal(over.className, 'chart-tip__label chart-tip__label--over');
   const amounts = tip.querySelectorAll('dd');
   assert.equal(amounts[1].textContent, '$2,500.00');

@@ -132,7 +132,7 @@ test('the costs panel sums the project and draws both charts', async ({
   // them and the picked one lights up.
   await expect(page.locator('.chart-readout')).toHaveCount(0);
   const demoDot = page.getByRole('button', {
-    name: 'Sep 3, 2026 · Demo, Invoice 88 from Wreckers · $3,500.00 expected so far · $2,400.00 invoiced so far · $46,500.00 of budget left',
+    name: 'Sep 3, 2026 · Demo, Invoice 88 from Wreckers · $3,500.00 expected so far · $2,400.00 invoiced so far · $46,500.00 budget less expected',
   });
   await demoDot.hover();
   await expect(chart.locator('.chart__mark--active')).toHaveCount(1);
