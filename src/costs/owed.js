@@ -5,6 +5,7 @@
 // day is unpaid but never overdue. A balance below zero is a credit
 // with that party, and it does not lower what other invoices owe.
 import { invoicePaid, invoiceTotal } from '../entities/invoice.js';
+import { MAX_CENTS } from '../entities/validate.js';
 
 /** @typedef {import('../types.ts').Invoice} Invoice */
 
@@ -103,4 +104,24 @@ export function owedSummary(invoices, today) {
     }
   }
   return owed;
+}
+
+/**
+ * The payments that settle an open balance on one day. One payment
+ * takes at most MAX_CENTS, because a larger amount fails the payment
+ * check, so a larger balance splits into several payments.
+ * @param {number} owedCents above zero
+ * @param {string} paidDate YYYY-MM-DD
+ * @returns {{ paidDate: string, amountCents: number, note: string }[]}
+ */
+export function settlingPayments(owedCents, paidDate) {
+  const payments = [];
+  for (let left = owedCents; left > 0; left -= MAX_CENTS) {
+    payments.push({
+      paidDate,
+      amountCents: Math.min(left, MAX_CENTS),
+      note: '',
+    });
+  }
+  return payments;
 }

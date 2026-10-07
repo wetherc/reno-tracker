@@ -1,7 +1,7 @@
 // The owed tiles over the invoices table, the status badge of one
 // invoice, and the Mark paid button that records its open balance as
 // one payment dated today.
-import { balance, status } from '../costs/owed.js';
+import { balance, settlingPayments, status } from '../costs/owed.js';
 import { invoiceNameInSentence } from '../entities/invoice.js';
 import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
@@ -163,7 +163,7 @@ export function payButton(ctx, invoice) {
       el.disabled = true;
       const payments = [
         ...invoice.payments.map(({ id: _id, ...p }) => p),
-        { paidDate: todayIso(), amountCents: owedCents, note: '' },
+        ...settlingPayments(owedCents, todayIso()),
       ];
       const outcome = await ctx.write(
         (api) => api.patchInvoice(invoice.id, { payments }),

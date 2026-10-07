@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { balance, owedSummary, status } from '../../../src/costs/owed.js';
+import {
+  balance,
+  owedSummary,
+  settlingPayments,
+  status,
+} from '../../../src/costs/owed.js';
+import { MAX_CENTS } from '../../../src/entities/validate.js';
 import { invoiceOf } from '../app/scheduleFixtures.js';
 
 const TODAY = '2026-10-15';
@@ -98,4 +104,16 @@ test('owedSummary splits what is owed by when it is due', () => {
     openCount: 5,
   });
   assert.equal(owedSummary([], TODAY).nextDue, null);
+});
+
+test('settlingPayments splits a balance above the payment limit', () => {
+  assert.deepEqual(settlingPayments(500, TODAY), [
+    { paidDate: TODAY, amountCents: 500, note: '' },
+  ]);
+  const parts = settlingPayments(2 * MAX_CENTS + 7, TODAY);
+  assert.deepEqual(
+    parts.map((p) => p.amountCents),
+    [MAX_CENTS, MAX_CENTS, 7],
+  );
+  assert.ok(parts.every((p) => p.paidDate === TODAY));
 });
