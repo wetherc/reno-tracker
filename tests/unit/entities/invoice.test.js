@@ -17,6 +17,7 @@ import {
   validateInvoice,
 } from '../../../src/entities/invoice.js';
 import {
+  docMarkup,
   lineMarkups,
   lineRate,
   markupOf,
@@ -323,5 +324,35 @@ test('clean input keeps known keys and puts payments in paid-day order', () => {
       ],
     }),
     7,
+  );
+});
+
+test('markup sums stay exact above Number.MAX_SAFE_INTEGER', () => {
+  const big = { amountCents: 100_000_000_000, markupBasisPoints: null };
+  const doc = {
+    markupBasisPoints: 10_000,
+    lines: [
+      ...Array.from({ length: 10 }, () => big),
+      { amountCents: 4999, markupBasisPoints: 1 },
+    ],
+  };
+  assert.equal(docMarkup(doc), 1_000_000_000_000);
+  const shares = lineMarkups(doc);
+  assert.equal(shares.at(-1), 0);
+  assert.equal(
+    shares.reduce((a, b) => a + b, 0),
+    1_000_000_000_000,
+  );
+  assert.equal(
+    docMarkup({ markupBasisPoints: 1, lines: [{ amountCents: 5000 }] }),
+    1,
+  );
+  assert.equal(
+    docMarkup({ markupBasisPoints: 1, lines: [{ amountCents: -5000 }] }),
+    0,
+  );
+  assert.equal(
+    docMarkup({ markupBasisPoints: 1, lines: [{ amountCents: -5001 }] }),
+    -1,
   );
 });

@@ -40,7 +40,9 @@ export function checkText(field, value, { min = 0, max = 2000 } = {}) {
 
 // The largest money value one field takes: one billion dollars. A sum of
 // 90,000 such values stays below Number.MAX_SAFE_INTEGER, so every total
-// stays exact. node:sqlite throws a RangeError when it reads an integer
+// stays exact. A markup multiplies a value by up to 10000 basis points
+// first, so one line stays exact as a number, but lineItems.js sums the
+// lines of a document as a BigInt. node:sqlite throws a RangeError when it reads an integer
 // above that limit, so a larger stored value would make its project
 // unreadable.
 export const MAX_CENTS = 100_000_000_000;

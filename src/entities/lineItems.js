@@ -192,11 +192,37 @@ export function markupOf(cents, basisPoints) {
 }
 
 /**
- * Cent basis points rounded to whole cents.
+ * Cent basis points rounded to whole cents, half up as Math.round does.
  * @param {number} centBasisPoints an amount in cents times a rate in basis points
  * @returns {number}
  */
 const toCents = (centBasisPoints) => Math.round(centBasisPoints / 10_000);
+
+/**
+ * The same rounding as toCents, on a BigInt sum of cent basis points.
+ * One line is at most MAX_CENTS times 10000, which a number keeps
+ * exactly, but a sum of a few such lines passes Number.MAX_SAFE_INTEGER.
+ * @param {bigint} centBasisPoints
+ * @returns {number}
+ */
+function bigToCents(centBasisPoints) {
+  let whole = centBasisPoints / 10_000n;
+  let rest = centBasisPoints % 10_000n;
+  if (rest < 0n) {
+    whole -= 1n;
+    rest += 10_000n;
+  }
+  return Number(rest * 2n >= 10_000n ? whole + 1n : whole);
+}
+
+/**
+ * One line in cent basis points, as a BigInt.
+ * @param {PricedLine} line
+ * @param {Priced} doc
+ * @returns {bigint}
+ */
+const exactMarkup = (line, doc) =>
+  BigInt(line.amountCents) * BigInt(lineRate(line, doc));
 
 /**
  * The rate of one line: its own, or the rate of its document when it
@@ -227,17 +253,17 @@ export function sharedRate(doc) {
  * rate. Each line takes the rounded markup of the running sum through
  * it less that of the lines before it, so the shares add up to the
  * document markup and each share is within a cent of the exact rate.
- * The running sum is a whole number of cent basis points, so the sum
- * stays exact.
+ * The running sum is a BigInt count of cent basis points, so it stays
+ * exact above Number.MAX_SAFE_INTEGER.
  * @param {Priced} doc
  * @returns {number[]}
  */
 export function lineMarkups(doc) {
-  let exact = 0;
+  let exact = 0n;
   let before = 0;
   return doc.lines.map((line) => {
-    exact += line.amountCents * lineRate(line, doc);
-    const through = toCents(exact);
+    exact += exactMarkup(line, doc);
+    const through = bigToCents(exact);
     const share = through - before;
     before = through;
     return share;
@@ -249,9 +275,4 @@ export function lineMarkups(doc) {
  * @returns {number} the markup on the lines, rounded once
  */
 export const docMarkup = (doc) =>
-  toCents(
-    doc.lines.reduce(
-      (sum, line) => sum + line.amountCents * lineRate(line, doc),
-      0,
-    ),
-  );
+  bigToCents(doc.lines.reduce((sum, line) => sum + exactMarkup(line, doc), 0n));
