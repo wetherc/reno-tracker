@@ -106,25 +106,38 @@ export function createContext({ api, prefs, toaster }) {
     },
 
     /**
-     * Runs one write. On success the open project is refetched and the
-     * done message, if any, is toasted. On failure the message is toasted
-     * and the error comes back so a form can mark the field.
+     * Runs one write. On success the done message, if any, is toasted and
+     * the open project is refetched. On failure the message is toasted
+     * and the error comes back so a form can mark the field. A refetch
+     * that fails after a stored write toasts its own message and still
+     * returns ok.
      * @template T
      * @param {(api: Api) => Promise<T>} work
      * @param {{ done?: string, reload?: boolean }} [options] reload also refetches the project list
      * @returns {Promise<WriteOutcome<T>>}
      */
     async write(work, { done, reload = false } = {}) {
+      /** @type {T} */
+      let result;
       try {
-        const result = await work(api);
-        if (reload) await this.loadProjects();
-        await this.refresh();
-        if (done) toaster.success(done);
-        return { ok: true, result };
+        result = await work(api);
       } catch (error) {
         toaster.failure(describeFailure(error));
         return { ok: false, error };
       }
+      if (done) toaster.success(done);
+      // The write is stored. A failed refetch gets its own toast, and the
+      // outcome stays ok, so an editor closes and a second Save does not
+      // create a second row.
+      try {
+        if (reload) await this.loadProjects();
+        await this.refresh();
+      } catch (error) {
+        toaster.failure(
+          `Saved, but the page did not reload. ${describeFailure(error)}`,
+        );
+      }
+      return { ok: true, result };
     },
   };
 }

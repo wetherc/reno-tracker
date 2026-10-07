@@ -141,3 +141,17 @@ test('an older fetch that lands after a newer one is dropped', async () => {
   assert.equal((await oldList).length, 1);
   assert.deepEqual(seen, ['b', 'none', 'list 1']);
 });
+
+test('write stays ok when the refetch after it fails', async () => {
+  const { ctx, toasts } = setup();
+  await ctx.openProject('a');
+  const api = /** @type {any} */ (ctx.api);
+  api.getProject = async () => {
+    throw new Error('network down');
+  };
+  const outcome = await ctx.write(async () => 7, { done: 'Saved' });
+  assert.deepEqual(outcome, { ok: true, result: 7 });
+  assert.equal(toasts[0], 'ok Saved');
+  assert.match(toasts[1], /^bad Saved, but the page did not reload\./);
+  assert.equal(toasts.length, 2);
+});
