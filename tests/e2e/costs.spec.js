@@ -186,15 +186,17 @@ test('the costs panel sums the project and draws both charts', async ({
     'Oct',
     'Nov',
   ]);
+  // The toasts go first, because a click on Dismiss moves the mouse
+  // off the bar and closes its callout.
+  const dismiss = page.getByRole('button', { name: 'Dismiss' });
+  while ((await dismiss.count()) > 0) await dismiss.first().click();
   await page
     .getByRole('button', {
       name: 'Week of Oct 25, 2026 · $18,000.00 expected · $0.00 invoiced',
     })
     .hover();
   await expect(bars.locator('.chart__expected-bar--active')).toHaveCount(1);
-
-  const dismiss = page.getByRole('button', { name: 'Dismiss' });
-  while ((await dismiss.count()) > 0) await dismiss.first().click();
+  await expect(page.locator('.chart-tip').last()).toBeVisible();
   await page.screenshot({
     path: 'test-results/costs-panel-hover.png',
     animations: 'disabled',
