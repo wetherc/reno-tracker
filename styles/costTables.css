@@ -1,0 +1,111 @@
+/* The line items table of the costs panel, built in costTables.js.
+   The container is .costs in costs.css. */
+
+.cost-accrued {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-3) 0;
+  border-top: 1px solid var(--border);
+}
+
+.cost-accrued__note {
+  font-size: var(--text-label);
+}
+
+.cost-markup-note {
+  margin: var(--space-2) 0 0;
+  padding: 0 var(--space-3);
+  font-size: var(--text-label);
+}
+
+.cost-item {
+  font-weight: 600;
+  text-align: left;
+}
+
+.cost-item:hover {
+  color: var(--accent);
+}
+
+.cost-row--complete .cost-item {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.cost-row--complete .icon {
+  color: var(--success);
+}
+
+/* In a narrow panel each line item is a card instead of a table row.
+   The item and its done mark share the top line, and the six values
+   follow in three columns, each under its column name from
+   data-label. The column headers stay for screen readers, and the role
+   attributes on each part keep the table semantics that a grid row
+   loses in Safari. */
+@container (max-width: 44rem) {
+  .table-scroll:has(.cost-item) .data-table {
+    thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+
+    tbody,
+    tfoot {
+      display: block;
+    }
+
+    tr {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-2) var(--space-3);
+      padding: var(--space-3) 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      display: block;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: none;
+      text-align: left;
+      white-space: normal;
+    }
+
+    td[data-col='complete'] {
+      grid-row: 1;
+      grid-column: 3;
+      justify-self: end;
+    }
+
+    td[data-col='title'] {
+      grid-row: 1;
+      grid-column: 1 / 3;
+    }
+
+    td:not([data-col='complete'], [data-col='title'])::before {
+      content: attr(data-label);
+      display: block;
+      font-size: var(--text-label);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .data-table__foot {
+      border-top: 2px solid var(--border-strong);
+    }
+
+    .data-table__foot
+      td:is([data-col='complete'], [data-col='kind'], [data-col='date']) {
+      display: none;
+    }
+
+    .cell-stack {
+      align-items: flex-start;
+    }
+  }
+}
