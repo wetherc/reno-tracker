@@ -79,7 +79,9 @@ export function paymentList({ prefix, invoice, total }) {
     label: 'Add payment',
     icon: 'plus',
     onClick: () => {
-      const cents = Math.max(total() - retain() - paidSum(), 0);
+      // Once only the retainage is open, the new payment releases it.
+      const due = total() - retain() - paidSum();
+      const cents = Math.max(due > 0 ? due : total() - paidSum(), 0);
       const row = paymentRow({ paidDate: todayIso(), amountCents: cents });
       row.amount.input.focus();
     },

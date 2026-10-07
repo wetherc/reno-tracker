@@ -128,7 +128,7 @@ test('payments fill, add at the amount due, remove, and save', async () => {
     'Paid $90.00 of $100.00. $10.00 owed, $10.00 of it held back.',
   );
   p.add.click();
-  assert.equal(payEls(form)[2].amount.value, '0.00');
+  assert.equal(payEls(form)[2].amount.value, '10.00');
   payEls(form)[2].remove.click();
   assert.equal(dom.activeElement, p.add);
 
@@ -195,6 +195,15 @@ test('Add payment stops at the most payments an invoice takes', async () => {
   const { add } = parts(form);
   for (let i = 1; i < MAX_PAYMENTS; i += 1) add.click();
   assert.equal(add.disabled, true);
+  dialog.close();
+});
+
+test('Add payment covers the retainage once the rest is paid', async () => {
+  const { dialog, form } = await editor();
+  const { add } = parts(form);
+  payEls(form)[0].amount.value = '90.00';
+  add.click();
+  assert.equal(payEls(form)[1].amount.value, '10.00');
   dialog.close();
 });
 
