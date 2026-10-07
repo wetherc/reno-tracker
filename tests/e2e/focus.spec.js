@@ -15,14 +15,14 @@ test('focus stays on the control after a write rebuilds the panel', async ({
   );
   await openProject(page, 'Focus check');
 
-  const box = page.getByRole('checkbox', { name: 'Mark Demo complete' });
+  const box = page.getByRole('checkbox', { name: 'Demo complete' });
   await box.focus();
   await page.keyboard.press('Space');
   await expect(page.locator('.toast').last()).toContainText(
     'Marked Demo complete',
   );
   await expect(
-    page.getByRole('checkbox', { name: 'Reopen Demo' }),
+    page.getByRole('checkbox', { name: 'Demo complete' }),
   ).toBeFocused();
 
   const title = page.getByRole('button', { name: 'Framing', exact: true });
@@ -37,10 +37,10 @@ test('focus stays on the control after a write rebuilds the panel', async ({
   ).toBeFocused();
 
   await page.keyboard.press('Enter');
-  await dialog.getByRole('checkbox', { name: 'Mark Framing complete' }).focus();
+  await dialog.getByRole('checkbox', { name: 'Framing complete' }).focus();
   await page.keyboard.press('Space');
   await expect(
-    dialog.getByRole('checkbox', { name: 'Reopen Framing' }),
+    dialog.getByRole('checkbox', { name: 'Framing complete' }),
   ).toBeFocused();
   await dialog.getByRole('button', { name: 'Delete' }).click();
   await page

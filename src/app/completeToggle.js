@@ -17,10 +17,9 @@ export function completeToggle({ ctx, item }) {
   box.className = 'check';
   box.checked = item.complete;
   focusKey(box, `${item.id}:complete`);
-  box.setAttribute(
-    'aria-label',
-    item.complete ? `Reopen ${item.title}` : `Mark ${item.title} complete`,
-  );
+  // The label stays the same in both states, and the checked state tells
+  // a screen reader whether the item is complete.
+  box.setAttribute('aria-label', `${item.title} complete`);
   box.addEventListener('change', async () => {
     box.disabled = true;
     const next = box.checked;

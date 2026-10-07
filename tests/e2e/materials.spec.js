@@ -68,7 +68,7 @@ test('list materials, tie one to the schedule, buy one, read the totals', async 
     '−$270.00',
     '−$20.00',
   ]);
-  await table.getByLabel('Mark Porcelain tile bought').check();
+  await table.getByLabel('Porcelain tile bought').check();
   await expect(page.locator('.toast').last()).toContainText(
     'Marked Porcelain tile bought',
   );

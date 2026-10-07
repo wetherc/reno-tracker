@@ -138,7 +138,7 @@ test('a day names its starting and finishing items with their spans', async () =
   );
   assert.equal(
     days[0].querySelector('.check').getAttribute('aria-label'),
-    'Reopen Demo',
+    'Demo complete',
   );
 });
 

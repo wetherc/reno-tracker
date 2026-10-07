@@ -139,13 +139,13 @@ test('add items, edit one with a reason, note it, mark one complete', async ({
   ).toBeVisible();
 
   // Mark Demo complete.
-  await table.getByLabel('Mark Demo complete').check();
+  await table.getByLabel('Demo complete').check();
   await expect(page.locator('.toast').last()).toContainText(
     'Marked Demo complete',
   );
   const demo = table.locator('tbody tr', { hasText: 'Demo' });
   await expect(demo).toHaveClass(/schedule-row--complete/);
-  await expect(table.getByLabel('Reopen Demo')).toBeChecked();
+  await expect(table.getByLabel('Demo complete')).toBeChecked();
 
   // Sort by estimate.
   await table.getByRole('button', { name: 'Estimate' }).click();

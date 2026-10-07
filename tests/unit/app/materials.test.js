@@ -225,14 +225,14 @@ test('the table has one row per material, a totals row, and the planned columns'
   assert.match(note.textContent, /^A day in italics follows the start/);
   const box = tile.children[0].children[0];
   assert.equal(box.checked, true);
-  assert.equal(box.getAttribute('aria-label'), 'Unmark Tile');
+  assert.equal(box.getAttribute('aria-label'), 'Tile bought');
   const name = tile.children[1].children[0];
   assert.equal(name.className, 'btn-bare material-name');
   assert.equal(name.children[0].getAttribute('aria-label'), 'Bought');
 
   assert.equal(
     faucet.children[0].children[0].getAttribute('aria-label'),
-    'Mark Faucet bought',
+    'Faucet bought',
   );
   assert.equal(faucet.children[2].textContent, '—');
   assert.equal(faucet.children[3].textContent, 'Nov 2');

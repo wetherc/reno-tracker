@@ -161,14 +161,14 @@ test('the table has one row per item with the planned columns', async () => {
   const box = demo.children[0].children[0];
   assert.equal(box.getAttribute('type'), 'checkbox');
   assert.equal(box.checked, true);
-  assert.equal(box.getAttribute('aria-label'), 'Reopen Demo');
+  assert.equal(box.getAttribute('aria-label'), 'Demo complete');
   const title = demo.children[1].children[0].children[0];
   assert.equal(title.className, 'btn-bare schedule-title');
   assert.equal(title.children[0].getAttribute('aria-label'), 'Complete');
   assert.equal(cabinets.classList.contains('schedule-row--complete'), false);
   assert.equal(
     cabinets.children[0].children[0].getAttribute('aria-label'),
-    'Mark Cabinets complete',
+    'Cabinets complete',
   );
   assert.equal(cabinets.children[2].textContent, '—');
   assert.equal(cabinets.children[5].textContent, '7');

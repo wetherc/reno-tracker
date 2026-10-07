@@ -306,10 +306,7 @@ export function mountMaterials({ ctx, shell }) {
     box.className = 'check';
     box.checked = item.complete;
     focusKey(box, `${item.id}:complete`);
-    box.setAttribute(
-      'aria-label',
-      item.complete ? `Unmark ${item.name}` : `Mark ${item.name} bought`,
-    );
+    box.setAttribute('aria-label', `${item.name} bought`);
     box.addEventListener('change', async () => {
       box.disabled = true;
       const next = box.checked;

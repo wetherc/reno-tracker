@@ -33,7 +33,7 @@ test('the agenda lists days, marks today, filters finished work, and lands on a 
   await addItem(page, 'Inspection', '2026-10-13', '2026-10-14');
   await addItem(page, 'Cabinets', '2026-10-14', '2026-10-16');
   await addItem(page, 'Drywall', '2026-10-29', '2026-11-04');
-  await page.getByRole('checkbox', { name: 'Mark Demo complete' }).check();
+  await page.getByRole('checkbox', { name: 'Demo complete' }).check();
   await expect(page.locator('.toast').last()).toContainText(
     'Marked Demo complete',
   );

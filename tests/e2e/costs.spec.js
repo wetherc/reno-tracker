@@ -52,7 +52,7 @@ test('the costs panel sums the project and draws both charts', async ({
     end: '2026-10-30',
     estimate: '18,000',
   });
-  await page.getByRole('checkbox', { name: 'Mark Demo complete' }).check();
+  await page.getByRole('checkbox', { name: 'Demo complete' }).check();
   await expect(page.locator('.toast').last()).toContainText(
     'Marked Demo complete',
   );

@@ -71,7 +71,7 @@ test('every schedule view renders at desktop and at the breakpoint', async ({
   await addItem(page, 'Inspection', '2026-10-13', '2026-10-13');
   await addItem(page, 'Drywall', '2026-10-14', '2026-10-20');
   await addItem(page, 'Cabinets', '2026-10-21', '2026-10-28');
-  await page.getByRole('checkbox', { name: 'Mark Demo complete' }).check();
+  await page.getByRole('checkbox', { name: 'Demo complete' }).check();
   await expect(page.locator('.toast').last()).toContainText(
     'Marked Demo complete',
   );

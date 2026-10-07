@@ -58,9 +58,9 @@ test('the calendar draws bars, folds the overflow, and turns months', async ({
   // complete without a save.
   await drywall.click();
   await expect(dialog.getByLabel('Title')).toHaveValue('Drywall');
-  await dialog.getByLabel('Mark Drywall complete').check();
+  await dialog.getByLabel('Drywall complete').check();
   await expect(page.getByText('Marked Drywall complete')).toBeVisible();
-  await expect(dialog.getByLabel('Reopen Drywall')).toBeChecked();
+  await expect(dialog.getByLabel('Drywall complete')).toBeChecked();
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog).toBeHidden();
   await expect(drywall).toHaveClass(/cal-bar--complete/);

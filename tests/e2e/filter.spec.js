@@ -52,7 +52,7 @@ test('the filter narrows every view and says what it hides', async ({
   await page.getByRole('radio', { name: 'Table' }).click();
   await bar.getByRole('radio', { name: 'Late', exact: true }).click();
   await expect(rows).toHaveCount(2);
-  await page.getByRole('checkbox', { name: 'Mark Demo complete' }).check();
+  await page.getByRole('checkbox', { name: 'Demo complete' }).check();
   await expect(rows).toHaveCount(1);
 
   // No match shows an empty state whose button clears everything.
