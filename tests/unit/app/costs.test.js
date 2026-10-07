@@ -417,7 +417,7 @@ test('mountCosts draws the tiles, both charts, and the line items', async () => 
   );
 });
 
-test('a line item opens the editor of the row behind it', async () => {
+test('a line item opens the read-only view of the row behind it', async () => {
   const { shell } = await setup({
     schedule: [itemOf('a', { title: 'Demo', estimatedCents: 100 })],
     materials: [materialOf('m', { name: 'Grout' })],
@@ -431,11 +431,13 @@ test('a line item opens the editor of the row behind it', async () => {
   named('Demo').click();
   let dialog = lastDialog();
   assert.equal(dialog.tagName, 'DIALOG');
+  assert.ok(dialog.classList.contains('record-view'));
   assert.equal(dialog.children[0].children[0].textContent, 'Demo');
   dialog.close();
   named('Grout').click();
   dialog = lastDialog();
   assert.equal(dialog.children[0].children[0].textContent, 'Grout');
+  assert.ok(dialog.classList.contains('record-view'));
   dialog.close();
 });
 

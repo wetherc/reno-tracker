@@ -12,9 +12,8 @@ import { bareButton } from '../ui/buttons.js';
 import { byText, dataTable } from '../ui/DataTable.js';
 import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
-import { openMaterialEditor } from './materialEditor.js';
 import { blendedColumn } from './rowMarkup.js';
-import { openScheduleEditor } from './scheduleEditor.js';
+import { openMaterialView, openScheduleView } from './recordViews.js';
 import {
   costVariance,
   totalCostVariance,
@@ -68,10 +67,10 @@ export function lineItemTable({ ctx, payload, events, sort, onSort }) {
   function open(event) {
     if (event.source === 'schedule') {
       const item = payload.schedule.find((s) => s.id === event.id);
-      if (item) openScheduleEditor({ ctx, item });
+      if (item) openScheduleView({ ctx, item });
     } else {
       const item = payload.materials.find((m) => m.id === event.id);
-      if (item) openMaterialEditor({ ctx, item });
+      if (item) openMaterialView({ ctx, item });
     }
   }
 
