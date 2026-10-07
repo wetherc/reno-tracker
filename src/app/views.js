@@ -61,5 +61,16 @@ export function mountViews({ prefs, narrow = isNarrow(), onChange }) {
     set(view) {
       sw.set(view);
     },
+    /**
+     * Switches to a view for this visit only. The saved choice stays, so
+     * the next load opens on the view a person picked.
+     * @param {ViewId} view
+     */
+    visit(view) {
+      if (view === current) return;
+      current = view;
+      sw.set(view, { silent: true });
+      onChange(view);
+    },
   };
 }

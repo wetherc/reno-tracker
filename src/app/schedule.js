@@ -23,7 +23,9 @@ import { mountViews } from './views.js';
  * @typedef {{
  *   render(payload: ProjectPayload): HTMLElement,
  *   focus?(date: string): void,
- * }} View focus asks a view to bring one day into sight
+ *   reset?(): void,
+ * }} View focus asks a view to bring one day into sight, and reset
+ *   drops the place a person was at when another project opens
  */
 
 /**
@@ -63,7 +65,7 @@ export function mountSchedule({ ctx, shell }) {
   /** @param {string} date */
   function openAgenda(date) {
     renderers.agenda.focus?.(date);
-    views.set('agenda');
+    views.visit('agenda');
   }
 
   function show() {
@@ -73,6 +75,7 @@ export function mountSchedule({ ctx, shell }) {
     if (payload.project.id !== projectId) {
       projectId = payload.project.id;
       filter.reset();
+      for (const view of Object.values(renderers)) view.reset?.();
     }
     if (payload.schedule.length === 0) {
       shell.setBody(

@@ -74,3 +74,20 @@ test('the switch starts on the saved view and remembers a change', () => {
   views.set('gantt');
   assert.deepEqual(seen, ['calendar', 'gantt']);
 });
+
+test('visit switches the view without saving it', () => {
+  const prefs = createPrefs(memoryStorage());
+  prefs.write('lastView', 'calendar');
+  /** @type {string[]} */
+  const seen = [];
+  const views = mountViews({ prefs, onChange: (v) => seen.push(v) });
+  views.visit('agenda');
+  views.visit('agenda');
+  assert.equal(views.view, 'agenda');
+  assert.equal(prefs.read('lastView'), 'calendar');
+  assert.deepEqual(seen, ['agenda']);
+  const buttons = /** @type {any[]} */ (
+    /** @type {unknown} */ (views.el.children)
+  );
+  assert.equal(buttons[3].getAttribute('aria-checked'), 'true');
+});

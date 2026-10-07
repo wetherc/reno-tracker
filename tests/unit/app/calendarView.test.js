@@ -168,7 +168,56 @@ test('the schedule panel shows the calendar and the count opens the agenda', asy
   const cal = $(shell.body.children[1].children[0]);
   assert.equal(cal.className, 'cal');
   cal.querySelector('.cal-more').click();
-  assert.equal(prefs.read('lastView'), 'agenda');
+  assert.equal(shell.body.children[1].children[0].className, 'agenda');
+  assert.equal(prefs.read('lastView'), 'calendar');
+});
+
+test('another project opens the calendar on its own month with no pick', async () => {
+  const fx = setupSchedule({ schedule: october });
+  fx.ctx.prefs.write('lastView', 'calendar');
+  const shell = mountShell({
+    sidebar: document.createElement('nav'),
+    main: document.createElement('main'),
+    prefs: createPrefs(memoryStorage()),
+  });
+  const panel = mountSchedule({ ctx: fx.ctx, shell });
+  fx.ctx.on('payload', () => panel.show());
+  await fx.ctx.openProject('p1');
+  const cal = () => $(shell.body.children[1].children[0]);
+  cal().querySelector('[data-focus="day:2026-10-13"]').click();
+  cal().querySelector('.cal__nav').children[2].click();
+  cal().querySelector('[data-focus="day:2026-11-02"]').click();
+  await fx.ctx.refresh();
+  assert.equal(titleOf(cal()), 'November 2026');
+  const api = /** @type {any} */ (fx.ctx.api);
+  const first = await api.getProject();
+  api.getProject = async () => ({
+    ...first,
+    project: { ...first.project, id: 'p2', startDate: '2030-05-01' },
+    schedule: [itemOf('z', { startDate: '2030-05-03', endDate: '2030-05-04' })],
+  });
+  await fx.ctx.openProject('p2');
+  assert.equal(titleOf(cal()), 'May 2030');
+  assert.equal(cal().querySelectorAll('.cal__day--picked').length, 0);
+});
+
+test('Today drops a pick that is not on its month', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 0, 15) });
+  const { el, view } = await setup(october);
+  el.querySelector('[data-focus="day:2026-10-13"]').click();
+  assert.equal(view.picked, '2026-10-13');
+  el.querySelector('.cal__nav').children[3].click();
+  assert.equal(view.month, '2026-01');
+  assert.equal(view.picked, null);
+});
+
+test('each week of a long bar has its own focus key', async () => {
+  const long = itemOf('f', { startDate: '2026-10-08', endDate: '2026-10-14' });
+  const { el } = await setup([long]);
+  const keys = el
+    .querySelectorAll('.cal-bar')
+    .map((/** @type {any} */ b) => b.getAttribute('data-focus'));
+  assert.deepEqual(keys, ['f:open:2026-10-04', 'f:open:2026-10-11']);
 });
 
 test('a day cell picks the day and lists its work under the grid', async () => {

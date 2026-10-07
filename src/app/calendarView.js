@@ -44,11 +44,11 @@ const DAY_STEP = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
 /**
  * @param {{ ctx: AppContext, onMore: (date: string) => void }} deps
  *   onMore receives the day whose hidden bars a person asked to see
- * @returns {{ render(payload: ProjectPayload): HTMLElement, month: string | null, picked: string | null }}
+ * @returns {{ render(payload: ProjectPayload): HTMLElement, reset(): void, month: string | null, picked: string | null }}
  */
 export function calendarView({ ctx, onMore }) {
-  // The month a person is looking at and the day they picked outlive the
-  // rebuild after a write.
+  // The month a person is looking at and the day they picked stay through
+  // the rebuild after a write. reset drops both when another project opens.
   /** @type {string | null} */
   let month = null;
   /** @type {string | null} */
@@ -121,6 +121,7 @@ export function calendarView({ ctx, onMore }) {
             disabled: shown === monthOf(today),
             onClick: () => {
               month = monthOf(today);
+              picked = null;
               draw();
             },
           }),
@@ -199,7 +200,8 @@ export function calendarView({ ctx, onMore }) {
         cells.push(cell);
         row.append(cell);
       });
-      for (const bar of week.bars) row.append(barButton(bar, today));
+      for (const bar of week.bars)
+        row.append(barButton(bar, week.days[0].date, today));
       week.hidden.forEach((count, col) => {
         if (count === 0) return;
         const date = week.days[col].date;
@@ -216,8 +218,12 @@ export function calendarView({ ctx, onMore }) {
       return row;
     }
 
-    /** @param {CalendarBar} bar @param {string} today */
-    function barButton(bar, today) {
+    /**
+     * @param {CalendarBar} bar
+     * @param {string} weekStart the first day of the bar's week
+     * @param {string} today
+     */
+    function barButton(bar, weekStart, today) {
       const { item } = bar;
       const late = isLate(item, today);
       const range = formatRange(item.startDate, item.endDate);
@@ -230,7 +236,9 @@ export function calendarView({ ctx, onMore }) {
         ],
         onClick: () => openScheduleEditor({ ctx, item }),
       });
-      focusKey(el, `${item.id}:open`);
+      // An item that spans weeks has one bar per week, and each needs its
+      // own key so focus comes back to the bar that had it.
+      focusKey(el, `${item.id}:open:${weekStart}`);
       if (item.complete) el.classList.add('cal-bar--complete');
       if (late) el.classList.add('cal-bar--late');
       if (bar.continuesBefore) el.classList.add('cal-bar--before');
@@ -246,6 +254,10 @@ export function calendarView({ ctx, onMore }) {
 
   return {
     render,
+    reset() {
+      month = null;
+      picked = null;
+    },
     get month() {
       return month;
     },
