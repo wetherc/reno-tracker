@@ -10,11 +10,7 @@
 function successors(edges) {
   /** @type {Map<string, string[]>} */
   const out = new Map();
-  for (const e of edges) {
-    const list = out.get(e.predecessorId) ?? [];
-    list.push(e.successorId);
-    out.set(e.predecessorId, list);
-  }
+  for (const e of edges) addEdge(out, e);
   return out;
 }
 
@@ -28,32 +24,51 @@ function successors(edges) {
  * @returns {string[] | null}
  */
 export function findCycle(edges, candidate) {
-  if (candidate.predecessorId === candidate.successorId) {
-    return [candidate.successorId, candidate.successorId];
-  }
-  const next = successors(edges);
+  return findCycleIn(successors(edges), candidate);
+}
+
+/**
+ * The same check as findCycle, over a successor list per node. The search
+ * keeps its own stack rather than recursing, so a chain of many thousand
+ * items cannot overflow the call stack.
+ * @param {Map<string, string[]>} next
+ * @param {Edge} candidate
+ * @returns {string[] | null}
+ */
+export function findCycleIn(next, candidate) {
+  const target = candidate.predecessorId;
+  const start = candidate.successorId;
+  if (target === start) return [start, start];
   /** @type {Set<string>} */
-  const seen = new Set();
+  const seen = new Set([start]);
   /** @type {string[]} */
-  const path = [];
-
-  /** @param {string} node @returns {boolean} */
-  function visit(node) {
-    path.push(node);
-    if (node === candidate.predecessorId) return true;
-    seen.add(node);
-    for (const s of next.get(node) ?? []) {
-      if (!seen.has(s) && visit(s)) return true;
+  const path = [start];
+  /** @type {Iterator<string>[]} */
+  const stack = [(next.get(start) ?? []).values()];
+  while (stack.length > 0) {
+    if (path[path.length - 1] === target) return [...path, start];
+    const step = stack[stack.length - 1].next();
+    if (step.done) {
+      stack.pop();
+      path.pop();
+    } else if (!seen.has(step.value)) {
+      seen.add(step.value);
+      path.push(step.value);
+      stack.push((next.get(step.value) ?? []).values());
     }
-    path.pop();
-    return false;
-  }
-
-  if (visit(candidate.successorId)) {
-    path.push(candidate.successorId);
-    return path;
   }
   return null;
+}
+
+/**
+ * Adds one edge to a successor list made by successors or by hand.
+ * @param {Map<string, string[]>} next
+ * @param {Edge} edge
+ */
+export function addEdge(next, edge) {
+  const list = next.get(edge.predecessorId);
+  if (list) list.push(edge.successorId);
+  else next.set(edge.predecessorId, [edge.successorId]);
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   fieldErrors,
   first,
   MAX_BASIS_POINTS,
+  show,
   MAX_CENTS,
   nullable,
 } from '../../../src/entities/validate.js';
@@ -130,4 +131,38 @@ test('checkTimestamp wants a full ISO time with a zone', () => {
   ]) {
     assert.match(checkTimestamp('loggedAt', bad) ?? '', /must be a time like/);
   }
+});
+
+test('checkTimestamp refuses a day, hour, or offset that does not exist', () => {
+  assert.equal(checkTimestamp('loggedAt', '2028-02-29T23:59:59Z'), null);
+  assert.equal(checkTimestamp('loggedAt', '2026-03-14T09:30+14:00'), null);
+  assert.equal(checkTimestamp('loggedAt', '2026-03-14T09:30-12:00'), null);
+  for (const bad of [
+    '2026-02-31T00:00:00Z',
+    '2026-02-29T00:00Z',
+    '2026-13-01T00:00Z',
+    '2026-03-14T24:00Z',
+    '2026-03-14T09:60Z',
+    '2026-03-14T09:30:60Z',
+    '2026-03-14T09:30+14:01',
+    '2026-03-14T09:30-12:30',
+    '2026-03-14T09:30+05:60',
+  ]) {
+    assert.match(
+      checkTimestamp('loggedAt', bad) ?? '',
+      /must be a time like/,
+      bad,
+    );
+  }
+});
+
+test('show cuts a long value and copes with one it cannot write', () => {
+  assert.equal(show('abc'), '"abc"');
+  assert.equal(show(undefined), 'undefined');
+  assert.equal(show('x'.repeat(100)), `"${'x'.repeat(59)}...`);
+  /** @type {unknown[]} */
+  let deep = [];
+  for (let i = 0; i < 200000; i++) deep = [deep];
+  assert.equal(show(deep), 'a value that cannot be shown');
+  assert.equal(show(10n), 'a value that cannot be shown');
 });

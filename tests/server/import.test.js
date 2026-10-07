@@ -319,6 +319,66 @@ test('a note or change row with no time gets the import time', async () => {
   }
 });
 
+test('both backends store a time with an offset as UTC', async () => {
+  const app = await startApp();
+  try {
+    const answers = await importBoth(
+      app,
+      file({
+        variances: [
+          {
+            scheduleItemId: 'a',
+            kind: 'scope',
+            field: 'title',
+            loggedAt: '2026-01-05T09:00-05:00',
+          },
+        ],
+        notes: [
+          {
+            scheduleItemId: 'a',
+            body: 'Hi',
+            createdAt: '2026-01-05T09:00+01:00',
+          },
+        ],
+      }),
+    );
+    for (const answer of answers) {
+      assert.equal(
+        answer.body.variances[0].loggedAt,
+        '2026-01-05T14:00:00.000Z',
+      );
+      assert.equal(answer.body.notes[0].createdAt, '2026-01-05T08:00:00.000Z');
+      assert.equal(answer.body.notes[0].updatedAt, '2026-01-05T08:00:00.000Z');
+    }
+  } finally {
+    await app.close();
+  }
+});
+
+test('both backends take a long chain of dependencies', async () => {
+  const app = await startApp();
+  try {
+    const count = 12000;
+    const schedule = Array.from({ length: count }, (_, i) => ({
+      id: `s${i}`,
+      title: `Step ${i}`,
+      startDate: '2026-01-05',
+      endDate: '2026-01-05',
+    }));
+    const dependencies = schedule.slice(1).map((s, i) => ({
+      predecessorId: `s${i}`,
+      successorId: s.id,
+    }));
+    const answers = await importBoth(app, file({ schedule, dependencies }));
+    for (const answer of answers) {
+      assert.equal(answer.status, 201);
+      assert.equal(answer.body.dependencies.length, count - 1);
+    }
+  } finally {
+    await app.close();
+  }
+});
+
 test('export of an unknown project answers 404', async () => {
   const app = await startApp();
   try {

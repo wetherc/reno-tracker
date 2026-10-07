@@ -10,8 +10,18 @@ import { isIsoDate, MAX_DATE, MIN_DATE } from '../schedule/dates.js';
  * @returns {string}
  */
 export function show(value) {
-  return JSON.stringify(value) ?? String(value);
+  let text;
+  try {
+    text = JSON.stringify(value) ?? String(value);
+  } catch {
+    return 'a value that cannot be shown';
+  }
+  return text.length > SHOW_MAX ? `${text.slice(0, SHOW_MAX)}...` : text;
 }
+
+// The most characters of a bad value that a message quotes, so a large
+// value does not fill the message.
+const SHOW_MAX = 60;
 
 /**
  * @param {string} field
@@ -88,20 +98,41 @@ export function checkDate(field, value) {
 }
 
 const ISO_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|([+-])(\d{2}):(\d{2}))$/;
 
 /**
- * A full ISO 8601 time with a zone, as toISOString writes it.
+ * True when each part of a matched time names a real moment: a day that
+ * the month has, an hour under 24, and an offset from -12:00 to +14:00.
+ * @param {RegExpExecArray} m
+ * @returns {boolean}
+ */
+function realTime(m) {
+  const [year, month, day, hour, minute, second = '0'] = m
+    .slice(1, 7)
+    .map((part) => (part === undefined ? undefined : Number(part)));
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const offset = m[7] ? Number(m[8]) * 60 + Number(m[9]) : 0;
+  return (
+    date.getUTCMonth() === Number(month) - 1 &&
+    date.getUTCDate() === day &&
+    Number(hour) < 24 &&
+    Number(minute) < 60 &&
+    Number(second) < 60 &&
+    Number(m[9] ?? 0) < 60 &&
+    offset <= (m[7] === '-' ? 12 * 60 : 14 * 60)
+  );
+}
+
+/**
+ * A full ISO 8601 time with a zone, as toISOString writes it. The day,
+ * the time, and the offset must name a real moment.
  * @param {string} field
  * @param {unknown} value
  * @returns {string | null}
  */
 export function checkTimestamp(field, value) {
-  if (
-    typeof value !== 'string' ||
-    !ISO_TIMESTAMP.test(value) ||
-    Number.isNaN(Date.parse(value))
-  ) {
+  const match = typeof value === 'string' ? ISO_TIMESTAMP.exec(value) : null;
+  if (!match || !realTime(match) || Number.isNaN(Date.parse(String(value)))) {
     return `${field} must be a time like 2026-03-14T09:30:00.000Z, got ${show(value)}`;
   }
   return null;

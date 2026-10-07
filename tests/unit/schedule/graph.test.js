@@ -46,3 +46,14 @@ test('topologicalOrder drops nodes stuck in a loop', () => {
     ['c'],
   );
 });
+
+test('findCycle walks a long chain without overflowing the stack', () => {
+  const edges = Array.from({ length: 20000 }, (_, i) =>
+    edge(`n${i}`, `n${i + 1}`),
+  );
+  const loop = findCycle(edges, edge('n20000', 'n0'));
+  assert.equal(loop?.length, 20002);
+  assert.equal(loop?.[0], 'n0');
+  assert.equal(loop?.at(-2), 'n20000');
+  assert.equal(findCycle(edges, edge('n0', 'n20000')), null);
+});

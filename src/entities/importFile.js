@@ -19,7 +19,7 @@ import {
 import { materialItemDefaults, validateMaterialItem } from './materialItem.js';
 import { PROJECT_FIELDS, projectDefaults, validateProject } from './project.js';
 import { checkBoolean, checkText, checkTimestamp, show } from './validate.js';
-import { findCycle } from '../schedule/graph.js';
+import { addEdge, findCycleIn } from '../schedule/graph.js';
 import { checkDocs } from './importDocs.js';
 import {
   CHANGE_ORDER_FIELDS,
@@ -52,6 +52,11 @@ const LISTS = /** @type {const} */ ([
 ]);
 
 const KINDS = ['dates', 'cost', 'scope', 'party'];
+
+// The largest sortOrder a file row takes. A new row gets the largest
+// sortOrder plus one, so a row near Number.MAX_SAFE_INTEGER would make
+// every later create fail.
+const MAX_SORT_ORDER = 1_000_000_000;
 
 const SCHEDULE_FIELDS = [
   'title',
@@ -115,6 +120,14 @@ function pick(row, keys) {
   for (const key of keys) if (key in row) out[key] = row[key];
   return out;
 }
+
+/**
+ * A checked time in the UTC form that toISOString writes. Rows sort by
+ * their time as text, and only this one form sorts in time order.
+ * @param {string} value
+ * @returns {string}
+ */
+const toIso = (value) => new Date(value).toISOString();
 
 /**
  * Reads `body` as an export file.
@@ -184,9 +197,17 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
         `sortOrder must be a whole number, got ${show(sortOrder)}`,
       );
     }
+    const at = /** @type {number} */ (sortOrder);
+    if (at < 0 || at > MAX_SORT_ORDER) {
+      bad(
+        list,
+        index,
+        `sortOrder must be from 0 to ${MAX_SORT_ORDER}, got ${show(sortOrder)}`,
+      );
+    }
     return {
       complete: /** @type {boolean} */ (complete),
-      sortOrder: /** @type {number} */ (sortOrder),
+      sortOrder: at,
     };
   };
 
@@ -206,6 +227,10 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
 
   /** @type {ImportRows['dependencies']} */
   const dependencies = [];
+  /** @type {Set<string>} */
+  const edgeKeys = new Set();
+  /** @type {Map<string, string[]>} */
+  const next = new Map();
   lists.dependencies.forEach((raw, i) => {
     const row = object('dependencies', raw, i);
     const edge = {
@@ -214,16 +239,16 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
     };
     if (!titles.has(edge.predecessorId) || !titles.has(edge.successorId))
       return;
-    const same = (/** @type {typeof edge} */ d) =>
-      d.predecessorId === edge.predecessorId &&
-      d.successorId === edge.successorId;
-    if (dependencies.some(same)) return;
-    const loop = findCycle(dependencies, edge);
+    const key = JSON.stringify([edge.predecessorId, edge.successorId]);
+    if (edgeKeys.has(key)) return;
+    edgeKeys.add(key);
+    const loop = findCycleIn(next, edge);
     if (loop) {
       const names = loop.map((id) => titles.get(id)).join(' -> ');
       bad('dependencies', i, `makes a loop: ${names}`);
     }
     dependencies.push(edge);
+    addEdge(next, edge);
   });
 
   /** @type {ImportRows['variances']} */
@@ -246,6 +271,14 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
         `field must name a tracked field, got ${show(row.field)}`,
       );
     }
+    const kind = TRACKED_FIELDS[/** @type {TrackedField} */ (row.field)];
+    if (row.kind !== kind) {
+      bad(
+        'variances',
+        i,
+        `kind of ${row.field} must be ${kind}, got ${show(row.kind)}`,
+      );
+    }
     const oldValue = row.oldValue ?? null;
     const newValue = row.newValue ?? null;
     for (const [name, value] of [
@@ -266,7 +299,7 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
       oldValue: /** @type {string | null} */ (oldValue),
       newValue: /** @type {string | null} */ (newValue),
       reason: /** @type {string} */ (reason),
-      loggedAt: /** @type {string} */ (loggedAt),
+      loggedAt: toIso(/** @type {string} */ (loggedAt)),
     });
   });
 
@@ -284,8 +317,8 @@ export function checkImport(body, fail, importedAt = new Date().toISOString()) {
     notes.push({
       scheduleItemId,
       body: /** @type {string} */ (row.body),
-      createdAt: /** @type {string} */ (createdAt),
-      updatedAt: /** @type {string} */ (updatedAt),
+      createdAt: toIso(/** @type {string} */ (createdAt)),
+      updatedAt: toIso(/** @type {string} */ (updatedAt)),
     });
   });
 

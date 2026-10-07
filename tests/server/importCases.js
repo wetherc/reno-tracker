@@ -277,6 +277,49 @@ export const REFUSED = [
     'variances',
   ],
   [
+    'a change kind that does not match its field',
+    file({
+      variances: [{ scheduleItemId: 'a', kind: 'dates', field: 'title' }],
+    }),
+    'variances row 1: kind of title must be scope, got "dates"',
+    'variances',
+  ],
+  [
+    'a change time on a day that does not exist',
+    file({
+      variances: [
+        {
+          scheduleItemId: 'a',
+          kind: 'scope',
+          field: 'title',
+          loggedAt: '2026-02-31T00:00:00Z',
+        },
+      ],
+    }),
+    'variances row 1: loggedAt must be a time like 2026-03-14T09:30:00.000Z, got "2026-02-31T00:00:00Z"',
+    'variances',
+  ],
+  [
+    'a sort order above the limit',
+    file({ materials: [{ name: 'Grout', sortOrder: 9007199254740991 }] }),
+    'materials row 1: sortOrder must be from 0 to 1000000000, got 9007199254740991',
+    'materials',
+  ],
+  [
+    'a negative sort order',
+    file({ materials: [{ name: 'Grout', sortOrder: -1 }] }),
+    'materials row 1: sortOrder must be from 0 to 1000000000, got -1',
+    'materials',
+  ],
+  [
+    'a very long bad value',
+    file({
+      notes: [{ scheduleItemId: 'a', body: 'Hi', createdAt: 'x'.repeat(5000) }],
+    }),
+    `notes row 1: createdAt must be a time like 2026-03-14T09:30:00.000Z, got "${'x'.repeat(59)}...`,
+    'notes',
+  ],
+  [
     'a blank note',
     file({ notes: [{ scheduleItemId: 'a', body: ' ' }] }),
     'notes row 1: body cannot be blank',
