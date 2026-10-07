@@ -204,12 +204,14 @@ its change orders.
 A document under the key `reno-tracker:db` keeps many projects in one
 key. On load the store moves each of its projects to a key of its own
 and removes `reno-tracker:db`. A project that the browser refuses to
-store stays in `reno-tracker:db` until the next load.
+store stays in `reno-tracker:db` until the next load. A save or a delete of
+that project also removes it from `reno-tracker:db`.
 
-When the text of a project key does not parse as that project, the store
+When the text of a project key does not parse as that project, or a
+list, a row, or the lines of a row in it are not JSON objects, the store
 copies it to `reno-tracker:db-damaged:<id>`, removes the key, and leaves
 the project out. A `reno-tracker:db` document that does not parse as a
-JSON object is copied to `reno-tracker:db-damaged` in the same way. The
+JSON object, or whose rows are not objects, is copied to `reno-tracker:db-damaged` in the same way. The
 copy stays for recovery by hand. When the copy key already holds a
 different damaged copy, or the browser refuses the copy, every action
 fails with a message and nothing is written.

@@ -13,10 +13,13 @@
 //
 // A document under DB_KEY keeps many projects in one key. On load the
 // store moves each of its projects to a key of its own, and removes
-// DB_KEY when no project is left in it.
+// DB_KEY when no project is left in it. A save or delete of a project
+// also removes it from DB_KEY, so a deleted project that the browser
+// refused to move does not come back on the next load.
 //
-// A stored document that does not parse is copied to a second key and
-// then removed. The copy lets a person recover the text by hand from the
+// A stored document that does not parse, or whose lists and rows are not
+// objects of the expected kind, is copied to a second key and then
+// removed. The copy lets a person recover the text by hand from the
 // browser's developer tools.
 import { ApiError } from '../api/errors.js';
 import { PREFIX } from '../storage/prefs.js';
@@ -160,6 +163,42 @@ function parseObject(text) {
   }
 }
 
+/** @param {unknown} value */
+const isObject = (value) =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** @param {unknown} list */
+const isRowList = (list) => Array.isArray(list) && list.every(isObject);
+
+/**
+ * Whether each list of a stored document is a list of objects, each
+ * project has a string id, each invoice and change order has a list of
+ * line objects, and each invoice's payments, when present, are a list
+ * of objects. normalize reads these fields, and a document without
+ * them would make it throw a TypeError on every call.
+ * @param {Record<string, unknown>} input
+ * @returns {boolean}
+ */
+function wellFormed(input) {
+  /** @param {string} key */
+  const rows = (key) =>
+    /** @type {Record<string, unknown>[]} */ (
+      Array.isArray(input[key]) ? input[key] : []
+    );
+  if (!Object.keys(emptyDb()).every((key) => rows(key).every(isObject))) {
+    return false;
+  }
+  return (
+    rows('projects').every((p) => typeof p.id === 'string') &&
+    rows('invoices').every(
+      (i) =>
+        isRowList(i.lines) &&
+        (i.payments === undefined || isRowList(i.payments)),
+    ) &&
+    rows('changeOrders').every((c) => isRowList(c.lines))
+  );
+}
+
 /**
  * @param {LineItem} line
  * @returns {LineItem}
@@ -177,9 +216,10 @@ const withLineRate = (line) => ({
  * rate gets the rate of its project. A line stored with no rate takes
  * the rate of its document.
  * @param {Record<string, unknown>} input
- * @returns {LocalDb}
+ * @returns {LocalDb | null} null when the document is not well formed
  */
 function normalize(input) {
+  if (!wellFormed(input)) return null;
   const db = emptyDb();
   for (const key of /** @type {(keyof LocalDb)[]} */ (Object.keys(db))) {
     if (Array.isArray(input[key])) {
@@ -225,6 +265,7 @@ function parseProject(text, id) {
   const parsed = parseObject(text);
   if (!parsed) return null;
   const doc = normalize(parsed);
+  if (!doc) return null;
   return doc.projects.length === 1 && doc.projects[0]?.id === id ? doc : null;
 }
 
@@ -237,7 +278,16 @@ function parseProject(text, id) {
  * @param {string} target
  */
 function keepDamaged(storage, text, target) {
-  const kept = storage.getItem(target);
+  /** @type {string | null} */
+  let kept;
+  try {
+    kept = storage.getItem(target);
+  } catch {
+    throw new ApiError(507, {
+      error:
+        'The saved projects in this browser are damaged, and the browser refused to read the kept copy. Nothing was changed.',
+    });
+  }
   if (kept === text) return;
   if (kept !== null) {
     throw new ApiError(500, {
@@ -269,6 +319,8 @@ export function createStore(storage) {
   let cache = null;
   /** @type {Map<string, string>} the stored text of each project, as last read or written */
   const texts = new Map();
+  /** Whether the last load left projects in DB_KEY. */
+  let combinedLeft = false;
 
   /** @param {string} key */
   function get(key) {
@@ -294,9 +346,37 @@ export function createStore(storage) {
     return keys;
   }
 
+  /** @param {string} key */
+  function remove(key) {
+    try {
+      storage.removeItem(key);
+    } catch {
+      // The key keeps its text, and the next load reads it again.
+    }
+  }
+
+  /**
+   * Removes one project from the DB_KEY document. A project that the
+   * browser refused to move keeps its rows there, and without this step
+   * a deleted project would come back on the next load.
+   * @param {string} id
+   */
+  function dropFromCombined(id) {
+    if (!combinedLeft) return;
+    const text = storage.getItem(DB_KEY);
+    if (!text) return;
+    const parsed = parseObject(text);
+    const combined = parsed && normalize(parsed);
+    if (!combined?.projects.some((p) => p.id === id)) return;
+    removeRows(combined, id);
+    if (combined.projects.length === 0) storage.removeItem(DB_KEY);
+    else storage.setItem(DB_KEY, JSON.stringify(combined));
+  }
+
   /**
    * Stores one project from the memory copy, or removes its key when
-   * the project is gone.
+   * the project is gone. Either way the project leaves the DB_KEY
+   * document.
    * @param {string} id
    */
   function save(id) {
@@ -310,6 +390,7 @@ export function createStore(storage) {
         storage.removeItem(PROJECT_PREFIX + id);
         texts.delete(id);
       }
+      dropFromCombined(id);
     } catch {
       throw refused();
     }
@@ -341,12 +422,12 @@ export function createStore(storage) {
     const text = get(DB_KEY);
     if (!text) return;
     const parsed = parseObject(text);
-    if (!parsed) {
+    const combined = parsed && normalize(parsed);
+    if (!combined) {
       keepDamaged(storage, text, DAMAGED_KEY);
-      storage.removeItem(DB_KEY);
+      remove(DB_KEY);
       return;
     }
-    const combined = normalize(parsed);
     const left = emptyDb();
     for (const project of combined.projects) {
       if (texts.has(project.id)) continue;
@@ -360,10 +441,12 @@ export function createStore(storage) {
         addRows(left, rows);
       }
     }
+    combinedLeft = left.projects.length > 0;
     try {
-      if (left.projects.length === 0) storage.removeItem(DB_KEY);
-      else storage.setItem(DB_KEY, JSON.stringify(left));
+      if (combinedLeft) storage.setItem(DB_KEY, JSON.stringify(left));
+      else storage.removeItem(DB_KEY);
     } catch {
+      combinedLeft = true;
       // DB_KEY keeps its text, and the next load moves it again.
     }
   }
@@ -373,6 +456,7 @@ export function createStore(storage) {
     if (cache) return cache;
     const db = emptyDb();
     texts.clear();
+    combinedLeft = false;
     for (const key of projectKeys()) {
       const text = get(key);
       if (text === null) continue;
@@ -383,7 +467,7 @@ export function createStore(storage) {
         texts.set(id, text);
       } else {
         keepDamaged(storage, text, `${DAMAGED_KEY}:${id}`);
-        storage.removeItem(key);
+        remove(key);
       }
     }
     moveCombined(db);

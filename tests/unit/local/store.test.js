@@ -548,3 +548,121 @@ test('a change order stored with no rate reads with the rate of its project', ()
     [1250, 0],
   );
 });
+
+test('a project document with malformed rows is kept as damaged and left out', () => {
+  const storage = memoryStorage();
+  const bad =
+    '{"projects":[{"id":"p"}],"invoices":[{"id":"i","projectId":"p"}]}';
+  storage.setItem(PROJECT_PREFIX + 'p', bad);
+  storage.setItem(
+    PROJECT_PREFIX + 'q',
+    JSON.stringify({ ...emptyDb(), projects: [projectOfId('q')] }),
+  );
+  const db = createStore(storage).read();
+  assert.deepEqual(
+    db.projects.map((p) => p.id),
+    ['q'],
+  );
+  assert.equal(storage.getItem(`${DAMAGED_KEY}:p`), bad);
+  assert.equal(storage.getItem(PROJECT_PREFIX + 'p'), null);
+});
+
+test('malformed lists, ids, lines, and payments each count as damaged', () => {
+  for (const doc of [
+    { projects: [1] },
+    { projects: [{ id: 5 }] },
+    { projects: [{ id: 'p' }], changeOrders: [{ id: 'c', lines: 'x' }] },
+    {
+      projects: [{ id: 'p' }],
+      invoices: [{ id: 'i', lines: [], payments: [null] }],
+    },
+  ]) {
+    const storage = memoryStorage();
+    storage.setItem(PROJECT_PREFIX + 'p', JSON.stringify(doc));
+    assert.deepEqual(createStore(storage).read().projects, []);
+    assert.notEqual(storage.getItem(`${DAMAGED_KEY}:p`), null);
+  }
+});
+
+test('a combined document with malformed rows is kept as damaged', () => {
+  const storage = memoryStorage();
+  const bad = '{"projects":[{"id":"p"}],"changeOrders":[{"id":"c"}]}';
+  storage.setItem(DB_KEY, bad);
+  assert.deepEqual(createStore(storage).read().projects, []);
+  assert.equal(storage.getItem(DAMAGED_KEY), bad);
+  assert.equal(storage.getItem(DB_KEY), null);
+});
+
+test('a project the browser refused to move stays deleted after a reload', () => {
+  let refuse = true;
+  const { storage, inner } = spyStorage({
+    refuse: (key) => refuse && key === PROJECT_PREFIX + 'b',
+  });
+  inner.setItem(DB_KEY, JSON.stringify(twoProjects()));
+  const store = createStore(storage);
+  store.change(
+    (db) => projectOf(db, 'project', 'b'),
+    (db) => removeRows(db, 'b'),
+  );
+  assert.equal(inner.getItem(DB_KEY), null);
+  refuse = false;
+  assert.deepEqual(
+    createStore(storage)
+      .read()
+      .projects.map((p) => p.id),
+    ['a'],
+  );
+});
+
+test('a delete of an unmoved project keeps the others in the combined document', () => {
+  const db = twoProjects();
+  db.projects.push(projectOfId('c'));
+  const { storage, inner } = spyStorage({
+    refuse: (key) => key !== PROJECT_PREFIX + 'a' && key !== DB_KEY,
+  });
+  inner.setItem(DB_KEY, JSON.stringify(db));
+  const store = createStore(storage);
+  store.change(
+    (d) => projectOf(d, 'project', 'c'),
+    (d) => removeRows(d, 'c'),
+  );
+  assert.deepEqual(
+    JSON.parse(String(inner.getItem(DB_KEY))).projects.map(
+      (/** @type {{ id: string }} */ p) => p.id,
+    ),
+    ['b'],
+  );
+});
+
+test('a storage that throws on read or remove of a damaged copy fails cleanly', () => {
+  const inner = memoryStorage();
+  inner.setItem(PROJECT_PREFIX + 'p', 'not json');
+  const storage = {
+    ...inner,
+    getItem: (/** @type {string} */ k) => {
+      if (k.startsWith(DAMAGED_KEY)) throw new Error('blocked');
+      return inner.getItem(k);
+    },
+    key: (/** @type {number} */ i) => inner.key(i),
+    get length() {
+      return inner.length;
+    },
+  };
+  assert.throws(() => createStore(storage).read(), { status: 507 });
+
+  inner.removeItem(PROJECT_PREFIX + 'p');
+  inner.setItem(DB_KEY, 'not json');
+  const noRemove = {
+    ...inner,
+    removeItem: () => {
+      throw new Error('blocked');
+    },
+    key: (/** @type {number} */ i) => inner.key(i),
+    get length() {
+      return inner.length;
+    },
+  };
+  assert.deepEqual(createStore(noRemove).read().projects, []);
+  assert.equal(inner.getItem(DAMAGED_KEY), 'not json');
+  assert.equal(inner.getItem(DB_KEY), 'not json');
+});
