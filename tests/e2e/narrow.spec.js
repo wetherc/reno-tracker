@@ -38,6 +38,9 @@ test('no section or view scrolls sideways on a 390px phone', async ({
     },
   });
   await page.setViewportSize({ width: 390, height: 844 });
+  // The calendar opens on the month of today, and the spec taps the day
+  // of the seeded item, so the page clock stays on that day.
+  await page.clock.setFixedTime(new Date('2026-10-07T12:00:00'));
   await openProject(page, 'Narrow check');
   const width = () => page.evaluate(() => document.documentElement.scrollWidth);
   const nav = page.getByRole('navigation', { name: 'Sections' });

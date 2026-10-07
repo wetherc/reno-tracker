@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures.js';
+import { editRecord } from './seed.js';
 
 /**
  * @param {import('@playwright/test').Page} page
@@ -113,8 +114,13 @@ test('the costs panel sums the project and draws both charts', async ({
   const itemTotals = items.locator('tfoot tr');
   await expect(itemTotals).toContainText('$33,200.00');
   await expect(itemTotals).toContainText('$2,400.00');
-  // The name opens the editor for the row behind it.
+  // The name opens the view of the row behind it, and Edit opens its
+  // editor.
   await items.getByRole('button', { name: 'Quartz counter' }).click();
+  await expect(
+    dialog.getByRole('heading', { name: 'Quartz counter' }),
+  ).toBeVisible();
+  await editRecord(page);
   await expect(dialog.getByLabel('Allowance')).toHaveValue('4000.00');
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog).toBeHidden();
