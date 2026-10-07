@@ -160,17 +160,18 @@ export function agendaView({ ctx }) {
         onClick: () => openScheduleEditor({ ctx, item }),
       });
       focusKey(title, `${item.id}:open`);
-      el.append(
-        completeToggle({ ctx, item }),
-        title,
-        ...lateBadge(item, today),
-      );
+      // The toggle takes the first column, and the title stacks over
+      // the meta line in the second, so a long title wraps beside the
+      // toggle instead of pushing it onto a line of its own.
+      const main = document.createElement('div');
+      main.className = 'agenda-row__main';
       const meta = document.createElement('span');
       meta.className = 'agenda-row__meta u-muted';
       const parts = [spanText(item, edge)];
       if (item.responsibleParty) parts.push(item.responsibleParty);
       meta.textContent = parts.join(' · ');
-      el.append(meta);
+      main.append(title, ...lateBadge(item, today), meta);
+      el.append(completeToggle({ ctx, item }), main);
       return el;
     }
 
