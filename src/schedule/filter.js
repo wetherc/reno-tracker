@@ -45,19 +45,27 @@ export function partiesOf(items) {
 }
 
 /**
+ * Lowercases text and drops its accents, so "cafe" matches "Café".
+ * @param {string} text
+ */
+const fold = (text) =>
+  text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+/**
  * @param {ScheduleItem[]} items
  * @param {ScheduleFilter} filter
  * @param {string} today an ISO date, for the late status
  * @returns {ScheduleItem[]} the items that pass, in their input order
  */
 export function filterSchedule(items, { text, party, status }, today) {
-  const words = text.toLowerCase().split(/\s+/).filter(Boolean);
+  const words = fold(text).split(/\s+/).filter(Boolean);
   return items.filter((item) => {
     if (party !== '' && item.responsibleParty !== party) return false;
     if (status === 'open' && item.complete) return false;
     if (status === 'late' && !isLate(item, today)) return false;
-    const haystack =
-      `${item.title}\n${item.description}\n${item.responsibleParty}`.toLowerCase();
+    const haystack = fold(
+      `${item.title}\n${item.description}\n${item.responsibleParty}`,
+    );
     return words.every((word) => haystack.includes(word));
   });
 }

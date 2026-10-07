@@ -45,6 +45,18 @@ test('text matches each word in title, description, or party', () => {
   assert.equal(isFiltering({ ...NO_FILTER, text: 'x' }), true);
 });
 
+test('text ignores accents on either side', () => {
+  const accented = [
+    itemOf('d', { title: 'Café counter', responsibleParty: 'Peña' }),
+  ];
+  /** @param {string} text */
+  const found = (text) =>
+    filterSchedule(accented, { ...NO_FILTER, text }, today).map((i) => i.id);
+  assert.deepEqual(found('cafe'), ['d']);
+  assert.deepEqual(found('CAFÉ pena'), ['d']);
+  assert.deepEqual(found('peñas'), []);
+});
+
 test('party matches one name exactly', () => {
   assert.deepEqual(ids({ party: 'Crew' }), ['a']);
   assert.deepEqual(ids({ party: 'Pinch' }), []);
