@@ -7,6 +7,11 @@ import { currentKey, restoreFocus } from './focusKey.js';
 
 let counter = 0;
 
+// showModal() makes the rest of the page inert, so a toast in the page
+// cannot be dismissed while a dialog is open. The toast region moves
+// into the open dialog and goes back to its old place when it closes.
+const TOASTS = 'toasts';
+
 /**
  * @typedef {{
  *   el: HTMLDialogElement,
@@ -85,7 +90,13 @@ export function modal({
   let opener = null;
   /** @type {string | null} */
   let openerKey = null;
+  /** @type {{ region: HTMLElement, parent: ParentNode } | null} */
+  let moved = null;
   el.addEventListener('close', () => {
+    if (moved?.region.parentNode === el) {
+      moved.parent.append(moved.region);
+    }
+    moved = null;
     if (opener?.isConnected && 'focus' in opener) {
       /** @type {HTMLElement} */ (opener).focus();
     } else {
@@ -107,6 +118,11 @@ export function modal({
       opener = document.activeElement;
       openerKey = currentKey();
       el.showModal();
+      const region = document.getElementById(TOASTS);
+      if (region?.parentNode) {
+        moved = { region, parent: region.parentNode };
+        el.append(region);
+      }
     },
     close() {
       el.close();

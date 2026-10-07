@@ -7,6 +7,10 @@
 // A message that is already showing in the same tone is not added again:
 // the toast moves to the end, counts the repeat, and starts its timer
 // over.
+//
+// The region in index.html is the one live region. A toast sets no role
+// of its own, because a status or alert role inside a live region makes
+// a screen reader read the message twice.
 import { bareButton } from './buttons.js';
 import { icon } from './icon.js';
 
@@ -61,7 +65,6 @@ export function createToaster(
 
     const el = document.createElement('div');
     el.className = tone === 'info' ? 'toast' : `toast toast--${tone}`;
-    el.setAttribute('role', tone === 'danger' ? 'alert' : 'status');
     const text = document.createElement('span');
     text.className = 'toast__message';
     const count = document.createElement('span');

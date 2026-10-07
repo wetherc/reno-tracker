@@ -56,6 +56,28 @@ test('modal labels itself, opens, and restores focus on close', () => {
   assert.equal(modal({ title: 'Bare' }).el.children.length, 2);
 });
 
+test('modal moves the toast region inside while open and back after', () => {
+  const region = document.createElement('div');
+  region.id = 'toasts';
+  dom.body.append($(region));
+  const outer = modal({ title: 'Edit' });
+  const inner = modal({ title: 'Confirm' });
+  dom.body.append($(outer.el), $(inner.el));
+  outer.open();
+  assert.equal($(region).parentNode, outer.el);
+  inner.open();
+  assert.equal($(region).parentNode, inner.el);
+  inner.close();
+  assert.equal($(region).parentNode, outer.el);
+  outer.close();
+  assert.equal($(region).parentNode, dom.body);
+  region.remove();
+  outer.open();
+  outer.close();
+  outer.el.remove();
+  inner.el.remove();
+});
+
 test('modal focuses the control that took the place of a removed opener', () => {
   const m = modal({ title: 'Edit' });
   const opener = focusKey(document.createElement('button'), 'row-1:open');
@@ -123,10 +145,10 @@ test('toaster shows, times out, and keeps failures', () => {
   toaster.failure('Could not save');
   const [info, ok, bad] = region.children;
   assert.equal(info.className, 'toast');
-  assert.equal(info.getAttribute('role'), 'status');
+  assert.equal(info.getAttribute('role'), null);
   assert.equal(ok.className, 'toast toast--success');
   assert.equal(bad.className, 'toast toast--danger');
-  assert.equal(bad.getAttribute('role'), 'alert');
+  assert.equal(bad.getAttribute('role'), null);
   assert.equal(bad.children[0].textContent, 'Could not save');
   assert.equal(timers.length, 2);
   timers.forEach((fn) => fn());
