@@ -89,6 +89,25 @@ function inputOf(type, { value = '', placeholder, onInput }) {
   return input;
 }
 
+/**
+ * Selects the whole value when the field gains focus, so typing replaces
+ * a saved amount. A click on a field that has focus already places the
+ * caret as usual. The mouseup after a focusing click is cancelled,
+ * because the browser drops the selection on that mouseup.
+ * @param {HTMLInputElement} input
+ */
+function selectOnFocus(input) {
+  let focusingClick = false;
+  input.addEventListener('pointerdown', () => {
+    focusingClick = document.activeElement !== input;
+  });
+  input.addEventListener('focus', () => input.select());
+  input.addEventListener('mouseup', (event) => {
+    if (focusingClick) event.preventDefault();
+    focusingClick = false;
+  });
+}
+
 /** @param {FieldOptions} options @returns {FieldHandle} */
 export function textField(options) {
   return fieldRow(options, inputOf('text', options));
@@ -124,6 +143,7 @@ export function numberField(options) {
   input.classList.add('form__number');
   input.setAttribute('inputmode', 'numeric');
   input.setAttribute('step', '1');
+  selectOnFocus(input);
   if (options.min !== undefined) input.setAttribute('min', String(options.min));
   if (options.max !== undefined) input.setAttribute('max', String(options.max));
   return fieldRow(options, input);
@@ -144,6 +164,7 @@ export function moneyField(options) {
   });
   input.classList.add('form__number');
   input.setAttribute('inputmode', 'decimal');
+  selectOnFocus(input);
   const handle = fieldRow(options, input);
   return {
     ...handle,
@@ -171,6 +192,7 @@ export function percentField(options) {
   });
   input.classList.add('form__number');
   input.setAttribute('inputmode', 'decimal');
+  selectOnFocus(input);
   const handle = fieldRow(options, input);
   return {
     ...handle,

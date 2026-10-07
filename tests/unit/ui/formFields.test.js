@@ -178,3 +178,39 @@ test('form prevents native submit and formActions groups buttons', () => {
   assert.equal(actions.className, 'form__actions');
   assert.equal(actions.children[0], btn);
 });
+
+test('money, percent, and number fields select their value on focus', () => {
+  installDom();
+  for (const field of [
+    moneyField({ id: 'm', label: 'M', cents: 1250 }),
+    percentField({ id: 'p', label: 'P', basisPoints: 1500 }),
+    numberField({ id: 'n', label: 'N', value: '3' }),
+  ]) {
+    const input = /** @type {any} */ (field.input);
+    let selected = 0;
+    input.select = () => selected++;
+    // Keyboard focus selects, and a later click inside keeps the caret.
+    input.focus();
+    input.dispatchEvent({ type: 'focus' });
+    assert.equal(selected, 1);
+    input.dispatchEvent({ type: 'pointerdown' });
+    assert.equal(input.dispatchEvent({ type: 'mouseup' }), true);
+    // A click that gives focus keeps the selection through its mouseup.
+    input.blur();
+    input.dispatchEvent({ type: 'pointerdown' });
+    input.focus();
+    input.dispatchEvent({ type: 'focus' });
+    assert.equal(selected, 2);
+    assert.equal(input.dispatchEvent({ type: 'mouseup' }), false);
+    assert.equal(input.dispatchEvent({ type: 'mouseup' }), true);
+  }
+});
+
+test('text fields leave their value unselected on focus', () => {
+  installDom();
+  const input = /** @type {any} */ (textField({ id: 't', label: 'T' }).input);
+  let selected = 0;
+  input.select = () => selected++;
+  input.dispatchEvent({ type: 'focus' });
+  assert.equal(selected, 0);
+});
