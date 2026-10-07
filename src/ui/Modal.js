@@ -15,6 +15,7 @@ let counter = 0;
 // Edit in a view opens the editor, so the order of close events does not
 // decide where the region goes.
 const TOASTS = 'toasts';
+const STALE = 'toast--stale';
 
 /** @type {HTMLDialogElement[]} open dialogs that took the region, oldest first */
 const holders = [];
@@ -103,7 +104,13 @@ export function modal({
     const held = holders.indexOf(el);
     if (held >= 0) holders.splice(held, 1);
     const region = document.getElementById(TOASTS);
-    if (region?.parentNode === el) (holders.at(-1) ?? home)?.append(region);
+    if (region?.parentNode === el) {
+      const next = holders.at(-1) ?? home;
+      next?.append(region);
+      if (next === home) {
+        for (const toast of region.children) toast.classList.remove(STALE);
+      }
+    }
     if (opener?.isConnected && 'focus' in opener) {
       /** @type {HTMLElement} */ (opener).focus();
     } else {
@@ -130,6 +137,9 @@ export function modal({
         if (holders.length === 0) home = region.parentNode;
         holders.push(el);
         el.append(region);
+        // A toast from before the dialog opened is about the page, so the
+        // dialog hides it and shows only its own feedback.
+        for (const toast of region.children) toast.classList.add(STALE);
       }
     },
     close() {

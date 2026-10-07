@@ -63,14 +63,20 @@ test('modal moves the toast region inside while open and back after', () => {
   const outer = modal({ title: 'Edit' });
   const inner = modal({ title: 'Confirm' });
   dom.body.append($(outer.el), $(inner.el));
+  const before = document.createElement('div');
+  region.append(before);
   outer.open();
   assert.equal($(region).parentNode, outer.el);
+  assert.equal(before.classList.contains('toast--stale'), true);
   inner.open();
   assert.equal($(region).parentNode, inner.el);
   inner.close();
   assert.equal($(region).parentNode, outer.el);
+  assert.equal(before.classList.contains('toast--stale'), true);
   outer.close();
   assert.equal($(region).parentNode, dom.body);
+  assert.equal(before.classList.contains('toast--stale'), false);
+  before.remove();
   region.remove();
   outer.open();
   outer.close();
@@ -227,10 +233,12 @@ test('toaster counts a repeat and restarts its timer', () => {
   });
   toaster.success('Saved Demo');
   toaster.success('Saved Tile');
+  $(region.children[0]).classList.add('toast--stale');
   const again = toaster.success('Saved Demo');
   assert.equal(region.children.length, 2);
   const [tile, demo] = region.children;
   assert.equal(demo.children[0].textContent, 'Saved Demo (2 times)');
+  assert.equal(demo.classList.contains('toast--stale'), false);
   assert.equal(tile.children[0].textContent, 'Saved Tile');
   // The first timer of the repeat is stale and leaves the toast up.
   timers[0]();

@@ -103,6 +103,13 @@
   display: none;
 }
 
+/* In a dialog only the newest toast shows, and never one raised before
+   the dialog opened, so the toasts do not make the dialog scroll. */
+.modal > .toast-region > .toast--stale,
+.modal > .toast-region > :not(:last-child) {
+  display: none;
+}
+
 .toast {
   display: flex;
   align-items: flex-start;

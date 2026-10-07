@@ -58,6 +58,9 @@ export function createToaster(
       repeat.count.textContent = ` (${repeat.seen} times)`;
       shown.delete(key);
       shown.set(key, repeat);
+      // A dialog hides a toast raised before it opened. A repeat is new
+      // feedback, so it shows again.
+      repeat.el.classList.remove('toast--stale');
       region.append(repeat.el);
       startTimer(repeat);
       return repeat.dismiss;
