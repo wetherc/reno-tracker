@@ -7,7 +7,10 @@
 // larger of its actual price and its estimate, because a first invoice
 // on an open row is often a deposit or a part payment, and the rest of
 // the estimate is still to come. A price above the estimate counts at
-// once, so an overrun shows before the box is ticked. Headroom is the
+// once, so an overrun shows before the box is ticked. The base part of
+// an open row is the larger of the invoiced base and the estimated
+// base, so it never shows less base than the invoices already bill,
+// and the markup is the rest of the total. Headroom is the
 // budget less the projected total, so it goes negative when the project
 // is set to run over. Accrued is the projected amount of every complete
 // row that no invoice line bills: work done or goods received, but no
@@ -48,7 +51,7 @@ export function costSummary(events, budgetCents) {
     const counted = projected(event);
     projectedCents += counted.cents;
     markupCents += counted.markupCents;
-    if (event.complete && event.invoicedCents === null) {
+    if (event.complete && event.invoicedCents === null && counted.cents > 0) {
       accruedCents += counted.cents;
       accruedCount += 1;
     }
@@ -73,15 +76,19 @@ export function costSummary(events, budgetCents) {
  */
 export function projected(event) {
   const { billedCents, billedMarkupCents } = event;
-  if (
-    billedCents === null ||
-    billedMarkupCents === null ||
-    (!event.complete && billedCents < event.expectedCents)
-  ) {
+  if (billedCents === null || billedMarkupCents === null) {
     return {
       cents: event.expectedCents,
       markupCents: event.expectedMarkupCents,
     };
   }
-  return { cents: billedCents, markupCents: billedMarkupCents };
+  if (event.complete) {
+    return { cents: billedCents, markupCents: billedMarkupCents };
+  }
+  const cents = Math.max(billedCents, event.expectedCents);
+  const baseCents = Math.max(
+    billedCents - billedMarkupCents,
+    event.expectedCents - event.expectedMarkupCents,
+  );
+  return { cents, markupCents: cents - baseCents };
 }

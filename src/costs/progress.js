@@ -5,13 +5,14 @@
 // weigh as much as days of work. An item that covers only weekend days
 // adds nothing to either count. Materials bought is a plain count of
 // complete materials over all materials. The count of those still
-// waiting on an invoice (complete, and no invoice line bills it) rides
-// beside it, so a price typed on a row does not count as invoiced. The
+// waiting on an invoice (complete, a price above zero, and no invoice
+// line bills it) sits beside it, so a price typed on a row does not count as invoiced. The
 // two stay apart because a run of purchases says nothing about work on
 // site.
 
 import { eachDay, weekday } from '../schedule/dates.js';
 import { billings } from './invoiced.js';
+import { materialExpected } from './timeline.js';
 
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
 
@@ -23,7 +24,7 @@ import { billings } from './invoiced.js';
  * @property {number} percentMaterials whole number, complete materials over all materials
  * @property {number} materialsBought complete materials
  * @property {number} materialsAll every material
- * @property {number} materialsUninvoiced complete materials that no invoice line bills
+ * @property {number} materialsUninvoiced complete materials with a price above zero that no invoice line bills
  */
 
 /**
@@ -32,7 +33,11 @@ import { billings } from './invoiced.js';
  * @returns {number}
  */
 const percent = (done, total) =>
-  total === 0 ? 0 : Math.round((done / total) * 100);
+  total === 0
+    ? 0
+    : done === total
+      ? 100
+      : Math.min(Math.round((done / total) * 100), 99);
 
 /**
  * @param {Pick<ProjectPayload, 'schedule' | 'materials' | 'invoices'>} payload
@@ -57,6 +62,8 @@ export function progress(payload) {
     percentMaterials: percent(bought.length, payload.materials.length),
     materialsBought: bought.length,
     materialsAll: payload.materials.length,
-    materialsUninvoiced: bought.filter((m) => !billed.has(m.id)).length,
+    materialsUninvoiced: bought.filter(
+      (m) => !billed.has(m.id) && (m.actualCents ?? materialExpected(m, 0)) > 0,
+    ).length,
   };
 }

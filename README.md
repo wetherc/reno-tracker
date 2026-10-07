@@ -106,8 +106,9 @@ static site on GitHub Pages, where it keeps its data in the browser.
   none. A Projected tile shows the total the project is heading for, split
   into base cost and markup, and the headroom tile is the budget less that
   total. An open row counts the larger of its invoiced sum and its
-  estimate, because a first invoice is often a deposit. A complete row
-  counts its invoiced sum.
+  estimate, because a first invoice is often a deposit. Its base cost is
+  the larger of its invoiced base and its estimated base, and the markup
+  is the rest. A complete row counts its invoiced sum.
 - Save of a project to a JSON file, and load of that file as a new project.
   A loaded project whose name is taken gets the load day in its name, such
   as "Kitchen (loaded Sep 24)". The picker lists projects by name.

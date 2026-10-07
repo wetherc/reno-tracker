@@ -15,8 +15,14 @@ const item = (startDate, endDate, complete) =>
  * @param {boolean} complete
  * @param {number | null} [actualCents]
  */
-const material = (id, complete, actualCents = null) =>
-  /** @type {any} */ ({ id, complete, actualCents });
+const material = (id, complete, actualCents = null, estimatedCents = 100) =>
+  /** @type {any} */ ({
+    id,
+    complete,
+    actualCents,
+    estimatedCents,
+    allowanceCents: 0,
+  });
 
 /** @param {string} materialItemId */
 const invoiceFor = (materialItemId) =>
@@ -109,4 +115,28 @@ test('progress leaves out an item that covers only a weekend', () => {
   });
   assert.equal(result.workdaysDone, 0);
   assert.equal(result.workdaysAll, 1);
+});
+
+test('progress shows 100 percent only when every day is done', () => {
+  const days = Array.from({ length: 300 }, (_, i) => i);
+  const schedule = days.map((i) => {
+    const day = new Date(Date.UTC(2026, 0, 5) + i * 86_400_000);
+    const iso = day.toISOString().slice(0, 10);
+    return item(iso, iso, i > 0);
+  });
+  const weekdays = schedule.filter(
+    (s) => ![0, 6].includes(new Date(s.startDate).getUTCDay()),
+  ).length;
+  const result = progress({ schedule, materials: [], invoices: [] });
+  assert.equal(result.workdaysDone, weekdays - 1);
+  assert.equal(result.percentWork, 99);
+});
+
+test('progress leaves a complete zero price material out of the uninvoiced count', () => {
+  const result = progress({
+    schedule: [],
+    materials: [material('free', true, null, 0), material('paid', true, 0)],
+    invoices: [],
+  });
+  assert.equal(result.materialsUninvoiced, 0);
 });

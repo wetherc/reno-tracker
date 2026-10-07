@@ -135,3 +135,26 @@ test('costSummary counts the billed markup where billed, else the estimated one'
   assert.equal(summary.projectedCents, 1_930);
   assert.equal(summary.markupCents, 230);
 });
+
+test('costSummary splits an open row so base is at least the invoiced base', () => {
+  // A $1,000 estimate at 20% against a $1,100 invoice line at 0%.
+  const summary = costSummary(
+    [
+      event({
+        expectedCents: 120_000,
+        expectedMarkupCents: 20_000,
+        invoicedCents: 110_000,
+        billedCents: 110_000,
+        billedMarkupCents: 0,
+      }),
+    ],
+    0,
+  );
+  assert.equal(summary.projectedCents, 120_000);
+  assert.equal(summary.markupCents, 10_000);
+});
+
+test('costSummary leaves a complete zero price row out of the accrued count', () => {
+  const summary = costSummary([event({ expectedCents: 0, complete: true })], 0);
+  assert.equal(summary.accruedCount, 0);
+});
