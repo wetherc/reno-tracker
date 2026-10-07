@@ -7,7 +7,7 @@
 // gets the Late badge beside its name and a late bar.
 import { formatDayMonth } from '../format/date.js';
 import { isLate } from '../entities/scheduleItem.js';
-import { todayIso } from '../schedule/dates.js';
+import { dayOffset, todayIso } from '../schedule/dates.js';
 import { ganttLayout } from '../schedule/gantt.js';
 import { bareButton } from '../ui/buttons.js';
 import { focusKey } from '../ui/focusKey.js';
@@ -29,14 +29,16 @@ export const ROW_HEIGHT = 40;
 
 /**
  * @param {{ ctx: AppContext }} deps
- * @returns {{ render(payload: ProjectPayload): HTMLElement }}
+ * @returns {{ render(payload: ProjectPayload): HTMLElement, reset(): void }}
  */
 export function ganttView({ ctx }) {
   // The scroll position and the focused handle are kept across the
   // rebuild that follows every save, so a keyboard user can press an
-  // arrow key many times in a row.
-  /** @type {number | null} */
-  let scrollLeft = null;
+  // arrow key many times in a row. The scroll is kept as pixels past the
+  // first day of the chart it was read on, so a new first day after a
+  // save or a filter change still shows the same dates.
+  /** @type {{ start: string, px: number } | null} */
+  let scroll = null;
   /** @type {string | null} */
   let pendingFocus = null;
 
@@ -57,7 +59,7 @@ export function ganttView({ ctx }) {
     root.style.setProperty('--gantt-day', `${layout.dayWidth}px`);
     root.style.setProperty('--gantt-row', `${layout.rowHeight}px`);
     root.addEventListener('scroll', () => {
-      scrollLeft = root.scrollLeft;
+      scroll = { start: layout.start, px: root.scrollLeft };
     });
 
     const status = document.createElement('p');
@@ -115,8 +117,9 @@ export function ganttView({ ctx }) {
         ),
         layout.width,
       );
-      root.scrollLeft =
-        scrollLeft ?? Math.max(0, (layout.todayX ?? 0) - layout.dayWidth * 7);
+      root.scrollLeft = scroll
+        ? scroll.px + dayOffset(layout.start, scroll.start) * layout.dayWidth
+        : Math.max(0, (layout.todayX ?? 0) - layout.dayWidth * 7);
       if (pendingFocus) {
         /** @type {HTMLElement | null} */ (
           root.querySelector(`[data-focus="${pendingFocus}"]`)
@@ -172,7 +175,12 @@ export function ganttView({ ctx }) {
     return el;
   }
 
-  return { render };
+  return {
+    render,
+    reset() {
+      scroll = null;
+    },
+  };
 }
 
 /**

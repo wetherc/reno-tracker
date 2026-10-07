@@ -159,12 +159,19 @@ export function ganttBar({
     let timer;
     /** @param {boolean} refocus */
     const flush = (refocus) => {
+      const days = drop();
+      // A drag that started its own save wins, because this item copy
+      // has the dates from before that save.
+      if (!busy) save(moveDates(item, days, edge), edge, refocus);
+    };
+    /** Cancels the key presses not yet saved, and returns their days. */
+    const drop = () => {
       clearTimeout(timer);
       timer = undefined;
-      const patch = moveDates(item, pending, edge);
+      const days = pending;
       pending = 0;
       onPreview(null);
-      save(patch, edge, refocus);
+      return days;
     };
     part.addEventListener('keydown', (event) => {
       const step = ARROWS[/** @type {keyof typeof ARROWS} */ (event.key)];
@@ -194,6 +201,8 @@ export function ganttBar({
     let days = 0;
     part.addEventListener('pointerdown', (event) => {
       if (busy) return;
+      // A drag replaces the key presses not yet saved on this part.
+      drop();
       originX = event.clientX;
       days = 0;
       part.setPointerCapture(event.pointerId);

@@ -65,6 +65,26 @@ async function setup({
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
+test('the scroll keeps its dates when the first day moves, and reset drops it', async () => {
+  const { view, el, ctx } = await setup();
+  await tick();
+  el.scrollLeft = 150;
+  el.dispatchEvent({ type: 'scroll' });
+  const payload = $(ctx.payload);
+  // An item a week earlier moves the first day back from Sep 27 to Sep 20.
+  const early = itemOf('early', {
+    startDate: '2026-09-22',
+    endDate: '2026-09-23',
+  });
+  const wider = $(view.render({ ...payload, schedule: [...items, early] }));
+  await tick();
+  assert.equal(wider.scrollLeft, 150 + 7 * DAY_WIDTH);
+  view.reset();
+  const fresh = $(view.render(payload));
+  await tick();
+  assert.notEqual(fresh.scrollLeft, 150);
+});
+
 test('rows follow the dependency order and the names sit beside them', async () => {
   const { el } = await setup();
   assert.equal(el.className, 'gantt');
@@ -313,6 +333,30 @@ test('the moved handle gets focus back after the rebuild', async (t) => {
   await settle();
   assert.notEqual($(shell.body.children[1].children[0]), second);
   assert.equal(dom.activeElement, other);
+});
+
+test('a drag drops key presses not yet saved, so one move saves', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const { el, log } = await setup();
+  const status = el.querySelector('.gantt__status');
+  const bar = el.querySelectorAll('.gantt-bar')[0];
+  const [, body, end] = bar.children;
+  // Keys on the same part, then a press there, cancel the key move.
+  press(end, 'ArrowRight');
+  end.dispatchEvent({ type: 'pointerdown', pointerId: 1, clientX: 0 });
+  assert.equal(status.textContent, '');
+  end.dispatchEvent({ type: 'pointerup', pointerId: 1, clientX: 0 });
+  t.mock.timers.tick(KEY_DELAY);
+  await settle();
+  assert.deepEqual(log, []);
+  // Keys on one part, then a drag on another, save the drag only.
+  press(end, 'ArrowRight');
+  body.dispatchEvent({ type: 'pointerdown', pointerId: 2, clientX: 0 });
+  body.dispatchEvent({ type: 'pointermove', pointerId: 2, clientX: DAY_WIDTH });
+  body.dispatchEvent({ type: 'pointerup', pointerId: 2, clientX: DAY_WIDTH });
+  t.mock.timers.tick(KEY_DELAY);
+  await settle();
+  assert.deepEqual(log, ['patch demo ']);
 });
 
 test('a drag previews the dates, saves on release, and does not open the editor', async () => {
