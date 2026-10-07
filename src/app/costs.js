@@ -132,6 +132,8 @@ export function materialsNote(progress) {
   return `${bought}, ${open} not yet invoiced`;
 }
 
+const NARROW = '(max-width: 68rem)';
+
 /**
  * The width of the chart model in svg units. Under the layout
  * breakpoint the figure is about 30rem wide, so a model of the same
@@ -141,7 +143,7 @@ export function materialsNote(progress) {
  * @returns {number}
  */
 export function chartWidth(win = globalThis) {
-  return win.matchMedia?.('(max-width: 68rem)').matches ? 480 : 960;
+  return win.matchMedia?.(NARROW).matches ? 480 : 960;
 }
 
 /**
@@ -255,10 +257,26 @@ const toggler = (svg, selector, className) => (on) =>
   svg.querySelector(selector)?.classList.toggle(className, on);
 
 /**
- * @param {{ ctx: AppContext, shell: Shell }} deps
+ * @typedef {{
+ *   matchMedia?: (query: string) => {
+ *     matches: boolean,
+ *     addEventListener?: (type: 'change', fn: () => void) => void,
+ *   },
+ * }} MediaWindow
+ */
+
+/**
+ * @param {{ ctx: AppContext, shell: Shell, win?: MediaWindow }} deps win
+ * gives the media query, and defaults to the page window
  * @returns {{ show(): void }} show fills the panel with the tiles and charts
  */
-export function mountCosts({ ctx, shell }) {
+export function mountCosts({ ctx, shell, win = globalThis }) {
+  // The chart model width follows the breakpoint, so a resize across it
+  // draws the panel again. mountCosts runs once, so the page keeps one
+  // listener for its whole life.
+  win.matchMedia?.(NARROW).addEventListener?.('change', () => {
+    if (shell.section === 'costs') show();
+  });
   // The sort a person picked outlives the rebuild after each write.
   /** @type {import('../ui/DataTable.js').SortState | null} */
   let sort = null;
@@ -289,9 +307,9 @@ export function mountCosts({ ctx, shell }) {
       budgetCents: payload.project.budgetCents,
       today,
       ...range,
-      width: chartWidth(),
+      width: chartWidth(win),
     });
-    const bars = barChartModel({ weeks, width: chartWidth() });
+    const bars = barChartModel({ weeks, width: chartWidth(win) });
 
     const root = document.createElement('div');
     root.className = 'costs';

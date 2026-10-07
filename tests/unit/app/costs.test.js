@@ -580,3 +580,42 @@ test('chartWidth draws a narrow model under the breakpoint', () => {
   assert.equal(chartWidth({}), 960);
   assert.equal(chartWidth(), 960);
 });
+
+test('mountCosts draws the panel again when the breakpoint flips', async () => {
+  const fx = setupSchedule({
+    schedule: [itemOf('a', { title: 'Demo', estimatedCents: 100 })],
+  });
+  /** @type {(() => void)[]} */
+  const fns = [];
+  const media = {
+    matches: false,
+    /** @param {'change'} _type @param {() => void} fn */
+    addEventListener: (_type, fn) => fns.push(fn),
+  };
+  const shell = mountShell({
+    sidebar: document.createElement('nav'),
+    main: document.createElement('main'),
+    prefs: createPrefs(memoryStorage()),
+  });
+  shell.setSection('costs');
+  const panel = mountCosts({
+    ctx: fx.ctx,
+    shell,
+    win: { matchMedia: () => media },
+  });
+  fx.ctx.on('payload', () => panel.show());
+  await fx.ctx.openProject('p1');
+  assert.equal(fns.length, 1);
+  const viewBox = () =>
+    $(shell.body.querySelector('svg')).getAttribute('viewBox');
+  assert.match(viewBox(), / 960 /);
+  media.matches = true;
+  fns[0]();
+  assert.match(viewBox(), / 480 /);
+  panel.show();
+  assert.equal(fns.length, 1);
+  shell.setSection('schedule');
+  shell.setBody(document.createElement('p'));
+  fns[0]();
+  assert.equal(shell.body.querySelector('svg'), null);
+});
