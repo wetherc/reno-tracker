@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBackend, readBackend } from '../../../src/api/backend.js';
 import { memoryStorage } from '../../../src/storage/prefs.js';
+import { describeFailure } from '../../../src/api/errors.js';
 
 /** @param {string | null} content */
 function docWithMeta(content) {
@@ -30,4 +31,11 @@ test('both backends expose the same methods', async () => {
   const server = createBackend('server', memoryStorage());
   assert.deepEqual(Object.keys(local).sort(), Object.keys(server).sort());
   assert.deepEqual(await local.listProjects(), []);
+});
+
+test('createBackend sets the failure text for its backend', () => {
+  createBackend('local', memoryStorage());
+  assert.match(describeFailure(new TypeError('bad')), /browser store/);
+  createBackend('server', memoryStorage());
+  assert.match(describeFailure(new TypeError('bad')), /reach the server/);
 });

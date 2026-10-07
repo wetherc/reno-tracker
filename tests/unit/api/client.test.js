@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApi } from '../../../src/api/client.js';
-import { ApiError, describeFailure } from '../../../src/api/errors.js';
+import {
+  ApiError,
+  describeFailure,
+  setFailureBackend,
+} from '../../../src/api/errors.js';
 
 /**
  * @param {{ status: number, body?: unknown, text?: string }} reply
@@ -136,4 +140,12 @@ test('describeFailure picks the text a person reads', () => {
   assert.equal(describeFailure(new Error('odd')), 'odd');
   assert.equal(describeFailure(new Error('')), 'Something went wrong.');
   assert.equal(describeFailure('nope'), 'Something went wrong.');
+});
+
+test('describeFailure blames the browser store, not the server, in local mode', () => {
+  setFailureBackend('local');
+  const text = describeFailure(new TypeError('x.map is not a function'));
+  setFailureBackend('server');
+  assert.doesNotMatch(text, /server/);
+  assert.match(text, /browser store failed: x\.map is not a function/);
 });

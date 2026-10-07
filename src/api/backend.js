@@ -4,6 +4,7 @@
 // "local", because static hosting has no server.
 import { createApi } from './client.js';
 import { createLocalApi } from '../local/api.js';
+import { setFailureBackend } from './errors.js';
 
 /** @typedef {'server' | 'local'} Backend */
 
@@ -23,5 +24,6 @@ export function readBackend(doc) {
  * @returns {import('./client.js').Api}
  */
 export function createBackend(backend, storage, events) {
+  setFailureBackend(backend);
   return backend === 'local' ? createLocalApi(storage, events) : createApi();
 }
