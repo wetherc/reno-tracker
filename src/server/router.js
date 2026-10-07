@@ -11,8 +11,8 @@ import { isJsonType } from './guard.js';
 /**
  * @typedef {{ params: Record<string, string>, body: unknown, req: IncomingMessage }} RouteContext
  * @typedef {(ctx: RouteContext) => unknown} Handler
- * @typedef {{ maxBytes?: number }} RouteOptions
- * @typedef {{ method: string, pattern: string, keys: string[], regex: RegExp, handler: Handler, maxBytes: number }} Route
+ * @typedef {{ maxBytes?: number, status?: number }} RouteOptions
+ * @typedef {{ method: string, pattern: string, keys: string[], regex: RegExp, handler: Handler, maxBytes: number, status: number }} Route
  */
 
 /** The body limit for a route that sets none. */
@@ -79,6 +79,10 @@ export function readJsonBody(req, maxBytes = MAX_BODY_BYTES) {
       chunks.push(chunk);
     });
     req.on('error', reject);
+    // A client that stops sending ends the request with no 'end' event.
+    req.on('close', () => {
+      if (!req.complete) reject(new HttpError(400, 'Body ended early'));
+    });
     req.on('end', () => {
       if (tooLarge) {
         const mb = maxBytes / 1_000_000;
@@ -152,12 +156,17 @@ export class Router {
    * @param {Handler} handler
    * @param {RouteOptions} [options]
    */
-  add(method, pattern, handler, { maxBytes = MAX_BODY_BYTES } = {}) {
+  add(method, pattern, handler, options = {}) {
+    const {
+      maxBytes = MAX_BODY_BYTES,
+      status = method === 'POST' ? 201 : 200,
+    } = options;
     this.routes.push({
       method,
       pattern,
       handler,
       maxBytes,
+      status,
       ...compilePattern(pattern),
     });
     return this;
@@ -241,7 +250,7 @@ export class Router {
       if (result === undefined) {
         res.writeHead(204).end();
       } else {
-        sendJson(res, method === 'POST' ? 201 : 200, result);
+        sendJson(res, found.route.status, result);
       }
     } catch (error) {
       sendError(res, error, this.onError);

@@ -50,7 +50,10 @@ export function materialRoutes(router, db) {
   router.delete('/api/materials/:id', ({ params }) => {
     deleteMaterialItem(db, params.id);
   });
-  router.post('/api/materials/:id/complete', ({ params, body }) =>
-    setMaterialItemComplete(db, params.id, readComplete(body)),
+  router.post(
+    '/api/materials/:id/complete',
+    ({ params, body }) =>
+      setMaterialItemComplete(db, params.id, readComplete(body)),
+    { status: 200 },
   );
 }

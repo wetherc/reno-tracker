@@ -75,7 +75,7 @@ test('schedule routes: create, patch with variances, complete, delete', async ()
     res = await app.api('POST', `/api/schedule/${item.id}/complete`, {
       complete: true,
     });
-    assert.equal(res.status, 201);
+    assert.equal(res.status, 200);
     assert.equal(res.body.complete, true);
     res = await app.api('POST', `/api/schedule/${item.id}/complete`, {
       complete: 'yes',
@@ -206,7 +206,7 @@ test('material routes', async () => {
     res = await app.api('POST', `/api/materials/${tile.id}/complete`, {
       complete: true,
     });
-    assert.equal(res.status, 201);
+    assert.equal(res.status, 200);
     assert.equal(res.body.complete, true);
     res = await app.api('DELETE', `/api/materials/${tile.id}`);
     assert.equal(res.status, 204);

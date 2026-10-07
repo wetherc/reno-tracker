@@ -54,18 +54,22 @@ export function projectRoutes(router, db) {
     deleteProject(db, params.id);
   });
 
-  router.post('/api/projects/:id/reorder', ({ params, body }) => {
-    const input = asObject(body);
-    if (
-      !Array.isArray(input.ids) ||
-      !input.ids.every((id) => typeof id === 'string')
-    ) {
-      throw badRequest('ids must be a list of ids', 'ids');
-    }
-    const ids = /** @type {string[]} */ (input.ids);
-    if (input.kind === 'schedule') reorderSchedule(db, params.id, ids);
-    else if (input.kind === 'materials') reorderMaterials(db, params.id, ids);
-    else throw badRequest('kind must be "schedule" or "materials"', 'kind');
-    return getProjectPayload(db, params.id);
-  });
+  router.post(
+    '/api/projects/:id/reorder',
+    ({ params, body }) => {
+      const input = asObject(body);
+      if (
+        !Array.isArray(input.ids) ||
+        !input.ids.every((id) => typeof id === 'string')
+      ) {
+        throw badRequest('ids must be a list of ids', 'ids');
+      }
+      const ids = /** @type {string[]} */ (input.ids);
+      if (input.kind === 'schedule') reorderSchedule(db, params.id, ids);
+      else if (input.kind === 'materials') reorderMaterials(db, params.id, ids);
+      else throw badRequest('kind must be "schedule" or "materials"', 'kind');
+      return getProjectPayload(db, params.id);
+    },
+    { status: 200 },
+  );
 }

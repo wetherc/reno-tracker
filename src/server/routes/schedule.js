@@ -65,8 +65,11 @@ export function scheduleRoutes(router, db) {
     deleteScheduleItem(db, params.id);
   });
 
-  router.post('/api/schedule/:id/complete', ({ params, body }) =>
-    setScheduleItemComplete(db, params.id, readComplete(body)),
+  router.post(
+    '/api/schedule/:id/complete',
+    ({ params, body }) =>
+      setScheduleItemComplete(db, params.id, readComplete(body)),
+    { status: 200 },
   );
 
   router.get('/api/schedule/:id/changes', ({ params }) =>

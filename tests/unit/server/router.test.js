@@ -1,9 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { EventEmitter } from 'node:events';
 import {
   Router,
   compilePattern,
+  readJsonBody,
   requestTarget,
 } from '../../../src/server/router.js';
 import { badRequest } from '../../../src/server/errors.js';
@@ -194,4 +196,36 @@ test('a route can set its own body limit', async () => {
   } finally {
     await close();
   }
+});
+
+test('a POST route can answer 200 when it creates nothing', async () => {
+  const router = new Router().post('/things/:id/done', () => ({ ok: true }), {
+    status: 200,
+  });
+  const { call, close } = await serve(router);
+  try {
+    const res = await call('/things/1/done', {
+      method: 'POST',
+      headers: JSON_TYPE,
+      body: '{}',
+    });
+    assert.equal(res.status, 200);
+  } finally {
+    await close();
+  }
+});
+
+test('readJsonBody rejects when the client stops mid-body', async () => {
+  const req = Object.assign(new EventEmitter(), { complete: false });
+  const body = readJsonBody(/** @type {any} */ (req));
+  req.emit('data', Buffer.from('{"a":'));
+  req.emit('close');
+  await assert.rejects(body, { status: 400, message: 'Body ended early' });
+
+  const done = Object.assign(new EventEmitter(), { complete: true });
+  const whole = readJsonBody(/** @type {any} */ (done));
+  done.emit('data', Buffer.from('{"a":1}'));
+  done.emit('end');
+  done.emit('close');
+  assert.deepEqual(await whole, { a: 1 });
 });

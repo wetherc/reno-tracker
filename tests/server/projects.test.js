@@ -59,7 +59,7 @@ test('project routes: list, create, read payload, patch, delete, reorder', async
       kind: 'schedule',
       ids: [b.id, a.id],
     });
-    assert.equal(res.status, 201);
+    assert.equal(res.status, 200);
     assert.deepEqual(
       res.body.schedule.map((/** @type {any} */ s) => s.title),
       ['Framing', 'Demo'],
@@ -68,7 +68,7 @@ test('project routes: list, create, read payload, patch, delete, reorder', async
       kind: 'materials',
       ids: [],
     });
-    assert.equal(res.status, 201);
+    assert.equal(res.status, 200);
     res = await app.api('POST', `/api/projects/${project.id}/reorder`, {
       kind: 'x',
       ids: [],
