@@ -48,7 +48,11 @@ test('createMaterialItem appends and links to a schedule item of the same projec
   assert.throws(() => addMaterial(db, 'nope', 'x'), { status: 404 });
   assert.throws(
     () => addMaterial(db, project.id, 'x', { scheduleItemId: 'nope' }),
-    { status: 404 },
+    {
+      status: 400,
+      field: 'scheduleItemId',
+      message: 'scheduleItemId names no schedule item',
+    },
   );
 });
 

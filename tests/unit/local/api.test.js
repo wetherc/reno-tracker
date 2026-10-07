@@ -286,6 +286,18 @@ test('dependencies: link, refuse duplicates and loops, unlink', async () => {
     'successorId belongs to another project',
     'successorId',
   );
+  await fails(
+    api.addDependency(p.id, { predecessorId: 'gone', successorId: b.id }),
+    400,
+    'predecessorId names no schedule item',
+    'predecessorId',
+  );
+  await fails(
+    api.addDependency(p.id, { predecessorId: a.id, successorId: 'gone' }),
+    400,
+    'successorId names no schedule item',
+    'successorId',
+  );
   const ab = await api.addDependency(p.id, {
     predecessorId: a.id,
     successorId: b.id,
@@ -323,6 +335,12 @@ test('materials: create, link checks, patch, complete, delete, reorder', async (
     api.createMaterial(p.id, { name: 'Tile', scheduleItemId: far.id }),
     400,
     'scheduleItemId belongs to another project',
+    'scheduleItemId',
+  );
+  await fails(
+    api.createMaterial(p.id, { name: 'Tile', scheduleItemId: 'gone' }),
+    400,
+    'scheduleItemId names no schedule item',
     'scheduleItemId',
   );
   const tile = await api.createMaterial(p.id, {

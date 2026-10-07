@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { withTransaction } from '../db/open.js';
-import { badRequest, notFound } from '../errors.js';
+import { notFound } from '../errors.js';
 import { getProject } from './projects.js';
 import { checkUnlinked } from './lines.js';
-import { getScheduleItem, reorderRows } from './schedule.js';
+import { linkedItem, reorderRows } from './schedule.js';
 import { setClause, toMaterialItem } from './rows.js';
 import { statement } from './statements.js';
 
@@ -32,13 +32,7 @@ export function getMaterialItem(db, id) {
  */
 function checkLink(db, projectId, scheduleItemId) {
   if (scheduleItemId === null || scheduleItemId === undefined) return;
-  const item = getScheduleItem(db, scheduleItemId);
-  if (item.projectId !== projectId) {
-    throw badRequest(
-      'scheduleItemId belongs to another project',
-      'scheduleItemId',
-    );
-  }
+  linkedItem(db, projectId, scheduleItemId, 'scheduleItemId');
 }
 
 /**

@@ -92,7 +92,11 @@ test('createDependency keeps edges inside one project', () => {
         predecessorId: 'nope',
         successorId: a.id,
       }),
-    { status: 404 },
+    {
+      status: 400,
+      field: 'predecessorId',
+      message: 'predecessorId names no schedule item',
+    },
   );
 });
 

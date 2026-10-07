@@ -25,6 +25,28 @@ export function getScheduleItem(db, id) {
 }
 
 /**
+ * The item that a link field names. A missing item or an item in another
+ * project answers 400 with the field set, because the fault is in the
+ * body rather than in the path.
+ * @param {Database} db
+ * @param {string} projectId
+ * @param {string} id
+ * @param {string} field
+ * @returns {ScheduleItem}
+ */
+export function linkedItem(db, projectId, id, field) {
+  const row = statement(db, 'SELECT * FROM schedule_items WHERE id = ?').get(
+    id,
+  );
+  if (!row) throw badRequest(`${field} names no schedule item`, field);
+  const item = toScheduleItem(row);
+  if (item.projectId !== projectId) {
+    throw badRequest(`${field} belongs to another project`, field);
+  }
+  return item;
+}
+
+/**
  * The change rows of one item, oldest first.
  * @param {Database} db
  * @param {string} id

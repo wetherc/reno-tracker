@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { findCycle } from '../../schedule/graph.js';
-import { badRequest, conflict, notFound } from '../errors.js';
-import { getScheduleItem } from './schedule.js';
+import { conflict, notFound } from '../errors.js';
+import { getScheduleItem, linkedItem } from './schedule.js';
 import { toDependency } from './rows.js';
 import { statement } from './statements.js';
 
@@ -31,17 +31,8 @@ export function listDependencies(db, projectId) {
  * @returns {Dependency}
  */
 export function createDependency(db, projectId, input) {
-  const pred = getScheduleItem(db, input.predecessorId);
-  const succ = getScheduleItem(db, input.successorId);
-  if (pred.projectId !== projectId) {
-    throw badRequest(
-      'predecessorId belongs to another project',
-      'predecessorId',
-    );
-  }
-  if (succ.projectId !== projectId) {
-    throw badRequest('successorId belongs to another project', 'successorId');
-  }
+  const pred = linkedItem(db, projectId, input.predecessorId, 'predecessorId');
+  const succ = linkedItem(db, projectId, input.successorId, 'successorId');
   const existing = listDependencies(db, projectId);
   if (
     existing.some(

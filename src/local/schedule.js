@@ -29,6 +29,25 @@ export function getScheduleItem(db, id) {
 }
 
 /**
+ * The item that a link field names. A missing item or an item in another
+ * project answers 400 with the field set, because the fault is in the
+ * body rather than in the path.
+ * @param {LocalDb} db
+ * @param {string} projectId
+ * @param {string} id
+ * @param {string} field
+ * @returns {ScheduleItem}
+ */
+export function linkedItem(db, projectId, id, field) {
+  const item = db.schedule.find((s) => s.id === id);
+  if (!item) throw badRequest(`${field} names no schedule item`, field);
+  if (item.projectId !== projectId) {
+    throw badRequest(`${field} belongs to another project`, field);
+  }
+  return item;
+}
+
+/**
  * @param {LocalDb} db
  * @param {'schedule' | 'materials'} kind
  * @param {string} projectId
@@ -211,17 +230,8 @@ export function deleteNote(db, id) {
  * @returns {Dependency}
  */
 export function createDependency(db, projectId, input) {
-  const pred = getScheduleItem(db, input.predecessorId);
-  const succ = getScheduleItem(db, input.successorId);
-  if (pred.projectId !== projectId) {
-    throw badRequest(
-      'predecessorId belongs to another project',
-      'predecessorId',
-    );
-  }
-  if (succ.projectId !== projectId) {
-    throw badRequest('successorId belongs to another project', 'successorId');
-  }
+  const pred = linkedItem(db, projectId, input.predecessorId, 'predecessorId');
+  const succ = linkedItem(db, projectId, input.successorId, 'successorId');
   const existing = db.dependencies.filter((d) => d.projectId === projectId);
   if (
     existing.some(
