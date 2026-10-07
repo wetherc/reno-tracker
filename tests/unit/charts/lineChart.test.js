@@ -119,11 +119,12 @@ test('markersOf reads a day in one series only from the other running total', ()
     (cents) => cents,
   );
   assert.deepEqual(
-    markers.map((m) => [m.date, m.x, m.expectedCents, m.actualCents]),
+    markers.map((m) => [m.date, m.x, m.y, m.expectedCents, m.actualCents]),
+    // A day with only an invoice sits on the spent line.
     [
-      ['2026-10-05', 5, 0, 40],
-      ['2026-10-11', 11, 100, 40],
-      ['2026-10-20', 20, 100, 90],
+      ['2026-10-05', 5, 40, 0, 40],
+      ['2026-10-11', 11, 100, 100, 40],
+      ['2026-10-20', 20, 90, 100, 90],
     ],
   );
   assert.deepEqual(markersOf([], [], id, id), []);

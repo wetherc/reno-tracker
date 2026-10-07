@@ -100,7 +100,9 @@ function totalOn(points, date) {
 }
 
 /**
- * One marker per day that appears in either series.
+ * One marker per day that appears in either series. The marker sits on
+ * the expected line when an expected cost lands that day, and on the
+ * spent line when only an invoice does.
  * @param {SeriesPoint[]} expected
  * @param {SeriesPoint[]} actual
  * @param {(date: string) => number} x
@@ -111,12 +113,14 @@ export function markersOf(expected, actual, x, y) {
   const dates = [...new Set([...expected, ...actual].map((p) => p.date))];
   return dates.sort().map((date) => {
     const expectedCents = totalOn(expected, date) ?? 0;
+    const actualCents = totalOn(actual, date);
+    const onExpected = expected.some((p) => p.date === date);
     return {
       date,
       x: r(x(date)),
-      y: r(y(expectedCents)),
+      y: r(y(onExpected ? expectedCents : (actualCents ?? 0))),
       expectedCents,
-      actualCents: totalOn(actual, date),
+      actualCents,
     };
   });
 }
