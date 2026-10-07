@@ -111,6 +111,8 @@ test('percentField with blankIsNull reads a blank field as null', () => {
   });
   assert.equal($(field.input).value, '');
   assert.equal(field.basisPoints(), null);
+  $(field.input).value = ' % ';
+  assert.equal(field.basisPoints(), null);
   $(field.input).value = '25';
   assert.equal(field.basisPoints(), 2500);
 });
@@ -134,6 +136,8 @@ test('moneyField reads cents and flags junk', () => {
   });
   assert.equal($(actual.input).value, '');
   assert.equal($(actual.input).placeholder, 'Not yet');
+  assert.equal(actual.cents(), null);
+  $(actual.input).value = '$';
   assert.equal(actual.cents(), null);
   $(actual.input).value = ' 12 ';
   assert.equal(actual.cents(), 1200);

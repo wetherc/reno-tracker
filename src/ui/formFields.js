@@ -169,7 +169,9 @@ export function moneyField(options) {
   return {
     ...handle,
     cents() {
-      if (options.blankIsNull && input.value.trim() === '') return null;
+      if (options.blankIsNull && input.value.replace(/[$\s]/g, '') === '') {
+        return null;
+      }
       return parseMoney(input.value);
     },
   };
@@ -197,7 +199,9 @@ export function percentField(options) {
   return {
     ...handle,
     basisPoints() {
-      if (options.blankIsNull && input.value.trim() === '') return null;
+      if (options.blankIsNull && input.value.replace(/[%\s]/g, '') === '') {
+        return null;
+      }
       return parsePercent(input.value);
     },
   };
