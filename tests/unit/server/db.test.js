@@ -102,6 +102,22 @@ test('migrate applies numbered files in order and skips applied ones', () => {
   });
 });
 
+test('migrate refuses a database from newer code', () => {
+  const db = openDatabase(':memory:');
+  db.prepare(`UPDATE meta SET value = '99' WHERE key = 'schemaVersion'`).run();
+  assert.throws(
+    () => migrate(db),
+    /schema version 99, but this code knows only up to 9/,
+  );
+  db.close();
+  withTempDir((dir) => {
+    const empty = new DatabaseSync(':memory:');
+    const paths = { schemaPath: SCHEMA_PATH, migrationsDir: dir };
+    assert.deepEqual(migrate(empty, paths), []);
+    empty.close();
+  });
+});
+
 test('a failing migration rolls back and leaves the version unchanged', () => {
   withTempDir((dir) => {
     writeFileSync(join(dir, '001-ok.sql'), 'CREATE TABLE ok (x);');

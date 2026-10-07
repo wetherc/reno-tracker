@@ -311,7 +311,9 @@ The server keeps every project in one SQLite file. The file defaults to
 the migrations. `schema.sql` creates the `meta` table that stores the
 schema version. `migrate.js` then applies each numbered file under
 `src/server/db/migrations/` that is newer than the stored version, inside
-one transaction, and writes the new version. Every child table declares
+one transaction, and writes the new version. A stored version above the
+newest file means that newer code wrote the database, so the server
+refuses to start with an error that names both versions. Every child table declares
 `ON DELETE CASCADE`, so deleting a project removes its rows.
 
 An invoice line bills one schedule item or one material, and a change

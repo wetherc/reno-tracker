@@ -1,7 +1,10 @@
 // Applies numbered SQL files in order. A file named `007-anything.sql` is
 // migration 7. Each file runs inside its own transaction together with
 // the schemaVersion update, so a failed migration leaves the version
-// untouched and the next start retries it.
+// untouched and the next start retries it. A database with a version
+// above the newest file comes from newer code, so migrate refuses it
+// rather than let older code write rows that the newer schema reads
+// wrong.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,12 +59,19 @@ export function schemaVersion(db) {
 export function migrate(db, paths = {}) {
   db.exec(readFileSync(paths.schemaPath ?? SCHEMA_PATH, 'utf8'));
   const current = schemaVersion(db);
+  const migrations = listMigrations(paths.migrationsDir ?? MIGRATIONS_DIR);
+  const newest = migrations.at(-1)?.version ?? 0;
+  if (current > newest) {
+    throw new Error(
+      `The database has schema version ${current}, but this code knows only up to ${newest}. Run a newer version of the app.`,
+    );
+  }
   const setVersion = db.prepare(
     `UPDATE meta SET value = ? WHERE key = 'schemaVersion'`,
   );
   /** @type {number[]} */
   const applied = [];
-  for (const m of listMigrations(paths.migrationsDir ?? MIGRATIONS_DIR)) {
+  for (const m of migrations) {
     if (m.version <= current) continue;
     db.exec('BEGIN');
     try {
