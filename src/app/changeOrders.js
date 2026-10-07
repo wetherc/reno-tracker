@@ -12,7 +12,7 @@ import { formatDayMonth } from '../format/date.js';
 import { formatCents } from '../format/money.js';
 import { readSort, sortText } from '../storage/prefs.js';
 import { bareButton, button } from '../ui/buttons.js';
-import { dataTable, tableScroll } from '../ui/DataTable.js';
+import { byText, dataTable, tableScroll } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
 import { focusKey } from '../ui/focusKey.js';
 import { stackedCell } from '../ui/stackedCell.js';
@@ -23,12 +23,6 @@ import { lineNames } from './lineList.js';
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
 /** @typedef {import('../types.ts').ChangeOrder} ChangeOrder */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
-
-/**
- * @param {string} a
- * @param {string} b
- */
-const byText = (a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' });
 
 /**
  * @param {ChangeOrder} order

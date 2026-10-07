@@ -9,7 +9,7 @@ import { formatCents } from '../format/money.js';
 import { spanDays, todayIso } from '../schedule/dates.js';
 import { readSort, sortText } from '../storage/prefs.js';
 import { bareButton } from '../ui/buttons.js';
-import { dataTable, tableScroll } from '../ui/DataTable.js';
+import { byText, dataTable, tableScroll } from '../ui/DataTable.js';
 import { focusKey } from '../ui/focusKey.js';
 import { icon } from '../ui/icon.js';
 import { estimateCell } from './changeEstimates.js';
@@ -102,12 +102,6 @@ export function scheduleTotals(items, changes) {
   }
   return totals;
 }
-
-/**
- * @param {string} a
- * @param {string} b
- */
-const byText = (a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' });
 
 /**
  * @param {{ ctx: AppContext }} deps

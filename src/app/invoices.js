@@ -10,7 +10,7 @@ import { formatCents } from '../format/money.js';
 import { todayIso } from '../schedule/dates.js';
 import { readSort, sortText } from '../storage/prefs.js';
 import { bareButton, button } from '../ui/buttons.js';
-import { dataTable, tableScroll } from '../ui/DataTable.js';
+import { byText, dataTable, tableScroll } from '../ui/DataTable.js';
 import { emptyState } from '../ui/emptyState.js';
 import { focusKey } from '../ui/focusKey.js';
 import { openInvoiceEditor } from './invoiceEditor.js';
@@ -27,12 +27,6 @@ import {
 /** @typedef {ReturnType<typeof import('./shell.js').mountShell>} Shell */
 /** @typedef {import('../types.ts').Invoice} Invoice */
 /** @typedef {import('../types.ts').ProjectPayload} ProjectPayload */
-
-/**
- * @param {string} a
- * @param {string} b
- */
-const byText = (a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' });
 
 /**
  * @param {{ ctx: AppContext, shell: Shell }} deps
