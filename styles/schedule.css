@@ -1,5 +1,25 @@
 /* Schedule table and the item editor. */
 
+/* The schedule and materials tables have ten columns. Narrower cell
+   padding, headers that wrap, and a note under an amount that wraps,
+   let them fit the panel beside the sidebar at 1280px without
+   a sideways scroll. */
+.table-scroll:has(.schedule-title, .material-name)
+  :is(.data-table__th, .data-table__td) {
+  padding-inline: var(--space-2);
+}
+
+.table-scroll:has(.schedule-title, .material-name) .data-table__th {
+  vertical-align: bottom;
+  white-space: normal;
+}
+
+.table-scroll:has(.schedule-title, .material-name) .cell-stack__note {
+  max-width: 7.5rem;
+  white-space: normal;
+  text-align: right;
+}
+
 .schedule-row--complete .schedule-title {
   color: var(--text-muted);
   text-decoration: line-through;
